@@ -21,9 +21,19 @@ def list_functions(self) -> str:
     return ", ".join(self.functions_python.keys())
 
 
-def reload_functions(self):
-    """Triggers a reload of functions"""
-    return self.reload_functions()
+def add_function(self, function_name: str) -> str:
+    """Adds specified function to agent state.
+
+    Args:
+        function_name (str): name of the function to add
+
+    Raises:
+        Exception: occurs when the function does not exist or is not in the functions folder
+
+    Returns:
+        str: description of result.
+    """
+    return self.add_function(function_name)
 
 
 def introspect_functions(self, function_name: str) -> str:
@@ -38,14 +48,12 @@ def introspect_functions(self, function_name: str) -> str:
     func = self.functions_python[function_name]
     return inspect.getsource(func)
 
-import ast
-import astunparse
 
-def delete_function(self, function_name: str) -> str:
-    """Deletes the listed function. function MUST be in the functions folder
+def remove_function(self, function_name: str) -> str:
+    """Removes the listed function from the agent. Function must be a user defined function.
 
     Args:
-        function_name (str): name of the function to delete
+        function_name (str): name of the function to remove
 
     Raises:
         Exception: occurs when the function does not exist or is not in the functions folder
@@ -53,30 +61,8 @@ def delete_function(self, function_name: str) -> str:
     Returns:
         str: description of result.
     """
-    if function_name not in self.functions_python.keys():
-        raise Exception(f"Function {function_name} does not exist. To create it, use function `create_function`.")
 
-    file_path = inspect.getfile(self.functions_python[function_name])
-
-    with open(file_path, "r") as f:
-        previous_module_source = ast.parse(f.read())
-
-    function_nodes = [node for node in ast.walk(previous_module_source) if isinstance(node, ast.FunctionDef) and
-node.name == function_name]
-
-    if not function_nodes:
-        raise Exception(f"Function {function_name} was not found in its source file.")
-
-    previous_module_source.body.remove(function_nodes[0])
-
-    new_source = astunparse.unparse(previous_module_source)
-
-    with open(file_path, "w") as f:
-        f.write(new_source)
-        
-    self.reload_functions()
-
-    return f"Deleted function {function_name} from file {file_path}."
+    return self.remove_function(function_name)
 
 
 def create_function(self, function_name: str, function_code_with_docstring: str, module_name: str) -> str:
