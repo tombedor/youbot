@@ -39,7 +39,7 @@ This is similar to Autogen's approach, though I think Autogen's groupchat manage
 
 ### Installation
 
-These functions work when run with my [MemGPT fork](https://github.com/tombedor/MemGPT). The primary change is [this PR](https://github.com/cpacker/MemGPT/pull/734)
+These functions work when run with MemGPT v2.12 and above.
 
 Dependencies will need to be installed in the relevant python environment
 
