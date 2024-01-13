@@ -3,6 +3,7 @@ import inspect
 from pathlib import Path
 import sys
 from memgpt.constants import MEMGPT_DIR
+from memgpt.functions.functions import load_all_function_sets
 
 FUNCTIONS_DIR = os.path.join(MEMGPT_DIR, "functions")
 AGENT_CREATED_PREFIX = "agent_created_"
@@ -10,6 +11,13 @@ AGENT_CREATED_PREFIX = "agent_created_"
 def debugger(self):
     """Triggers a debugger breakpoint"""
     import pdb; pdb.set_trace()
+    
+def reload_functions(self):
+    """Refreshes implementations of user provided functions"""
+    functions = load_all_function_sets()
+    
+    for function_name in self.functions_python.keys():
+        self.functions_python[function_name] = functions[function_name]["python_function"]
 
 
 def list_functions(self) -> str:
@@ -116,6 +124,5 @@ def create_function(self, function_name: str, function_code_with_docstring: str,
     with open(os.path.join(file_path), "w") as f:
         f.write(previous_source + "\n\n" + function_code_with_docstring)
         
-    self.reload_functions()
     return f"added function {function_name} to file {file_path}"
 
