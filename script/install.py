@@ -18,8 +18,8 @@ presets_dir = os.path.join(project_base_dir, "presets")
 os.chdir(os.path.dirname(script_dir))
 
 # Run git pull origin main
-os.system("git pull origin main")
-os.system("poetry update pymemgpt")
+# os.system("git pull origin main")
+# os.system("poetry update pymemgpt")
 
 import os
 
@@ -31,10 +31,10 @@ def symlink_python_files(src_dir, dest_dir):
     for root, dirs, files in os.walk(src_dir):
         for file in files:
             src_file = os.path.join(root, file)
-            dest_link = os.path.join(dest_dir, file)
+            dest_path = os.path.join(dest_dir, file)
             try:
-                os.symlink(src_file, dest_dir)
-                print(f"symlinked {src_file} to {dest_link}")
+                os.symlink(src_file, dest_path)
+                print(f"symlinked {src_file} to {dest_path}")
             except FileExistsError:
                 print(f"skipped {src_file} because it already exists")
 
