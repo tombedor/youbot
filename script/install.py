@@ -10,6 +10,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # Change directory to the parent directory
 project_base_dir = os.path.dirname(script_dir)
 
+functions_dir = os.path.join(project_base_dir, "functions")
+
 os.chdir(os.path.dirname(script_dir))
 
 # Run git pull origin main
@@ -25,7 +27,7 @@ def symlink_python_files(src_dir, dest_dir):
 
     for root, dirs, files in os.walk(src_dir):
         for file in files:
-            if file.endswith('.py') and not '.venv' in root and not 'script' in root:
+            if file.endswith('.py'):
                 src_file = os.path.join(root, file)
                 try:
                     os.symlink(src_file, dest_dir)
@@ -35,6 +37,6 @@ def symlink_python_files(src_dir, dest_dir):
 
 
 print('copying function files')
-source_directory = os.path.expanduser('~/development/MemGPT-Functions')  # Source directory
+source_directory = os.path.expanduser(functions_dir)
 destination_directory = os.path.expanduser('~/.memgpt/functions')  # Destination directory
 symlink_python_files(source_directory, destination_directory)
