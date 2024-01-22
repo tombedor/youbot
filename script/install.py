@@ -18,8 +18,8 @@ presets_dir = os.path.join(project_base_dir, "presets")
 os.chdir(os.path.dirname(script_dir))
 
 # Run git pull origin main
-# os.system("git pull origin main")
-# os.system("poetry update pymemgpt")
+os.system("git pull origin main")
+os.system("poetry update pymemgpt")
 
 import os
 
