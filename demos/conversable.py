@@ -6,10 +6,10 @@ from copy import deepcopy
 
 TESTBOT_NAME = 'testbot'
 
-_config = vars(MemGPTConfig.load())
+_config = MemGPTConfig.load()
 
 
-client =  MemGPT(config = _config)
+client =  MemGPT(config = _config, overwrite_config=False)
 
 client.list_agents()
 
