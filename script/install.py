@@ -11,6 +11,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_base_dir = os.path.dirname(script_dir)
 
 functions_dir = os.path.join(project_base_dir, "functions")
+personas_dir = os.path.join(project_base_dir, "personas")
+humans_dir = os.path.join(project_base_dir, "humans")
+presets_dir = os.path.join(project_base_dir, "presets")
 
 os.chdir(os.path.dirname(script_dir))
 
@@ -37,6 +40,10 @@ def symlink_python_files(src_dir, dest_dir):
 
 
 print('copying function files')
-source_directory = os.path.expanduser(functions_dir)
-destination_directory = os.path.expanduser('~/.memgpt/functions')  # Destination directory
-symlink_python_files(source_directory, destination_directory)
+symlink_python_files(functions_dir, os.path.expanduser('~/.memgpt/functions'))
+print('copying persona files')
+symlink_python_files(personas_dir, os.path.expanduser('~/.memgpt/personas'))
+print('copying human files')
+symlink_python_files(humans_dir, os.path.expanduser('~/.memgpt/humans'))
+print('copying preset files')
+symlink_python_files(presets_dir, os.path.expanduser('~/.memgpt/presets'))
