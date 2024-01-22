@@ -31,9 +31,10 @@ def symlink_python_files(src_dir, dest_dir):
     for root, dirs, files in os.walk(src_dir):
         for file in files:
             src_file = os.path.join(root, file)
+            dest_link = os.path.join(dest_dir, file)
             try:
                 os.symlink(src_file, dest_dir)
-                print(f"symlinked {src_file} to {dest_dir}")
+                print(f"symlinked {src_file} to {dest_link}")
             except FileExistsError:
                 print(f"skipped {src_file} because it already exists")
 
