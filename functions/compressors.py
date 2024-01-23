@@ -1,6 +1,6 @@
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor
-from langchain_openai import OpenAI
+# from langchain_openai import OpenAI
 
 def foo(self):
     """prints foo

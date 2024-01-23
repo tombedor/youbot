@@ -25,12 +25,22 @@ def load_github_repo(self, owner: str, repo: str) -> str:
         concurrent_requests =    10,
     )
     docs = loader.load_data(branch="main")
-    self.config.user_id
+    self.agent_state.user_id
     datasource_name = f"{owner}/{repo}"
-    store_docs(datasource_name, docs, self.config.user_id)
-    attach(self.config.name, datasource_name, self.config.user_id)
+    store_docs(datasource_name, docs, self.agent_state.user_id)
+    attach(self.agent_state.name, datasource_name, self.agent_state.user_id)
     
-def query_github_repo_without_loading(self, owner: str, repo: str, query: str) -> str:
+def query_github_repo_loading(self, owner: str, repo: str, query: str) -> str:
+    """Loads embeddings for a repo, and asks LLM's queries about it.
+
+    Args:
+        owner (str): owner of repo
+        repo (str): name of repo
+        query (str): description of repo
+
+    Returns:
+        str: response to query
+    """
     import pickle
     import os
 

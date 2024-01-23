@@ -1,0 +1,1 @@
+memgpt run --agent memgpt_github --persona memgpt_github_repo_expert --preset github_expert
