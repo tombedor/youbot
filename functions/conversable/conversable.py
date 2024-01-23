@@ -20,7 +20,7 @@ def _get_vars(self) -> (MetadataStore, MemGPT, User):
         
     global _client_dict
     if user_id not in _client_dict:
-        client =  MemGPT(user_id = user_id, config = vars(_config))
+        client =  MemGPT(user_id = user_id, config = vars(_config), overwrite_config=False)
         _client_dict[user_id] = client
         
     global _user_dict
