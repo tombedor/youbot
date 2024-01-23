@@ -17,11 +17,16 @@ def _get_vars(self) -> (MetadataStore, MemGPT, User):
     if self.agent_state.id not in _ms_dict:
         ms = MetadataStore(_config)
         _ms_dict[user_id] = ms
+    else:
+        ms = _ms_dict[user_id]
         
     global _client_dict
     if user_id not in _client_dict:
         client =  MemGPT(user_id = user_id, config = vars(_config), overwrite_config=False)
         _client_dict[user_id] = client
+    else:
+        client = _client_dict[user_id]
+
         
     global _user_dict
     if user_id not in _user_dict:
@@ -29,6 +34,8 @@ def _get_vars(self) -> (MetadataStore, MemGPT, User):
         if user is None:
             user = ms.create_user(User(id = user_id))
         _user_dict[user_id] = user
+    else:
+        user = _user_dict[user_id]
 
     return (ms, client, user)
 
