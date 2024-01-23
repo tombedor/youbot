@@ -4600,7 +4600,7 @@ torch = ["torch"]
 
 [[package]]
 name = "pymemgpt"
-version = "0.2.12"
+version = "0.3.0"
 description = "Teaching LLMs memory management for unbounded context"
 optional = false
 python-versions = "<3.12,>=3.9"
@@ -4644,7 +4644,7 @@ server = ["fastapi (>=0.104.1,<0.105.0)", "uvicorn (>=0.24.0.post1,<0.25.0)", "w
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
 reference = "main"
-resolved_reference = "15a1708a51e4aeb613653c27c7bc81fb3e0b80a3"
+resolved_reference = "94418dc7e21181061e417df650d7635dc51e3030"
 
 [[package]]
 name = "pypandoc"
