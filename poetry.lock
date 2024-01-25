@@ -4644,7 +4644,7 @@ server = ["fastapi (>=0.104.1,<0.105.0)", "uvicorn (>=0.24.0.post1,<0.25.0)", "w
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
 reference = "main"
-resolved_reference = "8b7b33ede840ee2baaeb47ebec43822a18305a6f"
+resolved_reference = "4deb6262bde7a20078a98fb640366d3be27e99e3"
 
 [[package]]
 name = "pypandoc"
