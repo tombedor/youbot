@@ -1,4 +1,6 @@
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -6,26 +8,29 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 class Task(Base):
-   # Table structure for Task
-   __tablename__ = 'tasks'
+    # Table structure for Task
+    __tablename__ = 'tasks'
 
-   id = Column(Integer, primary_key=True)
-   description = Column(String)
-   completion_criteria = Column(String)
-   outcome = Column(String)
-   status = Column(Text)
-   start_timestamp = Column(DateTime)
-   end_timestamp = Column(DateTime)
+    id = Column(Integer, primary_key=True)
+    description = Column(String)
+    completion_criteria = Column(String)
+    outcome = Column(String)
+    status = Column(Text)
+    start_timestamp = Column(DateTime)
+    end_timestamp = Column(DateTime)
 
 
-   def __str__(self):
+    def __str__(self):
         """
         This method returns a summary of the task in string form.
         :return: Summary of the task
         """
         return f'Task id: {self.id}, description: {self.description}, completion criteria: {self.completion_criteria}, outcome: {self.outcome}, status: {self.status}, start timestamp: {self.start_timestamp}, end timestamp: {self.end_timestamp}'
 
-engine = create_engine('postgresql://user:password@localhost/dbname')
+load_dotenv()
+POSTGRES_URL = os.getenv("POSTGRES_URL")
+
+engine = create_engine(POSTGRES_URL)
 Base.metadata.create_all(engine)
 session_maker = sessionmaker(bind=engine)
 
