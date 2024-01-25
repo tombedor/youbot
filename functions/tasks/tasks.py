@@ -1,11 +1,11 @@
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import text
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
 class Task(Base):
+   # Table structure for Task
    __tablename__ = 'tasks'
 
    id = Column(Integer, primary_key=True)
@@ -21,7 +21,14 @@ engine = create_engine('postgresql://user:password@localhost/dbname')
 Base.metadata.create_all(engine)
 session_maker = sessionmaker(bind=engine)
 
-def add_task(self, description, completion_criteria, outcome):
+def add_task(self, description: str, completion_criteria: str, outcome: str) -> int
+    """
+    This function adds a new task to the task table
+    :param description: Description of the task
+    :param completion_criteria: Completion criteria for the task
+    :param outcome: The outcome for the task
+    :return: The id of the new task
+    """
     with session_maker() as session:
         new_task = Task(
             description=description,
@@ -34,6 +41,11 @@ def add_task(self, description, completion_criteria, outcome):
     return new_task.id
 
 def get_task(self, task_id):
+    """
+    This function retrieves a task based on its id from the task table
+    :param task_id: The id of the task to retrieve
+    :return: Task if found else return an error string
+    """
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
     
@@ -41,9 +53,38 @@ def get_task(self, task_id):
             return 'No task found with that id.'
         else:
             return task
+        
+def mark_task_as_completed(task_id: int) -> str:
+    """
+    Update the status of a task to 'completed'.
+
+    Parameters:
+    task_id (int): The ID of the task to be marked as completed.
+
+    Returns:
+    str: A message indicating the update status.
+    """
+    with session_maker() as session:
+        task = session.query(Task).filter_by(id=task_id).first()
+        if task is None:
+            return 'No task found with that id.'
+        else:
+            task.status = 'completed'
+            session.commit()
+            return 'Task marked as completed.'        
     
 
 def update_task(self, task_id, description, completion_criteria, outcome, status, end_timestamp):
+    """
+    This function updates a specific task's fields based on its id
+    :param task_id: The id of the task to update
+    :param description: New Description of the task
+    :param completion_criteria: New Completion criteria for the task
+    :param outcome: New Outcome for the task
+    :param status: New Status for the task
+    :param end_timestamp: New End timestamp for the task
+    :return: Success string if the task is updated else returns an error string
+    """
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
         if task is None:
@@ -58,6 +99,10 @@ def update_task(self, task_id, description, completion_criteria, outcome, status
             return 'Task updated successfully.'
     
 def get_available_tasks(self):
+    """
+    This function retrieves all tasks that are in progress
+    :return: List of tasks that are in progress
+    """
     with session_maker() as session:
-        tasks_in_progress = session.query(Task).filter_by(status='in progress').all()
+        tasks_in_progress = session.query(Task).filter_by(status='in_progress').all()
         return tasks_in_progress
