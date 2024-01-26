@@ -68,15 +68,15 @@ def get_task(self, task_id: int) -> str:
             return str(task)
         
 def mark_task_as_completed(self, task_id: int) -> str:
-    """
-    Update the status of a task to 'completed'.
+    """Update the status of a task to 'completed'
 
-    Parameters:
-    :param task_id (int): The ID of the task to be marked as completed.
+    Args:
+        task_id (int): The ID of the task to be marked as completed.
 
     Returns:
-    str: A message indicating the update status.
+        str: A message indicated update status
     """
+
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
         if task is None:
@@ -87,15 +87,14 @@ def mark_task_as_completed(self, task_id: int) -> str:
             return 'Task marked as completed.'
         
 def mark_task_as_in_progress(self, task_id: int) -> str:
-    """
-    Update the status of a task to 'in_progress'.
+    """Update the status of a task to 'in_progress'
 
-    Parameters:
-    :param task_id (int): The ID of the task to be marked as in_progress.
+    Args:
+        task_id (int): The ID of the task to be marked as in_progress.
 
     Returns:
-    str: A message indicating the update status.
-    """
+        str: A message indicated update status
+    """    
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
         if task is None:
@@ -108,15 +107,15 @@ def mark_task_as_in_progress(self, task_id: int) -> str:
     
     
 def mark_task_as_failed(self, task_id: int) -> str:
-    """
-    Update the status of a task to 'failed'.
+    """Update the status of a task to 'failed'
 
-    Parameters:
-    :param task_id (int): The ID of the task to be marked as failed.
+    Args:
+        task_id (int): The ID of the task to be marked as failed.
 
     Returns:
-    str: A message indicating the update status.
-    """
+        str: A message indicated update status
+    """    
+
 
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
@@ -126,31 +125,7 @@ def mark_task_as_failed(self, task_id: int) -> str:
             task.status = 'failed'
             session.commit()
             return 'Task marked as failed.'
-    
 
-def update_task(self, task_id, description, completion_criteria, outcome, status, end_timestamp) -> str:
-    """
-    This function updates a specific task's fields based on its id
-    :param task_id: The id of the task to update
-    :param description: New Description of the task
-    :param completion_criteria: New Completion criteria for the task
-    :param outcome: New Outcome for the task
-    :param status: New Status for the task
-    :param end_timestamp: New End timestamp for the task
-    :return: Success string if the task is updated else returns an error string
-    """
-    with session_maker() as session:
-        task = session.query(Task).filter_by(id=task_id).first()
-        if task is None:
-            return 'No task found with that id.'
-        else:
-            task.description = description
-            task.completion_criteria = completion_criteria
-            task.outcome = outcome
-            task.status = status
-            task.end_timestamp = end_timestamp
-            session.commit()
-            return 'Task updated successfully.'
     
 def get_available_tasks(self) -> str:
     """
