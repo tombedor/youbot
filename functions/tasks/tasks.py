@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, or_
@@ -47,6 +47,7 @@ def add_task(self, description: str, completion_criteria: str, outcome: str) -> 
             description=description,
             completion_criteria=completion_criteria,
             outcome=outcome,
+            start_timestamp=datetime.now(),
             status='in progress'
         )
         session.add(new_task)
@@ -101,6 +102,7 @@ def mark_task_as_in_progress(self, task_id: int) -> str:
             return 'No task found with that id.'
         else:
             task.status = 'in_progress'
+            task.start_timestamp = datetime.now()
             session.commit()
             return 'Task marked as in_progress.'
     
@@ -136,5 +138,5 @@ def get_available_tasks(self) -> str:
     with session_maker() as session:
     
         today = date.today()
-        available_tasks = session.query(Task).filter(or_(Task.status == 'in progress', Task.start_date <= today)).all()
+        available_tasks = session.query(Task).filter(or_(Task.status == 'in progress', Task.start_timestamp <= today)).all()
         return ", ".join(available_tasks)

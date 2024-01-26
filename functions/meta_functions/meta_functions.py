@@ -1,7 +1,6 @@
 import os
 import inspect
-from pathlib import Path
-import sys
+from dotenv import load_dotenv
 from memgpt.constants import MEMGPT_DIR
 from memgpt.functions.functions import load_all_function_sets
 
@@ -136,3 +135,38 @@ def create_function(self, function_name: str, function_code_with_docstring: str,
         
     return f"added function {function_name} to file {file_path}"
 
+
+from sqlalchemy import MetaData, Table
+from sqlalchemy.orm import Session
+from typing import Optional
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
+load_dotenv()
+POSTGRES_URL = os.getenv("POSTGRES_URL")
+
+engine = create_engine(POSTGRES_URL)
+
+declarative_base().metadata.create_all(engine)
+session_maker = sessionmaker(bind=engine)
+
+def get_table_schema(self, table_name: str) -> str:
+    """Fetches the schema of a table in the database and returns it as a string
+
+    Args:
+        table_name (str): The name of the table.
+
+    Returns:
+        str: The schema of the table.
+    """
+    with session_maker() as session:
+        metadata = MetaData()
+        table = Table(table_name, metadata, autoload_with=session.bind)
+    
+        schema_string = ""
+    
+        for column in table.columns:
+            schema_string += f"{column.name} {column.type}\n"
+
+        return schema_string.strip()
