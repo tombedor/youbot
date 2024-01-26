@@ -107,7 +107,15 @@ def mark_task_as_in_progress(task_id: int) -> str:
     
     
 def mark_task_as_failed(task_id: int) -> str:
-    """"""
+    """
+    Update the status of a task to 'failed'.
+
+    Parameters:
+    :param task_id (int): The ID of the task to be marked as failed.
+
+    Returns:
+    str: A message indicating the update status.
+    """
 
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
@@ -143,9 +151,14 @@ def update_task(self, task_id, description, completion_criteria, outcome, status
             session.commit()
             return 'Task updated successfully.'
     
-def get_available_tasks():
+def get_available_tasks(self) -> str:
+    """
+    Returns a list of tasks that are available to be worked on
+    :return: a string representing the list of tasks
+    """
+
     with session_maker() as session:
     
         today = datetime.date.today()
         available_tasks = session.query(Task).filter(or_(Task.status == 'in progress', Task.start_date <= today)).all()
-        return available_tasks
+        return ", ".join(available_tasks)
