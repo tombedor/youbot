@@ -71,8 +71,7 @@ def mark_task_as_completed(task_id: int) -> str:
     """
     Update the status of a task to 'completed'.
 
-    Parameters:
-    task_id (int): The ID of the task to be marked as completed.
+    :param task_id (int): The ID of the task to be marked as completed.
 
     Returns:
     str: A message indicating the update status.
@@ -91,7 +90,7 @@ def mark_task_as_in_progress(task_id: int) -> str:
     Update the status of a task to 'in_progress'.
 
     Parameters:
-    task_id (int): The ID of the task to be marked as in_progress.
+    :param task_id (int): The ID of the task to be marked as in_progress.
 
     Returns:
     str: A message indicating the update status.
@@ -111,8 +110,7 @@ def mark_task_as_failed(task_id: int) -> str:
     """
     Update the status of a task to 'failed'.
 
-    Parameters:
-    task_id (int): The ID of the task to be marked as failed.
+    :param task_id (int): The ID of the task to be marked as failed.
 
     Returns:
     str: A message indicating the update status.
