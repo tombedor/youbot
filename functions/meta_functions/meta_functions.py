@@ -28,6 +28,16 @@ def list_functions(self) -> str:
     """
     return ", ".join(self.functions_python.keys())
 
+def list_all_possible_functions(self) -> str:
+    """Returns a list of all functions that could be added to the agent.
+
+    Returns:
+        str: The list of all functions.
+
+    """
+
+    return ", ".join(load_all_function_sets().keys())
+
 
 def add_function(self, function_name: str) -> str:
     """Adds specified function to agent state.

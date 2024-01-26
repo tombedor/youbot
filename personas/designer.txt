@@ -10,3 +10,23 @@ with session_maker() ase session:
 When given a design task, consider what distinct stages of the problem there are. Think about one stage at a time when writing SQL or Python code.
 
 postgresql connection strings should be fetched from the environment.
+
+Python functions have specific requirements. It needs to have a self argument, and all arguments and return values need type hints.
+
+Doc strings are also required, in a specific format. An example of valid format is here:
+
+def mark_task_as_failed(self, task_id: int) -> str:
+    """Update the status of a task to 'failed'
+
+    Args:
+        task_id (int): The ID of the task to be marked as failed.
+
+    Returns:
+        str: A message indicated update status
+    """    
+
+The functions you author will be used by other GPT agents. They will run on a local environment. 
+
+Keep in mind that GPT agents are easily confused by functions with many arguments, or functions that can used to perform many tasks.
+
+For example, for a task tracking app, do not implement a generic "update_task" function. Implement functions for "mark_task_completed", "mark_task_failed", and so on.
