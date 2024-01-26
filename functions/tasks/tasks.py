@@ -34,19 +34,17 @@ engine = create_engine(POSTGRES_URL)
 Base.metadata.create_all(engine)
 session_maker = sessionmaker(bind=engine)
 
-def add_task(self, description: str, completion_criteria: str, outcome: str) -> int:
+def add_task(self, description: str, completion_criteria: str) -> int:
     """
     This function adds a new task to the task table
     :param description: Description of the task
     :param completion_criteria: Completion criteria for the task
-    :param outcome: The outcome for the task
     :return: The id of the new task
     """
     with session_maker() as session:
         new_task = Task(
             description=description,
             completion_criteria=completion_criteria,
-            outcome=outcome,
             start_timestamp=datetime.now(),
             status='in progress'
         )
@@ -68,11 +66,12 @@ def get_task(self, task_id: int) -> str:
         else:
             return str(task)
         
-def mark_task_as_completed(self, task_id: int) -> str:
+def mark_task_as_completed(self, task_id: int, outcome: str) -> str:
     """Update the status of a task to 'completed'
 
     Args:
         task_id (int): The ID of the task to be marked as completed.
+        outcome (str): The outcome of the task, including how the problem was solved, and what obstacles were overcome.
 
     Returns:
         str: A message indicated update status
@@ -84,6 +83,7 @@ def mark_task_as_completed(self, task_id: int) -> str:
             return 'No task found with that id.'
         else:
             task.status = 'completed'
+            task.outcome = outcome
             session.commit()
             return 'Task marked as completed.'
         
@@ -108,11 +108,12 @@ def mark_task_as_in_progress(self, task_id: int) -> str:
     
     
     
-def mark_task_as_failed(self, task_id: int) -> str:
+def mark_task_as_failed(self, task_id: int, outcome: str) -> str:
     """Update the status of a task to 'failed'
 
     Args:
         task_id (int): The ID of the task to be marked as failed.
+        outcome (str): The outcome of the task, including what was tried, and why the task ultimately failed.
 
     Returns:
         str: A message indicated update status
@@ -125,6 +126,7 @@ def mark_task_as_failed(self, task_id: int) -> str:
             return 'No task found with that id.'
         else:
             task.status = 'failed'
+            task.outcome = outcome
             session.commit()
             return 'Task marked as failed.'
 
