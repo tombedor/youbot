@@ -67,7 +67,7 @@ def get_task(self, task_id: int) -> str:
         else:
             return str(task)
         
-def mark_task_as_completed(task_id: int) -> str:
+def mark_task_as_completed(self, task_id: int) -> str:
     """
     Update the status of a task to 'completed'.
 
@@ -86,7 +86,7 @@ def mark_task_as_completed(task_id: int) -> str:
             session.commit()
             return 'Task marked as completed.'
         
-def mark_task_as_in_progress(task_id: int) -> str:
+def mark_task_as_in_progress(self, task_id: int) -> str:
     """
     Update the status of a task to 'in_progress'.
 
@@ -107,7 +107,7 @@ def mark_task_as_in_progress(task_id: int) -> str:
     
     
     
-def mark_task_as_failed(task_id: int) -> str:
+def mark_task_as_failed(self, task_id: int) -> str:
     """
     Update the status of a task to 'failed'.
 
