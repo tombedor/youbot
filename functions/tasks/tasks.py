@@ -53,7 +53,7 @@ def add_task(self, description: str, completion_criteria: str, outcome: str) -> 
         session.commit()
     return new_task.id
 
-def get_task(self, task_id) -> str:
+def get_task(self, task_id: int) -> str:
     """
     This function retrieves a task based on its id from the task table
     :param task_id: The id of the task to retrieve
