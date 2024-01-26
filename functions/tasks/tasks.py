@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, or_
@@ -135,6 +135,6 @@ def get_available_tasks(self) -> str:
 
     with session_maker() as session:
     
-        today = datetime.date.today()
+        today = date.today()
         available_tasks = session.query(Task).filter(or_(Task.status == 'in progress', Task.start_date <= today)).all()
         return ", ".join(available_tasks)
