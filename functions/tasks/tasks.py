@@ -71,6 +71,7 @@ def mark_task_as_completed(task_id: int) -> str:
     """
     Update the status of a task to 'completed'.
 
+    Parameters:
     :param task_id (int): The ID of the task to be marked as completed.
 
     Returns:
