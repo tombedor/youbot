@@ -107,14 +107,8 @@ def mark_task_as_in_progress(task_id: int) -> str:
     
     
 def mark_task_as_failed(task_id: int) -> str:
-    """
-    Update the status of a task to 'failed'.
+    """"""
 
-    :param task_id (int): The ID of the task to be marked as failed.
-
-    Returns:
-    str: A message indicating the update status.
-    """
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
         if task is None:
