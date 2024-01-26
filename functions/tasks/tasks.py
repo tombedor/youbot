@@ -51,7 +51,7 @@ def add_task(self, description: str, completion_criteria: str, outcome: str) -> 
         )
         session.add(new_task)
         session.commit()
-    return new_task.id
+        return new_task.id
 
 def get_task(self, task_id: int) -> str:
     """
