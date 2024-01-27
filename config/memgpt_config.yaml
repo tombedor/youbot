@@ -2,7 +2,7 @@ config_path: /dev/null
 
 anon_clientid: 0000000000000000000072001b73b3ea
 
-persona: tester
+persona: sam_pov
 human: tombedor
 
 default_llm_config:
