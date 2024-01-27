@@ -1,0 +1,26 @@
+config_path: /dev/null
+
+anon_clientid: 0000000000000000000072001b73b3ea
+
+persona: tester
+human: tombedor
+
+default_llm_config:
+  model: gpt-4
+  model_endpoint: https://api.openai.com/v1
+  model_endpoint_type: openai
+  model_wrapper:
+  context_window: 8192
+  
+default_embedding_config:
+  embedding_endpoint_type: openai
+  embedding_endpoint: https://api.openai.com/v1  
+  embedding_model: text-embedding-ada-002
+  embedding_dim: 1536
+  embedding_chunk_size: 300
+
+
+storage_type: postgres
+storage_uri_env: POSTGRES_URL
+
+memgpt_version: 0.2.12
