@@ -27,6 +27,7 @@ astunparse = "^1.6.3"
 llama-hub = "^0.0.71"
 numpy = "^1.26.3"
 sqlalchemy = "^2.0.25"
+discord = "^2.3.2"
 
 
 

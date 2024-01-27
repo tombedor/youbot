@@ -1,13 +1,7 @@
-from memgpt import MemGPT
-from memgpt.config import MemGPTConfig
-from memgpt.data_types import User, AgentState
-from memgpt.metadata import MetadataStore
-from copy import deepcopy
+# This example requires the 'message_content' intent.
+
 import os
 import discord
-
-memgpt_client = MemGPT(config=vars(MemGPTConfig.load()))
-
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -23,9 +17,6 @@ async def on_message(message):
     print(message)
     if message.author == client.user:
         return
-    
-    tombot_id = next(a['name'] for a in memgpt_client.list_agents()['agents'] if a['name'] == 'tombot')
-    response = memgpt_client.user_message(
 
     if message.content.startswith('$hello'):
         await message.channel.send('Hello!')
@@ -35,4 +26,3 @@ async def on_message(message):
 
 
 client.run(os.getenv('DISCORD_TOKEN'))
-
