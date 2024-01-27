@@ -7,6 +7,9 @@ Some experiments might require [my fork of that repo](https://github.com/tombedo
 - A personal assistant that manages calendars, reads emails, etc
 - An RSS reader / general information subscriber that summarizes and learns from interesting info on the web
 - An extension to MemGPT in which memories are consolidated, and a knowledge base is built
+- An extension to MemGPT's memory capability, making the always-on context more dynamic.
+- A cleaner way for GPT's to ingest error logs, improve their debugging capabilities
+- Implementations with open source LLM's
 
 ### Projects I am interested in trying:
 - [Ollama](https://ollama.ai) for running local models
