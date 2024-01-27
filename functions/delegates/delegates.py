@@ -3,41 +3,46 @@ from memgpt.config import MemGPTConfig
 from memgpt.data_types import User, AgentState
 from memgpt.metadata import MetadataStore
 from copy import deepcopy
+from uuid import UUID
+
+
+AGENTS = {
+    'debugger': {
+        'name': 'debuger',
+        'preset': 'debugger', 
+        'human': 'agent',
+        'persona': 'debugger'
+    }, 
+    'tester': {
+        'name': 'tester',
+        'preset': 'tester',
+        'human': 'agent',
+        'persona': 'tester',
+    }
+}
+
+class AgentManager:
+    def __init__(self, user_id: UUID, config: MemGPTConfig) -> None:
+        self.user_id = user_id
+        self.config = config
+        self.ms = MetadataStore(config)
+        self.client =  MemGPT(user_id = user_id, config = vars(config), overwrite_config=False)
+        self.agent_ids = dict(
+            (entry['name'], entry['id']) for entry in self.client.list_agents()['agents']
+        )
+
+    def get_agent_id(self, agent_name: str, message: str) -> str:
+        return self.agent_ids.get(agent_name)
+
+    def is_agent_registered(self, agent_name: str) -> bool:
+        return agent_name in self.agent_ids
+
+    def register_agent(self, agent_name: str, id: UUID):
+        self.agent_ids[agent_name] = id
+
 
 _config = deepcopy(MemGPTConfig.load())
-_ms_dict = {}
-_client_dict = {}
-_user_dict = {}
-
-def _get_vars(self) -> (MetadataStore, MemGPT, User):
-    # "user" is the agent.
-    user_id = self.agent_state.id
-    
-    global _ms_dict
-    if self.agent_state.id not in _ms_dict:
-        ms = MetadataStore(_config)
-        _ms_dict[user_id] = ms
-    else:
-        ms = _ms_dict[user_id]
-        
-    global _client_dict
-    if user_id not in _client_dict:
-        client =  MemGPT(user_id = user_id, config = vars(_config), overwrite_config=False)
-        _client_dict[user_id] = client
-    else:
-        client = _client_dict[user_id]
-
-        
-    global _user_dict
-    if user_id not in _user_dict:
-        user = ms.get_user(user_id=user_id)
-        if user is None:
-            user = ms.create_user(User(id = user_id))
-        _user_dict[user_id] = user
-    else:
-        user = _user_dict[user_id]
-
-    return (ms, client, user)
+_agent_managers = {}
 
 
 def send_message_to_agent(self, agent_name: str, message: str) -> str:
@@ -50,6 +55,21 @@ def send_message_to_agent(self, agent_name: str, message: str) -> str:
     Returns:
         str: The response from the recipient agent.
     """
+    assert agent_name in AGENTS, f"Agent name must be one of: {AGENTS.keys()}"
+    
+    user_id = self.agent_state.id
+    global _agent_managers
+    if user_id not in _agent_managers:
+        _agent_manager[user_id] = AgentManager(user_id, _config)
+    
+    agent_manager = _agent_manager[user_id]
+
+
+
+
+
+
+
     ms, client, user = _get_vars(self)
     
     agent_ids =[d['id'] for d in client.list_agents()['agents'] if d['name'] == agent_name]

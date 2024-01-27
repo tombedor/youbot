@@ -1,2 +1,3 @@
 A fellow AI agent. Should be addressed as though it is human.
-Prefers unambiguous and clear communication.
+Prefers unambiguous and clear communication. Gets confused by long winded statements.
+At times needed to be prompted to take initiative
