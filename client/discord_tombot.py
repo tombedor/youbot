@@ -2,6 +2,7 @@
 
 import logging
 import os
+import uuid
 import discord
 import os
 from sqlalchemy import create_engine, Table, Column, String, MetaData, insert
@@ -25,7 +26,12 @@ discord_users = Table('discord_users', metadata,
                         )
 metadata.create_all(engine)
 
-memgpt_client = MemGPT(auto_save=True, config=MemGPTConfig.load())
+# memgpt_client = MemGPT(auto_save=True,
+memgpt_clients = {} # memgpt_user_id -> MemGPT
+memgpt_agents_ids = {} # memgpt_user_id -> memgpt_agent_id
+
+# Will need to make this dynamic
+AGENT_ID = uuid.UUID('1786aaff-64d6-46aa-92f9-9aa9676b05cf')
 
 @discord_client.event
 async def on_ready():
@@ -37,13 +43,24 @@ async def on_message(message):
     if message.author == discord_client.user:
         return
     
-    memgpt_id = fetch_memgpt_user_id(message.author.id)
-    if memgpt_id is None:
+    memgpt_user_id = fetch_memgpt_user_id(message.author.id)
+    if memgpt_user_id is None:
         logging.warn(f"no memgpt user found for discord member {str(message.author)}")
-
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello!')
         
+    global memgpt_clients
+    global memgpt_agents_ids
+        
+    if memgpt_user_id not in memgpt_clients:
+        memgpt_clients[memgpt_user_id] = MemGPT(auto_save=True, user_id=memgpt_user_id, debug=True)
+        memgpt_client = memgpt_clients[memgpt_user_id]
+    else:
+        memgpt_client = memgpt_clients[memgpt_user_id]
+        
+    
+    response_list = memgpt_client.user_message(AGENT_ID, message.content)
+    reply = next(r.get('assistant_message') for r in response_list if r.get('assistant_message'))
+    await message.channel.send(reply)
+
 
 def fetch_memgpt_user_id(discord_member_id: int) -> str:
     """gets or creates memgpt user for the specified id
