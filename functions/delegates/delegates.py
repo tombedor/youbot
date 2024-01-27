@@ -26,9 +26,8 @@ AGENTS = {
 class AgentManager:
     def __init__(self, user_id: UUID, config: MemGPTConfig, llm_config: dict, embedding_config: dict) -> None:
         self.user_id = user_id
-        self.config = config
         self.ms = MetadataStore(config)
-        self.client =  MemGPT(user_id = user_id, config = vars(config), auto_save=True)
+        self.client =  MemGPT(user_id = user_id, auto_save=True, debug=True)
         self.agent_ids = dict(
             (entry['name'], entry['id']) for entry in self.client.list_agents()['agents']
         )
@@ -51,7 +50,7 @@ class AgentManager:
         return reply
 
 _agent_manager_dict = {}
-_config = MemGPTConfig.load(overwrite_config = False)
+_config = MemGPTConfig.load()
 
 def send_message_to_agent(self, agent_name: str, message: str) -> str:
     """Sends message to an agent. Returns the response from the agent.
