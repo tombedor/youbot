@@ -1,5 +1,8 @@
-# MemGPT-Extensions
-Experiments and utilities for the [MemGPT project](https://memgpt.ai)
+# YouBot
+
+An AI personal assistant.
+
+For the most part, these are experiments and utilities for the [MemGPT project](https://memgpt.ai)
 
 Some experiments might require [my fork of that repo](https://github.com/tombedor/MemGPT)
 
