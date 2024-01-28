@@ -2,7 +2,7 @@ import uuid
 from memgpt import MemGPT
 from memgpt.agent import Agent
 
-from ..functions.delegates.delegates import TESTER, send_message_to_agent
+from youbot.memgpt_extensions.functions.delegates import send_message_to_agent, TESTER
 
 agent_name = 'testbot'
 client = MemGPT()
