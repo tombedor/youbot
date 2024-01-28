@@ -1,13 +1,17 @@
+import uuid
 from memgpt import MemGPT
-from memgpt.config import MemGPTConfig
+from memgpt.agent import Agent
 
-TESTBOT_NAME = 'testbot'
+from ..functions.delegates.delegates import TESTER, send_message_to_agent
 
-_config = MemGPTConfig.load()
+agent_name = 'testbot'
+client = MemGPT()
 
+agent_id = next(entry['id'] for entry in client.list_agents()['agents'] if entry['name'] == agent_name)
+agent_state = client.server.get_agent(agent_id=agent_id,user_id=client.user_id)
 
-client =  MemGPT()
+agent = Agent(agent_state=agent_state,interface=client.interface)
 
-client.list_agents()
+agent.add_function(send_message_to_agent.__name__)
 
-agent_ids =[d['id'] for d in client.list_agents()['agents'] if d['name'] == TESTBOT_NAME]
+client.user_message(agent_id, f"Use your send_message_to_agent function to converse with an agent called {TESTER}. Understand what it is capable of")

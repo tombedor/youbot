@@ -5,15 +5,18 @@ from memgpt.metadata import MetadataStore
 from copy import deepcopy
 from uuid import UUID
 
+DEBUGGER = 'debugger'
+TESTER = 'tester'
+
 
 AGENTS = {
-    'debugger': {
+    DEBUGGER: {
         'name': 'debuger',
         'preset': 'debugger', 
         'human': 'agent',
         'persona': 'debugger'
     }, 
-    'tester': {
+    TESTER: {
         'name': 'tester',
         'preset': 'tester',
         'human': 'agent',
