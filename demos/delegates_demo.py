@@ -1,15 +1,12 @@
 from memgpt import MemGPT
 from memgpt.config import MemGPTConfig
-from memgpt.data_types import User, AgentState
-from memgpt.metadata import MetadataStore
-from copy import deepcopy
 
 TESTBOT_NAME = 'testbot'
 
 _config = MemGPTConfig.load()
 
 
-client =  MemGPT(config = _config, overwrite_config=False)
+client =  MemGPT()
 
 client.list_agents()
 
