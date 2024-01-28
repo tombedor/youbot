@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "youbot"
+version = "0.1.0"
+description = ""
+authors = ["Tom Bedor <tombedor@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+langchain = "^0.0.340"
+pgvector = "^0.2.4"
+tiktoken = "^0.5.1"
+psycopg2-binary = "^2.9.9"
+pymemgpt = {extras = ["postgres"], git = 'https://github.com/tombedor/MemGPT.git', branch='main'}
+unstructured = {extras = ["all-docs"], version = "^0.11.2"}
+markdown = "^3.5.1"
+elasticsearch = "^8.11.0"
+git-python = "^1.0.3"
+gitpython = "^3.1.40"
+langchainhub = "^0.1.14"
+faiss-cpu = "^1.7.4"
+docker = "^6.1.3"
+diskcache = "^5.6.3"
+# pyautogen = {extras = ["mathchat"], version = "^0.2.1"}
+feedparser = "^6.0.11"
+nbconvert = "^7.13.1"
+astunparse = "^1.6.3"
+llama-hub = "^0.0.71"
+numpy = "^1.26.3"
+sqlalchemy = "^2.0.25"
+discord = "^2.3.2"
+gspread = "^6.0.0"
+
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.26.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
