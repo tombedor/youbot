@@ -11,7 +11,7 @@ functions:
   - "list_functions"
   - "add_function"
   - "debugger"
-  - "list_available_functions"
+  - "list_all_possible_functions"
   - "reload_functions"
   - "introspect_functions"
   - "get_table_schema"
