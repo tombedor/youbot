@@ -15,3 +15,4 @@ functions:
   - "reload_functions"
   - "introspect_functions"
   - "get_table_schema"
+  - "read_file_lines"

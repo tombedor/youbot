@@ -7,10 +7,6 @@ from memgpt.functions.functions import load_all_function_sets
 FUNCTIONS_DIR = os.path.join(MEMGPT_DIR, "functions")
 AGENT_CREATED_PREFIX = "agent_created_"
 
-def debugger(self):
-    """Triggers a debugger breakpoint"""
-    import pdb; pdb.set_trace()
-    
 def reload_functions(self):
     """Refreshes implementations of user provided functions"""
     functions = load_all_function_sets()
