@@ -35,8 +35,58 @@ def read_file_lines(file_path: str, start_ln: int, end_ln: int) -> str:
     
     return "".join(lines[zero_indexed_start_ln:zero_indexed_end_ln])
 
-if __name__ == "__main__":
-    print(read_file_lines("/Users/tombedor/development/youbot/.venv/lib/python3.10/site-packages/memgpt/persistence_manager.py", 101, 103))
+import ast
+import os
 
+import ast
+import os
 
-        
+import ast
+import os
+
+def find_text(self, root_dir: str, target_text: str) -> str:
+    """Finds text matches for string within a directory
+
+    Args:
+        root_dir (str): root dir to search
+        target_text (str): text to search for
+
+    Returns:
+        str: matches
+    """
+    results = []
+    for root, dirs, files in os.walk(root_dir):
+        for file in files:
+            filename = os.path.join(root, file)
+            if not filename.endswith('.py'):
+                continue
+            with open(filename, 'r') as f:
+                prev_line = ''
+                for line_no, line in enumerate(f, 1):
+                    next_line = f.readline()
+                    if target_text in line:
+                        results.append(f"{filename}:{line_no}:\n{prev_line + line + next_line}")
+                    prev_line = line
+                    
+            if len(results) > 5:
+                results.append(f"{len(results)} results found. Stopping search.")
+                break
+    return "---\n".join(results)
+    
+
+# def find_usage(root_dir, target_fn):
+#     files_with_usage = set()
+#     class FuncFinder(ast.NodeVisitor):
+#         def visit_Call(self, node):
+#             if isinstance(node.func, ast.Name) and node.func.id == target_fn:
+#                 files_with_usage.add(filename)
+
+#     for root, dirs, files in os.walk(root_dir):
+#         for file in files:
+#             if file.endswith('.py'):
+#                 filename = os.path.join(root, file)
+#                 with open(filename, 'r') as f:
+#                     data = f.read()
+#                 tree = ast.parse(data)
+#                 FuncFinder().visit(tree)
+#     return list(files_with_usage)
