@@ -4550,7 +4550,7 @@ name = "pymemgpt"
 version = "0.3.0"
 description = "Teaching LLMs memory management for unbounded context"
 optional = false
-python-versions = "<3.12,>=3.9"
+python-versions = "<3.12,>=3.10"
 files = []
 develop = false
 
@@ -4590,7 +4590,7 @@ server = ["fastapi (>=0.104.1,<0.105.0)", "uvicorn (>=0.24.0.post1,<0.25.0)", "w
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
 reference = "main"
-resolved_reference = "2c68d087bf6c3cc667bbed1a2a5cc4963517d132"
+resolved_reference = "2c60cd2927a4d87c1865c8e985802a7556ef8f0e"
 
 [[package]]
 name = "pypandoc"
