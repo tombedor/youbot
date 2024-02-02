@@ -1,8 +1,8 @@
 # YouBot
 
-An AI personal assistant.
+An AI personal assistant with long term memory.
 
-For the most part, these are experiments and utilities for the [MemGPT project](https://memgpt.ai)
+Based on [MemGPT](https://memgpt.ai)
 
 Some experiments might require [my fork of that repo](https://github.com/tombedor/MemGPT)
 
