@@ -31,7 +31,7 @@ memgpt_clients = {} # memgpt_user_id -> MemGPT
 memgpt_agents_ids = {} # memgpt_user_id -> memgpt_agent_id
 
 # Will need to make this dynamic
-AGENT_ID = uuid.UUID('1786aaff-64d6-46aa-92f9-9aa9676b05cf')
+AGENT_ID = uuid.UUID('c4a875b1-6e92-426a-befb-e5bb70ff6e29')
 
 @discord_client.event
 async def on_ready():
