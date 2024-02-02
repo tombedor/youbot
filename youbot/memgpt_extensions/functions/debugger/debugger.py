@@ -1,4 +1,5 @@
 # from memgpt.functions.functions import load_all_function_sets
+from memgpt.metadata import MetadataStore
 
 def debugger(self):
     """Triggers a debugger breakpoint"""
@@ -43,6 +44,8 @@ import os
 
 import ast
 import os
+
+from dotenv import load_dotenv
 
 def find_text(self, root_dir: str, target_text: str) -> str:
     """Finds text matches for string within a directory

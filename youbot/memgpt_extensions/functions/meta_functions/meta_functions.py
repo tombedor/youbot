@@ -133,8 +133,6 @@ def create_function(self, function_name: str, function_code_with_docstring: str,
 
 
 from sqlalchemy import MetaData, Table
-from sqlalchemy.orm import Session
-from typing import Optional
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
