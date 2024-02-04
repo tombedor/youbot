@@ -1,0 +1,27 @@
+youbot: &default
+  preset: youbot
+  human: tombedor
+  persona: sam_pov
+  preset: youbot
+  model: gpt-4
+  model-endpoint: https://api.openai.com/v1
+  model-endpoint-type: openai
+  context-window: 8192
+
+# inherit from default
+youbot:
+  << : *default
+
+testbot: 
+  << : *default
+  human: tombedor
+  persona: tester
+  preset: tester
+
+debugbot: 
+  << : *default
+  human: tombedor
+  persona: debugger
+  preset: debugger
+
+

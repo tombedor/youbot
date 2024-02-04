@@ -7,7 +7,7 @@ import os
 
 from youbot import ROOT_DIR
 
-memgpt_extensions_dir = os.path.join(ROOT_DIR, 'memgpt_extensions')
+memgpt_extensions_dir = os.path.join(ROOT_DIR, 'youbot', 'memgpt_extensions')
 memgpt_install_dir = os.path.expanduser('~/.memgpt')
 
 # flattens and symlinks python files within a dir
