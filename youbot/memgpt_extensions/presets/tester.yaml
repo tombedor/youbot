@@ -9,3 +9,7 @@ functions:
   - "list_functions"
   - "add_function"
   - "debugger"
+  - "create_list"
+  - "add_list_item"
+  - "get_list_items"
+  - "remove_list_item"
