@@ -1,11 +1,15 @@
 import os
+from pathlib import Path
 from gcsa.google_calendar import GoogleCalendar
-from sqlalchemy import UUID, Column, MetaData, String, Table, create_engine
+from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
 from gcsa.event import Event
 from datetime import datetime, date
+import gspread
+
+from youbot import ROOT_DIR
 
 postgres_url = os.getenv('POSTGRES_URL')
-engine = create_engine(postgres_url)
+engine = create_engine(postgres_url, poolclass=NullPool)
 metadata = MetaData()
 
 google_emails = Table('google_emails', metadata,
@@ -77,3 +81,24 @@ def link_google_email(self, email: str) -> str:
         connection.commit()
         
     return f'Linked {email} to the user. Notify the user that they will still need to go through the OAuth constent screen.'
+
+
+def get_creds(self) -> str:
+    """This function performs the OAuth consent screen for the user.
+
+    Returns:
+        str: A message indicating the result of the OAuth consent screen.
+    """
+    authorized_user_filename = Path(os.path.join(ROOT_DIR, '.secrets', str(self.agent_state.user_id) + '.json'))
+    
+    credentials = gspread.auth.load_credentials(authorized_user_filename)
+    
+    
+    if credentials and credentials.valid:
+        http_client = gspread.HTTPClient(auth=credentials)
+        # refreshing the token
+        http_client.login()
+        return http_client.auth
+    else:
+        gspread.oauth(authorized_user_filename=authorized_user_filename)
+        return gspread.auth.load_credentials(authorized_user_filename)

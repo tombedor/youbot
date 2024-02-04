@@ -5,7 +5,7 @@ import os
 import uuid
 import discord
 import os
-from sqlalchemy import create_engine, Table, Column, String, MetaData, insert
+from sqlalchemy import NullPool, create_engine, Table, Column, String, MetaData, insert
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import text
 
@@ -18,7 +18,7 @@ intents.message_content = True
 
 discord_client = discord.Client(intents=intents)
 postgres_url = os.getenv('POSTGRES_URL')
-engine = create_engine(postgres_url)
+engine = create_engine(postgres_url, poolclass=NullPool)
 metadata = MetaData()
 
 discord_users = Table('discord_users', metadata,

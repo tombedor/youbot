@@ -1,7 +1,7 @@
 from datetime import date, datetime
 import os
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, or_
+from sqlalchemy import NullPool, create_engine, Column, Integer, String, DateTime, Text, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -30,7 +30,7 @@ class Task(Base):
 load_dotenv()
 POSTGRES_URL = os.getenv("POSTGRES_URL")
 
-engine = create_engine(POSTGRES_URL)
+engine = create_engine(POSTGRES_URL, poolclass=NullPool)
 Base.metadata.create_all(engine)
 session_maker = sessionmaker(bind=engine)
 

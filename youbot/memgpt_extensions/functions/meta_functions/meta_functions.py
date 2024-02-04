@@ -132,7 +132,7 @@ def create_function(self, function_name: str, function_code_with_docstring: str,
     return f"added function {function_name} to file {file_path}"
 
 
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData, NullPool, Table
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -140,7 +140,7 @@ from sqlalchemy.ext.declarative import declarative_base
 load_dotenv()
 POSTGRES_URL = os.getenv("POSTGRES_URL")
 
-engine = create_engine(POSTGRES_URL)
+engine = create_engine(POSTGRES_URL, poolclass=NullPool)
 
 declarative_base().metadata.create_all(engine)
 session_maker = sessionmaker(bind=engine)
