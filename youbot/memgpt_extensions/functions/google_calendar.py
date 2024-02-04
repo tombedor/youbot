@@ -16,6 +16,27 @@ google_emails = Table('google_emails', metadata,
 metadata.create_all(engine)
 
 def create_calendar_event(self, event_title: str, start_year: int, start_month: int, start_day: int, start_hour: int, start_min: int, end_year: int, end_month: int, end_day: int, end_hour: int, end_min: int) -> str:
+    """Creates a calendar event in the user's linked google calendar
+
+    Args:
+        event_title (str): The title of the event.
+        start_year (int): The year of the start of the event.
+        start_month (int): The month of the start of the event.
+        start_day (int): The day of the start of the event.
+        start_hour (int): The hour of the start of the event.
+        start_min (int): The minute of the start of the event.
+        end_year (int): The year of the end of the event.
+        end_month (int): The month of the end of the event.
+        end_day (int): The day of the end of the event.
+        end_hour (int): The hour of the end of the event.
+        end_min (int): The minute of the end of the event.
+
+    Raises:
+        ValueError: If no google email is linked to the user. Get email from user and call link_google_email
+
+    Returns:
+        str: The result of the event creation attempt.
+    """
     with engine.connect() as connection:
         user_id = self.agent_state.user_id
         row = connection.execute(google_emails.select().where(google_emails.c.memgpt_user_id == user_id)).fetchone()
@@ -41,6 +62,14 @@ def create_calendar_event(self, event_title: str, start_year: int, start_month: 
     return f'Created event {event_title}'
     
 def link_google_email(self, email: str) -> str:
+    """This function links a google email to the user.
+
+    Args:
+        email (str): The email to link to the user.
+
+    Returns:
+        str: A message indicating the email was linked to the user.
+    """
     user_id = self.agent_state.user_id
     
     with engine.connect() as connection:
