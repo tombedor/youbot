@@ -12,6 +12,9 @@ youbot: &default
 youbot:
   << : *default
 
+tombot:
+  << : *default
+
 testbot: 
   << : *default
   human: tombedor

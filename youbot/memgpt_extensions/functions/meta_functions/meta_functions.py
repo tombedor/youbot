@@ -1,8 +1,8 @@
 import os
 import inspect
-from dotenv import load_dotenv
 from memgpt.constants import MEMGPT_DIR
 from memgpt.functions.functions import load_all_function_sets
+
 
 FUNCTIONS_DIR = os.path.join(MEMGPT_DIR, "functions")
 AGENT_CREATED_PREFIX = "agent_created_"
@@ -77,6 +77,31 @@ def remove_function(self, function_name: str) -> str:
 
     return self.remove_function(function_name)
 
+def load_preset_functions(self) -> str:
+    """Adds any preset functions that are not currently loaded to the agent state.
+
+    Returns:
+        str: description of result.
+    """
+    
+    from memgpt.presets.utils import load_all_presets
+    preset = self.agent_state.preset
+    preset_functions = set(load_all_presets()[preset]['functions'])
+    agent_functions = set(self.functions_python.keys())
+    
+    functions_to_add = preset_functions - agent_functions
+    for f in functions_to_add:
+        self.add_function(f)
+    
+    if len(functions_to_add) == 0:
+        return "No functions to add"
+    else:
+        return f"Added functions {functions_to_add} to agent state"
+    
+    
+    
+    
+
 
 def create_function(self, function_name: str, function_code_with_docstring: str, module_name: str) -> str:
     """Creates an agent accessible function in Python. Function MUST include a docstring, and MUST include self as first argument.
@@ -130,37 +155,3 @@ def create_function(self, function_name: str, function_code_with_docstring: str,
         f.write(previous_source + "\n\n" + function_code_with_docstring)
         
     return f"added function {function_name} to file {file_path}"
-
-
-from sqlalchemy import MetaData, NullPool, Table
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
-load_dotenv()
-POSTGRES_URL = os.getenv("POSTGRES_URL")
-
-engine = create_engine(POSTGRES_URL, poolclass=NullPool)
-
-declarative_base().metadata.create_all(engine)
-session_maker = sessionmaker(bind=engine)
-
-def get_table_schema(self, table_name: str) -> str:
-    """Fetches the schema of a table in the database and returns it as a string
-
-    Args:
-        table_name (str): The name of the table.
-
-    Returns:
-        str: The schema of the table.
-    """
-    with session_maker() as session:
-        metadata = MetaData()
-        table = Table(table_name, metadata, autoload_with=session.bind)
-    
-        schema_string = ""
-    
-        for column in table.columns:
-            schema_string += f"{column.name} {column.type}\n"
-
-        return schema_string.strip()
