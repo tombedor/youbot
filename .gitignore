@@ -1,4 +1,4 @@
 .env
 .secrets/
 **/__pycache__/
-**/storgae/
+**/storage/
