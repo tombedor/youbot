@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from llama_index import ServiceContext
+import llama_index
 import yaml
 
 load_dotenv()
@@ -20,3 +22,8 @@ POSTGRES_URL = os.getenv('POSTGRES_URL')
 
 # Expose the config file to memgpt package
 os.environ['MEMGPT_CONFIG_PATH'] = MEMGPT_CONFIG_FILE
+
+
+service_context = ServiceContext.from_defaults()
+service_context.llm.model = 'gpt-4-0613'
+llama_index.global_service_context = service_context
