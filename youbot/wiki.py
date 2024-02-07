@@ -1,5 +1,6 @@
 import os
 from typing import List
+from celery import Celery
 from llama_index import (
     SimpleDirectoryReader,
     VectorStoreIndex,
@@ -12,7 +13,7 @@ import sys
 
 import json
 
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import psycopg2
 
@@ -20,6 +21,7 @@ from llama_index.service_context import ServiceContext
 import llama_index
 import faiss
 
+app = Celery('wiki', broker="redis://localhost:6379/0")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -30,11 +32,68 @@ service_context.llm.model = 'gpt-4-0613'
 llama_index.global_service_context = service_context
 
 
-WIKI_ROOT = Path("/Users/tbedor/Development/obsidian/")
-WIKI_PAGE_ROOT = os.path.join(WIKI_ROOT, 'tbedor', 'Wiki')
-WIKI_METADATA_ROOT = os.path.join(WIKI_ROOT, "metadata")
+WIKI_ROOT = PosixPath("/Users/tbedor/Development/obsidian/")
+WIKI_PAGE_ROOT = PosixPath(os.path.join(WIKI_ROOT, 'tbedor', 'Wiki'))
+WIKI_METADATA_ROOT = PosixPath(os.path.join(WIKI_ROOT, "metadata"))
 
 
+class WikiPage:
+    
+    EXCLUDED_PAGES = [
+        PosixPath("Geography and places/Catgories.md"),
+        PosixPath("Overview.md")    
+    ]
+    
+    @classmethod
+    def all(cls) -> List["WikiPage"]:
+        return [WikiPage(p) for p in list(Path(WIKI_PAGE_ROOT).rglob("*.md")) if WikiPage(p).relative_path not in cls.EXCLUDED_PAGES]
+    
+    
+    def __init__(self, path: PosixPath):
+        if type(path) != PosixPath:
+            raise ValueError(f"Path {path} is not a PosixPath. Please respond with a PosixPath.")
+        if path.suffix != ".md":
+            raise ValueError(f"Path {path} is not a markdown file. Please respond with a path that ends with '.md'.")
+        
+        if path.is_absolute():
+            self.relative_path = PosixPath(Path(path).relative_to(WIKI_ROOT))
+            self.absolute_path = path
+        else:
+            self.relative_path = path
+            self.absolute_path = PosixPath(os.path.join(WIKI_PAGE_ROOT, path))
+        self.parent_path = self.absolute_path.parent
+        
+        if WIKI_PAGE_ROOT not in self.absolute_path.parents:
+            raise ValueError(f"Path {path} is not within the wiki directory. Please respond with a path that is within the wiki directory: {WIKI_PAGE_ROOT}")
+        
+    def get_title(self) -> str:
+        return str(self.relative_path).replace("/", " ").replace(".md", "")
+        
+    def get_content(self) -> str:
+        if os.path.getsize(self.absolute_path) > 0:
+            with open(self.absolute_path, "r") as f:
+                return f.read()
+        else:
+            return None
+        
+    def get_sibling_pages(self) -> List[str]:
+        return [p for p in WikiPage.all() if p.absolute_path.parent == self.parent_path and p.absolute_path != self.absolute_path]
+    
+    def get_child_pages(self) -> List[str]:
+        return [p for p in WikiPage.all() if os.path.dirname(p.parent_path) == self.parent_path]
+                
+    def replace_content(self, new_content: str):
+        with open(self.absolute_path, "w") as f:
+            f.write(new_content)    
+            
+    def to_dict(self) -> dict:
+        return {
+            "absolute_path": str(self.absolute_path),
+        }
+        
+    @classmethod        
+    def from_dict(cls, d: dict):
+        return WikiPage(PosixPath(d["absolute_path"]))
 
 # dimensions of text-ada-embedding-002
 d = 1536
@@ -54,23 +113,17 @@ index.storage_context.persist()
 query_engine = index.as_query_engine()
 
 
-EXCLUDED_PAGES = [
-    "Geography and places/Catgories.md",
-    "Main.md"    
-]
-wiki_paths = [str(p.relative_to(WIKI_PAGE_ROOT)) for p in list(Path(WIKI_PAGE_ROOT).rglob("*.md"))]
-wiki_paths = [p for p in wiki_paths if p not in EXCLUDED_PAGES]
-wiki_paths_str = ",".join(wiki_paths)
-
-def get_new_topics_for_fact(fact:str) -> str:
+def get_new_topics_for_fact(fact: str) -> str:
+    pages = WikiPage.all()
+    
     query = f"""
-    I have a private wikipedia with {len(wiki_paths)} pages.
+    I have a private wikipedia with {len(pages)} pages.
     
     I have a fact, and I wish to determine whether it contains information about any topics that are not already covered in the wikipedia.
     
     The fact is: {fact}
     
-    The existing pages are: {wiki_paths_str}
+    The existing pages are: {[p.relative_path for p in pages]}
     
     Some examples of new pages that could be created are: other people, places, or events that are not already covered in the wikipedia.
     
@@ -87,20 +140,20 @@ def get_new_topics_for_fact(fact:str) -> str:
     if len(dict) > 0:
         path = dict['path']
         content = dict['content']
-        full_path = os.path.join(WIKI_PAGE_ROOT, path)
         
-        # make sure path is a markdown file
         if not path.endswith(".md"):
             return f"Path {path} is not a markdown file. Please respond with a path that ends with '.md'."
-        
-        with open(full_path, "w") as f:
-            f.write(content)
+        else:
+            WikiPage(path).replace_content(content)
+            
     return response.response
 
 
-def get_relevant_current_pages_for_fact(fact:str) -> List[str]:
+def get_relevant_current_pages_for_fact(fact:str) -> List[WikiPage]:
+    pages = WikiPage.all()
+    
     query = f"""
-    I have a private wikipedia with {len(wiki_paths)} pages.
+    I have a private wikipedia with {len(pages)} pages.
 
     I have a fact, and I wish to determine which pages the fact is relevant to.
 
@@ -108,7 +161,7 @@ def get_relevant_current_pages_for_fact(fact:str) -> List[str]:
 
     The fact is: {fact}
 
-    The pages are: {wiki_paths_str}
+    The pages are: {[p.relative_path for p in pages]}
 
 
     The response should be a list of pages, with the following information:
@@ -126,23 +179,21 @@ def get_relevant_current_pages_for_fact(fact:str) -> List[str]:
 
     response = query_engine.query(query)
     response_dict = json.loads(response.response)
-    pages = [p["page"] for p in response_dict if p['score'] > 0.5]
+    pages = [WikiPage(PosixPath(p["page"])) for p in response_dict if p['score'] > 0.5]
     return pages
 
-
-def update_page_with_fact(page_path: str, fact: str):
-    full_path = os.path.join(WIKI_PAGE_ROOT, page_path)
-
-        
-    if os.path.getsize(full_path) > 0:
-        with open(full_path, "r") as f:
-            current_contents = f.read()
-        current_page_content_fragment = f"Incorporate the fact into the current page content: {current_contents}"
+@app.task
+def update_page_with_fact(wiki_page_arg: WikiPage | dict, fact: str):
+    if type(wiki_page_arg) == dict:
+        wiki_page = WikiPage.from_dict(wiki_page_arg)
     else:
-        current_page_content_fragment = "The page is currently empty. Incorporate the fact into the page content."
+        wiki_page = wiki_page_arg
+    
+    current_content = wiki_page.get_content() or "The page is currently empty."
+    current_page_content_fragment = f"Incorporate the fact into the current page content: {current_content}"
     
     query = f"""
-    I have a private wikipedia. One such page is {page_path}.
+    I have a private wikipedia. One such page is {wiki_page.get_title()}.
     
     I have a fact that I wish to incorporate into the page. If the fact is already in the page, no changes should be made.
     
@@ -152,32 +203,31 @@ def update_page_with_fact(page_path: str, fact: str):
     
     """ + current_page_content_fragment
     
-    response = query_engine.query(query)
+    response = query_engine.query(query).response
     
-    with open(full_path, "w") as f:
-        f.write(response.response)
+    wiki_page.replace_content(response)
     return response.response
 
-def edit_page(full_path: str):
+
+@app.task
+def edit_page(page_arg: WikiPage | dict) -> str:
     """Edits and organizes the page
 
     Args:
         full_path (str): the full path to the page.
     """
-    
-    if os.path.getsize(full_path) > 0:
-        with open(full_path, "r") as f:
-            current_contents = f.read()
+    if type(page_arg) == dict:
+        page = WikiPage.from_dict(page_arg)
     else:
-        current_contents = "The page is currently empty."
-        
-    dir = os.path.dirname(full_path)
-    sibling_pages = ", ".join([p for p in wiki_paths if os.path.dirname(os.path.join(WIKI_PAGE_ROOT, p)) == dir and p not in full_path])
+        page = page_arg
     
-    relative_path = Path(full_path).relative_to(WIKI_PAGE_ROOT)
+    
+    current_content = page.get_content() or "The page is currently empty."
+    
+    sibling_pages = ", ".join([p.get_title() for p in page.get_sibling_pages()])
     
     query = f"""
-    I have a private wikipedia with a page called: {relative_path}. I wish to edit and organize the page.
+    I have a private wikipedia with a page called: {page.get_title()}. I wish to edit and organize the page.
     
     The page should be organized and edited, such that it is easy to read and understand.
     
@@ -185,48 +235,48 @@ def edit_page(full_path: str):
     
     The page should begin with an introduction that describes what kind of information is contained within the page.
     
-    The page's sibling pages are: {sibling_pages}. Content in {relative_path} should not repeat information that would better fit in sibling pages.
+    The page's sibling pages are: {sibling_pages}. Content in {page.get_title()} should not repeat information that would better fit in sibling pages.
     
     This is the page's content:
     
-    f{current_contents}
+    f{current_content}
     
     Your response should be the content of the new page, in Markdown format.
     """
     
     response = query_engine.query(query).response
-    with open(full_path, "w") as f:
-        f.write(response)
+    
+    page.replace_content(response)
     return response
 
 def fetch_facts() -> List[str]:
     # query postgres for facts
     with psycopg2.connect(os.getenv("POSTGRES_URL")) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT TEXT FROM memgpt_archival_memory_agent UNION ALL SELECT TEXT FROM memgpt_recall_memory_agent;")
+            cursor.execute("SELECT TEXT FROM memgpt_archival_memory_agent") #UNION ALL SELECT TEXT FROM memgpt_recall_memory_agent;")
             return [r[0] for r in cursor.fetchall()]    
         
-def add_facts_to_pages(facts: List[str]):
-    i = 0
-    for fact in facts:
-        i += 1
-        print(f"Fact {i}/{len(facts)}")
-        relevant_pages = get_relevant_current_pages_for_fact(fact)
-        for page in relevant_pages:
-            new_page_content = update_page_with_fact(page, fact)
-            print(new_page_content)
+@app.task
+def add_facts_to_pages(fact: str) -> str:
+    relevant_pages = get_relevant_current_pages_for_fact(fact)
+    for page in relevant_pages:
+        new_page_content = update_page_with_fact.delay(page.to_dict(), fact)
+        print(new_page_content)
             
 def edit_pages():
-    for wiki_path in wiki_paths:
-        full_path = os.path.join(WIKI_PAGE_ROOT, wiki_path)
-        edit_page(full_path)
-        print("Edited page: ", full_path)
+    for wiki_page in WikiPage.all():
+        edit_page(wiki_page)
+        print("Edited page: ", wiki_page.get_title())
     
     
     
 if __name__ == "__main__":
     facts = fetch_facts()
-    print(f"found {len(facts)} facts")
-    add_facts_to_pages(facts)
-    for fact in facts:
-        get_new_topics_for_fact(fact)
+    
+    for f in facts:
+        logging.info(f"Adding fact {f} to pages")
+        add_facts_to_pages.delay(f)
+    
+    for page in WikiPage.all():
+        logging.info(f"Editing page {page.absolute_path}")
+        edit_page.delay(page.to_dict())
