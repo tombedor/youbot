@@ -33,6 +33,7 @@ gspread = "^6.0.0"
 gcsa = "^2.2.0"
 google-auth = "^2.27.0"
 celery = {extras = ["redis"], version = "^5.3.6"}
+langchain-openai = "^0.0.5"
 
 
 
