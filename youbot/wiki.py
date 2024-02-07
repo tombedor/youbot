@@ -21,16 +21,16 @@ from llama_index.service_context import ServiceContext
 import llama_index
 import faiss
 
+from youbot import ROOT_DIR
+
 app = Celery('wiki', broker="redis://localhost:6379/0")
+app.conf.update(
+    task_serializer='pickle',
+    accept_content=['pickle'],  # Ignore other content
+    result_serializer='pickle'
+)
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
-
-
-service_context = ServiceContext.from_defaults()
-service_context.llm.model = 'gpt-4-0613'
-llama_index.global_service_context = service_context
-
+logging.basicConfig(filename=os.path.join(ROOT_DIR, 'logs', 'wiki.log'), encoding='utf-8', level=logging.DEBUG)
 
 WIKI_ROOT = PosixPath("/Users/tbedor/Development/obsidian/")
 WIKI_PAGE_ROOT = PosixPath(os.path.join(WIKI_ROOT, 'tbedor', 'Wiki'))
@@ -108,8 +108,6 @@ index = VectorStoreIndex.from_documents(
 )
 index.storage_context.persist()
 
-
-
 query_engine = index.as_query_engine()
 
 
@@ -183,7 +181,7 @@ def get_relevant_current_pages_for_fact(fact:str) -> List[WikiPage]:
     return pages
 
 @app.task
-def update_page_with_fact(wiki_page_arg: WikiPage | dict, fact: str):
+def update_page_with_fact(wiki_page_arg: WikiPage, fact: str):
     if type(wiki_page_arg) == dict:
         wiki_page = WikiPage.from_dict(wiki_page_arg)
     else:
@@ -206,36 +204,61 @@ def update_page_with_fact(wiki_page_arg: WikiPage | dict, fact: str):
     response = query_engine.query(query).response
     
     wiki_page.replace_content(response)
-    return response.response
+    return response
+
+@app.task
+def handle_proposed_edit(wiki_page: WikiPage, proposed_content: str) -> str:
+    logging.info(f"Handling proposed edit for page {wiki_page.get_title()}")
+    query = f"""
+    I have a private wikipedia with a page called {wiki_page.get_title()}.
+    
+    An author has proposed an edit. Your job is to consider whether the edit is appropriate, and to make any necessary changes.
+    
+    When editing, you should ensure that the page is easy to read and understand. Irrelevant information should be removed.
+    
+    You should also consider whether the proposed edit adds information that would be better included in a sibling page or child page.
+    
+    The sibling pages are: {[p.get_title() for p in wiki_page.get_sibling_pages()]}
+    
+    The child pages are: {[p.get_title() for p in wiki_page.get_child_pages()]}
+    
+    The ORIGINAL CONTENT IS:
+    {wiki_page.get_content()}
+    
+    The PROPOSED CONTENT: 
+    {proposed_content}
+    
+    Your response should be the content of the new page, in Markdown format.
+    """
+    response = query_engine.query(query).response
+    wiki_page.replace_content(response)
+    
 
 
 @app.task
-def edit_page(page_arg: WikiPage | dict) -> str:
+def edit_page(wiki_page: WikiPage) -> str:
     """Edits and organizes the page
 
     Args:
         full_path (str): the full path to the page.
     """
-    if type(page_arg) == dict:
-        page = WikiPage.from_dict(page_arg)
-    else:
-        page = page_arg
     
+    current_content = wiki_page.get_content() or "The page is currently empty."
     
-    current_content = page.get_content() or "The page is currently empty."
-    
-    sibling_pages = ", ".join([p.get_title() for p in page.get_sibling_pages()])
+    sibling_pages = ", ".join([p.get_title() for p in wiki_page.get_sibling_pages()])
     
     query = f"""
-    I have a private wikipedia with a page called: {page.get_title()}. I wish to edit and organize the page.
+    I have a private wikipedia with a page called: {wiki_page.get_title()}. I wish to edit and organize the page.
     
     The page should be organized and edited, such that it is easy to read and understand.
     
     Irrelevant information should be removed. 
     
+    The style should be similar to Wikipedia.
+    
     The page should begin with an introduction that describes what kind of information is contained within the page.
     
-    The page's sibling pages are: {sibling_pages}. Content in {page.get_title()} should not repeat information that would better fit in sibling pages.
+    The page's sibling pages are: {sibling_pages}. Content in {wiki_page.get_title()} should not repeat information that would better fit in sibling pages.
     
     This is the page's content:
     
@@ -246,28 +269,28 @@ def edit_page(page_arg: WikiPage | dict) -> str:
     
     response = query_engine.query(query).response
     
-    page.replace_content(response)
-    return response
+    return handle_proposed_edit.delay(wiki_page, response)
+    
 
 def fetch_facts() -> List[str]:
     # query postgres for facts
     with psycopg2.connect(os.getenv("POSTGRES_URL")) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT TEXT FROM memgpt_archival_memory_agent") #UNION ALL SELECT TEXT FROM memgpt_recall_memory_agent;")
+            cursor.execute("SELECT TEXT FROM memgpt_archival_memory_agent UNION ALL SELECT TEXT FROM memgpt_recall_memory_agent;")
             return [r[0] for r in cursor.fetchall()]    
         
 @app.task
 def add_facts_to_pages(fact: str) -> str:
+    logging.info(f"Adding fact {fact} to pages")
     relevant_pages = get_relevant_current_pages_for_fact(fact)
     for page in relevant_pages:
-        new_page_content = update_page_with_fact.delay(page.to_dict(), fact)
+        new_page_content = update_page_with_fact.delay(page, fact)
         print(new_page_content)
             
 def edit_pages():
     for wiki_page in WikiPage.all():
         edit_page(wiki_page)
         print("Edited page: ", wiki_page.get_title())
-    
     
     
 if __name__ == "__main__":
@@ -279,4 +302,4 @@ if __name__ == "__main__":
     
     for page in WikiPage.all():
         logging.info(f"Editing page {page.absolute_path}")
-        edit_page.delay(page.to_dict())
+        edit_page.delay(page)
