@@ -26,6 +26,9 @@ POSTGRES_URL = os.getenv('POSTGRES_URL')
 GOOGLE_EMAIL = os.getenv('YOUBOT_GOOGLE_EMAIL')
 GOOGLE_CREDS_PATH = os.getenv('YOUBOT_GOOGLE_CREDS_PATH')
 
+
+SECRETS_DIR=os.path.join(ROOT_DIR, '.secrets')
+
 # Expose the config file to memgpt package
 os.environ['MEMGPT_CONFIG_PATH'] = MEMGPT_CONFIG_FILE
 

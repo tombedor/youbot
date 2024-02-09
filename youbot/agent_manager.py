@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+import uuid
 from youbot import AGENTS_CONFIG, ROOT_DIR
 from memgpt import MemGPT
 from memgpt.agent import Agent
@@ -19,5 +21,18 @@ class AgentManager:
         else:
             agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=cls.user_id)
         return Agent(agent_state=agent_state, interface=cls.client.interface)
+    
+    @classmethod 
+    @contextmanager
+    def emphemeral_agent(cls):
+        try: 
+            agent_name = 'emphemeral_' + str(uuid.uuid4())
+            agent = cls.get_or_create_agent(agent_name)
+            yield agent
+        finally:
+            cls.client.server.delete_agent(user_id=cls.user_id, agent_id=agent.agent_state.id)
+            
+    
+    
     
     
