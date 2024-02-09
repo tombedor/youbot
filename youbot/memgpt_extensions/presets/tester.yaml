@@ -1,5 +1,7 @@
 system_prompt: "memgpt_chat_compressed"
 functions:
+  - "core_memory_append"
+  - "core_memory_replace"
   - "send_message"
   - "pause_heartbeats"
   - "conversation_search"

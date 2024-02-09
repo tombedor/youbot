@@ -2,11 +2,11 @@ import os
 from pathlib import Path
 from gcsa.google_calendar import GoogleCalendar
 from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
-from gcsa.event import Event
+from gcsa.event import Event, Attendee
 from datetime import datetime, date
 import gspread
 
-from youbot import ROOT_DIR
+from youbot import GOOGLE_CREDS_PATH, GOOGLE_EMAIL, ROOT_DIR
 
 postgres_url = os.getenv('POSTGRES_URL')
 engine = create_engine(postgres_url, poolclass=NullPool)
@@ -48,7 +48,7 @@ def create_calendar_event(self, event_title: str, start_year: int, start_month: 
             raise ValueError('No google email linked to the user. Get email from user and call link_google_email')
         else:
             email = row[0]
-    calendar = GoogleCalendar(email)
+    calendar = GoogleCalendar(credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL)
     
     # either all hour/min values are null, or none are
     hour_min_none = [val is None for val in [start_hour, start_min, end_hour, end_min]]
@@ -61,7 +61,7 @@ def create_calendar_event(self, event_title: str, start_year: int, start_month: 
     else:
         start_val = datetime(start_year, start_month, start_day, start_hour, start_min)
         end_val = datetime(end_year, end_month, end_day, end_hour, end_min)
-    event = Event(event_title, start=start_val, end=end_val)    
+    event = Event(event_title, start=start_val, end=end_val, attendees=[Attendee(email=email)])    
     calendar.add_event(event)
     return f'Created event {event_title}'
     
@@ -81,24 +81,3 @@ def link_google_email(self, email: str) -> str:
         connection.commit()
         
     return f'Linked {email} to the user. Notify the user that they will still need to go through the OAuth constent screen.'
-
-
-def get_creds(self) -> str:
-    """This function performs the OAuth consent screen for the user.
-
-    Returns:
-        str: A message indicating the result of the OAuth consent screen.
-    """
-    authorized_user_filename = Path(os.path.join(ROOT_DIR, '.secrets', str(self.agent_state.user_id) + '.json'))
-    
-    credentials = gspread.auth.load_credentials(authorized_user_filename)
-    
-    
-    if credentials and credentials.valid:
-        http_client = gspread.HTTPClient(auth=credentials)
-        # refreshing the token
-        http_client.login()
-        return http_client.auth
-    else:
-        gspread.oauth(authorized_user_filename=authorized_user_filename)
-        return gspread.auth.load_credentials(authorized_user_filename)
