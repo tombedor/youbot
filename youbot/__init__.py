@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from llama_index import ServiceContext
 import llama_index
+from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
 import yaml
 
 load_dotenv()
@@ -36,3 +37,14 @@ os.environ['MEMGPT_CONFIG_PATH'] = MEMGPT_CONFIG_FILE
 service_context = ServiceContext.from_defaults()
 service_context.llm.model = 'gpt-4-0613'
 llama_index.global_service_context = service_context
+
+postgres_url = os.getenv('POSTGRES_URL')
+ENGINE = create_engine(POSTGRES_URL, poolclass=NullPool)
+metadata = MetaData()
+
+GOOGLE_EMAILS = Table('google_emails', metadata,
+                        Column('email', String, primary_key=True),
+                        Column('memgpt_user_id', UUID)
+                        )
+
+metadata.create_all(ENGINE)

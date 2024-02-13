@@ -1,23 +1,9 @@
-import os
-from pathlib import Path
 from gcsa.google_calendar import GoogleCalendar
-from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
 from gcsa.event import Event, Attendee
 from datetime import datetime, date
-import gspread
 
-from youbot import GOOGLE_CREDS_PATH, GOOGLE_EMAIL, ROOT_DIR
-
-postgres_url = os.getenv('POSTGRES_URL')
-engine = create_engine(postgres_url, poolclass=NullPool)
-metadata = MetaData()
-
-google_emails = Table('google_emails', metadata,
-                        Column('email', String, primary_key=True),
-                        Column('memgpt_user_id', UUID)
-                        )
-
-metadata.create_all(engine)
+from youbot import ENGINE, GOOGLE_CREDS_PATH, GOOGLE_EMAIL, GOOGLE_EMAILS
+from youbot.service.google_service import fetch_google_email
 
 def create_calendar_event(self, event_title: str, start_year: int, start_month: int, start_day: int, start_hour: int, start_min: int, end_year: int, end_month: int, end_day: int, end_hour: int, end_min: int) -> str:
     """Creates a calendar event in the user's linked google calendar
@@ -41,13 +27,6 @@ def create_calendar_event(self, event_title: str, start_year: int, start_month: 
     Returns:
         str: The result of the event creation attempt.
     """
-    with engine.connect() as connection:
-        user_id = self.agent_state.user_id
-        row = connection.execute(google_emails.select().where(google_emails.c.memgpt_user_id == user_id)).fetchone()
-        if row is None:
-            raise ValueError('No google email linked to the user. Get email from user and call link_google_email')
-        else:
-            email = row[0]
     calendar = GoogleCalendar(credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL)
     
     # either all hour/min values are null, or none are
@@ -61,23 +40,8 @@ def create_calendar_event(self, event_title: str, start_year: int, start_month: 
     else:
         start_val = datetime(start_year, start_month, start_day, start_hour, start_min)
         end_val = datetime(end_year, end_month, end_day, end_hour, end_min)
+        
+    email = fetch_google_email(self.agent_state.user_id)
     event = Event(event_title, start=start_val, end=end_val, attendees=[Attendee(email=email)])    
     calendar.add_event(event)
     return f'Created event {event_title}'
-    
-def link_google_email(self, email: str) -> str:
-    """This function links a google email to the user.
-
-    Args:
-        email (str): The email to link to the user.
-
-    Returns:
-        str: A message indicating the email was linked to the user.
-    """
-    user_id = self.agent_state.user_id
-    
-    with engine.connect() as connection:
-        connection.execute(google_emails.insert().values(email=email, memgpt_user_id=user_id))
-        connection.commit()
-        
-    return f'Linked {email} to the user. Notify the user that they will still need to go through the OAuth constent screen.'
