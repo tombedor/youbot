@@ -35,6 +35,21 @@ google-auth = "^2.27.0"
 celery = {extras = ["redis"], version = "^5.3.6"}
 langchain-openai = "^0.0.5"
 simplegmail = "^4.1.1"
+pyright = "^1.1.350"
+
+
+[tool.pyright]
+include = [
+    "youbot/**/*.py",
+    "tests/**/*.py"
+]
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    ".git",
+    "dist",
+    "build"
+]
 
 
 

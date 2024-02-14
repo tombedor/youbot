@@ -48,3 +48,7 @@ GOOGLE_EMAILS = Table('google_emails', metadata,
                         )
 
 metadata.create_all(ENGINE)
+
+
+
+def get_celery(queue: str) -> Celery
