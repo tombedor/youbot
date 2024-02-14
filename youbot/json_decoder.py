@@ -11,11 +11,14 @@ MAX_DECODE_ATTEMPTS = 3
 
 llm = ChatOpenAI()
 
+
 def parse_json(input: str, attempts=0) -> dict:
     try:
         output = json.loads(input)
         if attempts > 0:
-            logging.info(f"agent successfully correted JSON: attempt {attempts} of {MAX_DECODE_ATTEMPTS}")
+            logging.info(
+                f"agent successfully correted JSON: attempt {attempts} of {MAX_DECODE_ATTEMPTS}"
+            )
         return output
     except json.decoder.JSONDecodeError as e:
         if attempts >= MAX_DECODE_ATTEMPTS:
@@ -50,6 +53,7 @@ def parse_json(input: str, attempts=0) -> dict:
 
         output = chain.invoke({"error_msg": e.msg, "input": input}).content
         return parse_json(output, attempts + 1)
-    
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     print(parse_json('{"hello": "world'))

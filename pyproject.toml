@@ -36,6 +36,7 @@ celery = {extras = ["redis"], version = "^5.3.6"}
 langchain-openai = "^0.0.5"
 simplegmail = "^4.1.1"
 pyright = "^1.1.350"
+black = "^24.2.0"
 
 
 [tool.pyright]

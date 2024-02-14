@@ -5,7 +5,21 @@ from datetime import datetime, date
 from youbot import ENGINE, GOOGLE_CREDS_PATH, GOOGLE_EMAIL, GOOGLE_EMAILS
 from youbot.service.google_service import fetch_google_email
 
-def create_calendar_event(self, event_title: str, start_year: int, start_month: int, start_day: int, start_hour: int, start_min: int, end_year: int, end_month: int, end_day: int, end_hour: int, end_min: int) -> str:
+
+def create_calendar_event(
+    self,
+    event_title: str,
+    start_year: int,
+    start_month: int,
+    start_day: int,
+    start_hour: int,
+    start_min: int,
+    end_year: int,
+    end_month: int,
+    end_day: int,
+    end_hour: int,
+    end_min: int,
+) -> str:
     """Creates a calendar event in the user's linked google calendar
 
     Args:
@@ -27,21 +41,25 @@ def create_calendar_event(self, event_title: str, start_year: int, start_month: 
     Returns:
         str: The result of the event creation attempt.
     """
-    calendar = GoogleCalendar(credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL)
-    
+    calendar = GoogleCalendar(
+        credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL
+    )
+
     # either all hour/min values are null, or none are
     hour_min_none = [val is None for val in [start_hour, start_min, end_hour, end_min]]
     if not all(hour_min_none) and any(hour_min_none):
-        raise 'Either all or none of the start_hour, start_min, end_hour, end_min values must be null'
-    
+        raise "Either all or none of the start_hour, start_min, end_hour, end_min values must be null"
+
     if all(hour_min_none):
         start_val = date(start_year, start_month, start_day)
         end_val = date(end_year, end_month, end_day)
     else:
         start_val = datetime(start_year, start_month, start_day, start_hour, start_min)
         end_val = datetime(end_year, end_month, end_day, end_hour, end_min)
-        
+
     email = fetch_google_email(self.agent_state.user_id)
-    event = Event(event_title, start=start_val, end=end_val, attendees=[Attendee(email=email)])    
+    event = Event(
+        event_title, start=start_val, end=end_val, attendees=[Attendee(email=email)]
+    )
     calendar.add_event(event)
-    return f'Created event {event_title}'
+    return f"Created event {event_title}"

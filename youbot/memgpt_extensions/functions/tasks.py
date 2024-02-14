@@ -1,15 +1,25 @@
 from datetime import date, datetime
 import os
 from dotenv import load_dotenv
-from sqlalchemy import NullPool, create_engine, Column, Integer, String, DateTime, Text, or_
+from sqlalchemy import (
+    NullPool,
+    create_engine,
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Text,
+    or_,
+)
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+
 class Task(Base):
     # Table structure for Task
-    __tablename__ = 'tasks'
+    __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True)
     description = Column(String)
@@ -19,13 +29,13 @@ class Task(Base):
     start_timestamp = Column(DateTime)
     end_timestamp = Column(DateTime)
 
-
     def __str__(self):
         """
         This method returns a summary of the task in string form.
         :return: Summary of the task
         """
-        return f'Task id: {self.id}, description: {self.description}, completion criteria: {self.completion_criteria}, outcome: {self.outcome}, status: {self.status}, start timestamp: {self.start_timestamp}, end timestamp: {self.end_timestamp}'
+        return f"Task id: {self.id}, description: {self.description}, completion criteria: {self.completion_criteria}, outcome: {self.outcome}, status: {self.status}, start timestamp: {self.start_timestamp}, end timestamp: {self.end_timestamp}"
+
 
 load_dotenv()
 POSTGRES_URL = os.getenv("POSTGRES_URL")
@@ -33,6 +43,7 @@ POSTGRES_URL = os.getenv("POSTGRES_URL")
 engine = create_engine(POSTGRES_URL, poolclass=NullPool)
 Base.metadata.create_all(engine)
 session_maker = sessionmaker(bind=engine)
+
 
 def add_task(self, description: str, completion_criteria: str) -> int:
     """
@@ -46,11 +57,12 @@ def add_task(self, description: str, completion_criteria: str) -> int:
             description=description,
             completion_criteria=completion_criteria,
             start_timestamp=datetime.now(),
-            status='in progress'
+            status="in progress",
         )
         session.add(new_task)
         session.commit()
         return new_task.id
+
 
 def get_task(self, task_id: int) -> str:
     """
@@ -60,12 +72,13 @@ def get_task(self, task_id: int) -> str:
     """
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
-    
+
         if task is None:
-            return 'No task found with that id.'
+            return "No task found with that id."
         else:
             return str(task)
-        
+
+
 def mark_task_as_completed(self, task_id: int, outcome: str) -> str:
     """Update the status of a task to 'completed'
 
@@ -80,13 +93,14 @@ def mark_task_as_completed(self, task_id: int, outcome: str) -> str:
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
         if task is None:
-            return 'No task found with that id.'
+            return "No task found with that id."
         else:
-            task.status = 'completed'
+            task.status = "completed"
             task.outcome = outcome
             session.commit()
-            return 'Task marked as completed.'
-        
+            return "Task marked as completed."
+
+
 def mark_task_as_in_progress(self, task_id: int) -> str:
     """Update the status of a task to 'in_progress'
 
@@ -95,19 +109,18 @@ def mark_task_as_in_progress(self, task_id: int) -> str:
 
     Returns:
         str: A message indicated update status
-    """    
+    """
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
         if task is None:
-            return 'No task found with that id.'
+            return "No task found with that id."
         else:
-            task.status = 'in_progress'
+            task.status = "in_progress"
             task.start_timestamp = datetime.now()
             session.commit()
-            return 'Task marked as in_progress.'
-    
-    
-    
+            return "Task marked as in_progress."
+
+
 def mark_task_as_failed(self, task_id: int, outcome: str) -> str:
     """Update the status of a task to 'failed'
 
@@ -117,20 +130,19 @@ def mark_task_as_failed(self, task_id: int, outcome: str) -> str:
 
     Returns:
         str: A message indicated update status
-    """    
-
+    """
 
     with session_maker() as session:
         task = session.query(Task).filter_by(id=task_id).first()
         if task is None:
-            return 'No task found with that id.'
+            return "No task found with that id."
         else:
-            task.status = 'failed'
+            task.status = "failed"
             task.outcome = outcome
             session.commit()
-            return 'Task marked as failed.'
+            return "Task marked as failed."
 
-    
+
 def get_available_tasks(self) -> str:
     """
     Returns a list of tasks that are available to be worked on
@@ -138,7 +150,13 @@ def get_available_tasks(self) -> str:
     """
 
     with session_maker() as session:
-    
+
         today = date.today()
-        available_tasks = session.query(Task).filter(or_(Task.status == 'in progress', Task.start_timestamp <= today)).all()
-        return ", ".join([f"ID: {t.id}, description: {t.description}" for t in available_tasks])
+        available_tasks = (
+            session.query(Task)
+            .filter(or_(Task.status == "in progress", Task.start_timestamp <= today))
+            .all()
+        )
+        return ", ".join(
+            [f"ID: {t.id}, description: {t.description}" for t in available_tasks]
+        )
