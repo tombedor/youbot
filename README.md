@@ -22,3 +22,4 @@ Some experiments might require [my fork of that repo](https://github.com/tombedo
 - [This approach](https://minimaxir.com/2023/12/chatgpt-structured-data/) for structured data with ChatGPT
 - [Graph data / graph embeddings](https://github.com/shenweichen/GraphEmbedding)
 - [Continue](https://continue.dev) for coding assistants
+- [Snoop](https://simonwillison.net/2024/Jan/31/snoop/) python debugging
