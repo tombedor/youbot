@@ -14,14 +14,15 @@ from memgpt import MemGPT
 from memgpt.data_types import User
 from memgpt.metadata import MetadataStore
 
+from youbot import POSTGRES_URL
+
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 discord_client = discord.Client(intents=intents)
-postgres_url = os.environ["POSTGRES_URL"]
-engine = create_engine(postgres_url, poolclass=NullPool)
+engine = create_engine(POSTGRES_URL, poolclass=NullPool)
 metadata = MetaData()
 
 discord_users = Table(

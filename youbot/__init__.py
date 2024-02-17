@@ -45,7 +45,7 @@ service_context = ServiceContext.from_defaults()
 service_context.llm.model = "gpt-4-0613"
 llama_index.global_service_context = service_context
 
-postgres_url = os.getenv("POSTGRES_URL")
+postgres_url = os.environ["POSTGRES_URL"]
 ENGINE = create_engine(POSTGRES_URL, poolclass=NullPool)
 metadata = MetaData()
 

@@ -7,7 +7,7 @@ with AgentManager.ephemeral_agent() as agent:
     client = MemGPT(debug=True)
     agent.add_function(send_email.__name__)
     response = client.user_message(
-        agent_id=agent.agent_state.id,
+        agent_id=str(agent.agent_state.id),
         message="I have added the ability to send the user an email with the function send_email. Send a hello world email.",
     )
     print("foo")

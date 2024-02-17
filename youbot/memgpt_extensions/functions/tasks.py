@@ -14,6 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+from youbot import POSTGRES_URL
+
 Base = declarative_base()
 
 
@@ -38,7 +40,6 @@ class Task(Base):
 
 
 load_dotenv()
-POSTGRES_URL = os.getenv("POSTGRES_URL")
 
 engine = create_engine(POSTGRES_URL, poolclass=NullPool)
 Base.metadata.create_all(engine)

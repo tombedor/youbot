@@ -21,6 +21,8 @@ def create_agent_checkpoint(self) -> str:
             .filter(AgentModel.id == self.agent_state.id)
             .first()
         )
+        
+        assert(row)
 
         # new name, _bkp_YYYYMMDDHHMMSS
         new_name = f"{row.name}_bkp_{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -31,7 +33,7 @@ def create_agent_checkpoint(self) -> str:
                 key != "id" and key != "_sa_instance_state"
             ):  # Exclude these special fields
                 setattr(new_row, key, value)
-                new_row.name = new_name
+                new_row.name = new_name # type: ignore
         session.add(new_row)
         session.commit()
     return f"Created state backup with name {new_name}"
@@ -58,7 +60,7 @@ def copy_memories(self, source_agent_id: str, dest_agent_id: str) -> str:
             table_name=table_name, table_type=table_type, user_id=client.user_id
         )
 
-        with MetadataStore.session_maker() as session:
+        with MetadataStore.session_maker() as session: # type: ignore
             existing_rows = (
                 session.query(db_model).filter(db_model.agent_id == dest_agent_id).all()
             )
