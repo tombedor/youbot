@@ -29,18 +29,20 @@ class AgentManager:
             agent_state = cls.metadata_store.get_agent(
                 agent_name=agent_name, user_id=cls.user_id
             )
+            if agent_state is None:
+                raise ValueError(f"Agent state for {agent_name} not found.")
         return Agent(agent_state=agent_state, interface=cls.client.interface)
 
     @classmethod
     @contextmanager
     def ephemeral_agent(cls):
+        agent = None
         try:
             agent_name = "emphemeral_" + str(uuid.uuid4())
             agent = cls.get_or_create_agent(agent_name, allow_default=True)
             yield agent
-        except:
-            raise
         finally:
-            cls.client.server.delete_agent(
-                user_id=cls.user_id, agent_id=agent.agent_state.id
-            )
+            if agent is not None:
+                cls.client.server.delete_agent(
+                    user_id=cls.user_id, agent_id=agent.agent_state.id
+                )

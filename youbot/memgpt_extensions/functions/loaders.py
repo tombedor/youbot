@@ -85,16 +85,3 @@ def query_github_repo_loading(self, owner: str, repo: str, query: str) -> str:
     query_engine = index.as_query_engine()
     response = query_engine.query(query)
     print(response)
-
-
-if __name__ == "__main__":
-
-    class Querier(object):
-        pass
-
-    setattr(
-        Querier, "query_github_repo_without_loading", query_github_repo_without_loading
-    )
-    Querier().query_github_repo_without_loading(
-        "cpacker", "MemGPT", "how is the system prompt loaded into the agent?"
-    )

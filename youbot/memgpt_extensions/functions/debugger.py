@@ -58,7 +58,7 @@ def find_text(self, root_dir: str, target_text: str) -> str:
         str: matches
     """
     results = []
-    for root, dirs, files in os.walk(root_dir):
+    for root, _dirs, files in os.walk(root_dir):
         for file in files:
             filename = os.path.join(root, file)
             if not filename.endswith(".py"):

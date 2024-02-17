@@ -136,7 +136,7 @@ def remove_list_item(self, list_name: str, item_content: str) -> str:
     """
     with engine.connect() as connection:
         connection.execute(
-            list_items.delete().where(list_items.c.content == item_content)
+            LIST_ITEMS.delete().where(LIST_ITEMS.c.content == item_content)
         )
         connection.commit()
     return f"removed item {item_content} from list {list_name}"
