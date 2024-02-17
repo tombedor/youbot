@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Optional
 import uuid
 import discord
 import os
@@ -13,11 +14,13 @@ from memgpt import MemGPT
 from memgpt.data_types import User
 from memgpt.metadata import MetadataStore
 
+DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
+
 intents = discord.Intents.default()
 intents.message_content = True
 
 discord_client = discord.Client(intents=intents)
-postgres_url = os.getenv("POSTGRES_URL")
+postgres_url = os.environ["POSTGRES_URL"]
 engine = create_engine(postgres_url, poolclass=NullPool)
 metadata = MetaData()
 
@@ -88,7 +91,7 @@ async def on_message(message):
     await message.channel.send(reply)
 
 
-def fetch_memgpt_user_id(discord_member_id: int) -> str:
+def fetch_memgpt_user_id(discord_member_id: int) -> Optional[str]:
     """gets or creates memgpt user for the specified id
 
     Args:
@@ -124,8 +127,9 @@ def create_and_link_memgpt_user_id(discord_member_id: int) -> UUID:
         )
         connection.execute(stmt)
         connection.commit()
+    assert(isinstance(memgpt_user_id, UUID))
     return memgpt_user_id
 
 
 if __name__ == "__main__":
-    discord_client.run(os.getenv("DISCORD_TOKEN"))
+    discord_client.run(DISCORD_TOKEN)

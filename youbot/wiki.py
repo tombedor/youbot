@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Optional
 from celery import Celery
 from llama_index import (
     SimpleDirectoryReader,
@@ -9,7 +9,6 @@ from llama_index import (
 from llama_index.vector_stores.faiss import FaissVectorStore
 
 import logging
-import sys
 
 import json
 
@@ -17,13 +16,11 @@ from pathlib import Path, PosixPath
 
 import psycopg2
 
-from llama_index.service_context import ServiceContext
-import llama_index
 import faiss
 
 from youbot import ROOT_DIR
 
-app = Celery("wiki", broker="redis://localhost:6379/0")
+app = Celery(main="wiki", broker="redis://localhost:6379/0")
 app.conf.update(
     task_serializer="pickle",
     accept_content=["pickle"],  # Ignore other content
@@ -52,7 +49,7 @@ class WikiPage:
     def all(cls) -> List["WikiPage"]:
         return [
             WikiPage(p)
-            for p in list(Path(WIKI_PAGE_ROOT).rglob("*.md"))
+            for p in list(PosixPath(WIKI_PAGE_ROOT).rglob(pattern="*.md"))
             if WikiPage(p).relative_path not in cls.EXCLUDED_PAGES
         ]
 
@@ -82,14 +79,14 @@ class WikiPage:
     def get_title(self) -> str:
         return str(self.relative_path).replace("/", " ").replace(".md", "")
 
-    def get_content(self) -> str:
+    def get_content(self) -> Optional[str]:
         if os.path.getsize(self.absolute_path) > 0:
             with open(self.absolute_path, "r") as f:
                 return f.read()
         else:
             return None
 
-    def get_sibling_pages(self) -> List[str]:
+    def get_sibling_pages(self) -> List["WikiPage"]:
         return [
             p
             for p in WikiPage.all()
@@ -97,7 +94,7 @@ class WikiPage:
             and p.absolute_path != self.absolute_path
         ]
 
-    def get_child_pages(self) -> List[str]:
+    def get_child_pages(self) -> List["WikiPage"]:
         return [
             p
             for p in WikiPage.all()
@@ -157,7 +154,7 @@ def get_new_topics_for_fact(fact: str) -> str:
     """
 
     response = query_engine.query(query)
-    dict = json.loads(response.response)
+    dict = json.loads(response.response) # type: ignore
     if len(dict) > 0:
         path = dict["path"]
         content = dict["content"]
@@ -167,7 +164,7 @@ def get_new_topics_for_fact(fact: str) -> str:
         else:
             WikiPage(path).replace_content(content)
 
-    return response.response
+    return response.response # type: ignore
 
 
 def get_relevant_current_pages_for_fact(fact: str) -> List[WikiPage]:
@@ -202,7 +199,7 @@ def get_relevant_current_pages_for_fact(fact: str) -> List[WikiPage]:
     )
 
     response = query_engine.query(query)
-    response_dict = json.loads(response.response)
+    response_dict = json.loads(response.response) # type: ignore
     pages = [WikiPage(PosixPath(p["page"])) for p in response_dict if p["score"] > 0.5]
     return pages
 
@@ -233,14 +230,14 @@ def update_page_with_fact(wiki_page_arg: WikiPage, fact: str):
         + current_page_content_fragment
     )
 
-    response = query_engine.query(query).response
+    response = query_engine.query(query)
 
-    wiki_page.replace_content(response)
+    wiki_page.replace_content(response.response) # type: ignore
     return response
 
 
 @app.task
-def handle_proposed_edit(wiki_page: WikiPage, proposed_content: str) -> str:
+def handle_proposed_edit(wiki_page: WikiPage, proposed_content: str) -> None:
     logging.info(f"Handling proposed edit for page {wiki_page.get_title()}")
     query = f"""
     I have a private wikipedia with a page called {wiki_page.get_title()}.
@@ -263,8 +260,8 @@ def handle_proposed_edit(wiki_page: WikiPage, proposed_content: str) -> str:
     
     Your response should be the content of the new page, in Markdown format.
     """
-    response = query_engine.query(query).response
-    wiki_page.replace_content(response)
+    response = query_engine.query(query)
+    wiki_page.replace_content(response.response) # type: ignore
 
 
 @app.task
@@ -299,9 +296,9 @@ def edit_page(wiki_page: WikiPage) -> str:
     Your response should be the content of the new page, in Markdown format.
     """
 
-    response = query_engine.query(query).response
+    response = query_engine.query(query)
 
-    return handle_proposed_edit.delay(wiki_page, response)
+    return handle_proposed_edit.delay(wiki_page, response.response) # type: ignore
 
 
 def fetch_facts() -> List[str]:
@@ -315,12 +312,11 @@ def fetch_facts() -> List[str]:
 
 
 @app.task
-def add_facts_to_pages(fact: str) -> str:
+def add_facts_to_pages(fact: str) -> None:
     logging.info(f"Adding fact {fact} to pages")
     relevant_pages = get_relevant_current_pages_for_fact(fact)
     for page in relevant_pages:
-        new_page_content = update_page_with_fact.delay(page, fact)
-        print(new_page_content)
+        update_page_with_fact.delay(page, fact) # type: ignore
 
 
 def edit_pages():
@@ -334,8 +330,8 @@ if __name__ == "__main__":
 
     for f in facts:
         logging.info(f"Adding fact {f} to pages")
-        add_facts_to_pages.delay(f)
+        add_facts_to_pages.delay(f) # type: ignore
 
     for page in WikiPage.all():
         logging.info(f"Editing page {page.absolute_path}")
-        edit_page.delay(page)
+        edit_page.delay(page) # type: ignore

@@ -24,7 +24,7 @@ def send_email(self, subject: str, message: str) -> str:
         str: Description of the result of the email sending attempt.
     """
 
-    email = fetch_google_email(self.agent_state.user_id)
+    email = fetch_google_email(memgpt_user_id=self.agent_state.user_id)
 
     params = {
         "to": email,
