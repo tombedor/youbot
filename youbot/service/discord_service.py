@@ -10,13 +10,14 @@ from sqlalchemy import NullPool, create_engine, Table, Column, String, MetaData,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import text
 
-from memgpt import MemGPT
 from memgpt.data_types import User
 from memgpt.metadata import MetadataStore
 
 from youbot import POSTGRES_URL
+from youbot.agent_manager import AgentManager
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
+AGENT_NAME = "youbot"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -33,66 +34,32 @@ discord_users = Table(
 )
 metadata.create_all(engine)
 
-memgpt_clients = {}  # memgpt_user_id -> MemGPT
-memgpt_agents_ids = {}  # memgpt_user_id -> memgpt_agent_id
-
-# Will need to make this dynamic
-AGENT_IDS = {
-    "00000000-0000-0000-0000-72001b73b3ea": uuid.UUID(
-        "c4a875b1-6e92-426a-befb-e5bb70ff6e29"
-    ),  # tom
-    "21e0c587-3582-49de-b306-c27d15fcc180": uuid.UUID(
-        "155f60de-bd23-4bfd-bcf2-117802af7bce"
-    ),  # justina
-}
-
 
 @discord_client.event
-async def on_ready():
+async def on_ready() -> None:
     print(f"We have logged in as {discord_client.user}")
 
 
 @discord_client.event
-async def on_message(message):
-    print(message)
+async def on_message(message) -> None:
+    logging.info(message)
     if message.author == discord_client.user:
         return
 
-    print(message.author.id)
+    logging.info(message.author.id)
     memgpt_user_id = fetch_memgpt_user_id(message.author.id)
     if memgpt_user_id is None:
         logging.warn(f"no memgpt user found for discord member {str(message.author)}")
-        memgpt_user_id = str(create_and_link_memgpt_user_id(message.author.id))
+        memgpt_user_id = create_and_link_memgpt_user_id(message.author.id)
 
-    global memgpt_clients
-    global memgpt_agents_ids
-
-    if memgpt_user_id not in memgpt_clients:
-        memgpt_clients[memgpt_user_id] = MemGPT(
-            auto_save=True, user_id=memgpt_user_id, debug=True
-        )
-        memgpt_client = memgpt_clients[memgpt_user_id]
-    else:
-        memgpt_client = memgpt_clients[memgpt_user_id]
-
-    # if memgpt_user_id not in memgpt_agents_ids:
-    #     agent_id = next(entry['id'] for entry in memgpt_client.list_agents()['agents'] if entry['name'] == 'tombot')
-    #     if agent_id is None:
-    #         memgpt_client.create_agent({'name': 'tombot'})
-    #         logging.warn(f"no agent found for memgpt user {memgpt_user_id}")
-    #         return
-    #     memgpt_agents_ids[memgpt_user_id] = agent_id
-
-    response_list = memgpt_client.user_message(
-        AGENT_IDS[str(memgpt_user_id)], message.content
+    reply = AgentManager.user_message(
+        agent_name=AGENT_NAME, msg=message.content, user_id=memgpt_user_id
     )
-    reply = next(
-        r.get("assistant_message") for r in response_list if r.get("assistant_message")
-    )
+
     await message.channel.send(reply)
 
 
-def fetch_memgpt_user_id(discord_member_id: int) -> Optional[str]:
+def fetch_memgpt_user_id(discord_member_id: int) -> Optional[uuid.UUID]:
     """gets or creates memgpt user for the specified id
 
     Args:
@@ -117,7 +84,7 @@ def fetch_memgpt_user_id(discord_member_id: int) -> Optional[str]:
             return None
 
 
-def create_and_link_memgpt_user_id(discord_member_id: int) -> UUID:
+def create_and_link_memgpt_user_id(discord_member_id: int) -> uuid.UUID:
     user = User()
     ms = MetadataStore()
     ms.create_user(user)
@@ -128,7 +95,7 @@ def create_and_link_memgpt_user_id(discord_member_id: int) -> UUID:
         )
         connection.execute(stmt)
         connection.commit()
-    assert(isinstance(memgpt_user_id, UUID))
+    assert isinstance(memgpt_user_id, uuid.UUID)
     return memgpt_user_id
 
 

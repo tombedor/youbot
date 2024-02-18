@@ -4,7 +4,7 @@ from celery.schedules import crontab
 app = Celery()
 
 
-@app.on_after_configure.connect # type: ignore
+@app.on_after_configure.connect  # type: ignore
 def setup_periodic_tasks(sender, **_):
     # Calls test('hello') every 10 seconds.
     sender.add_periodic_task(10.0, test.s("hello"), name="add every 10")  # type: ignore
@@ -15,12 +15,12 @@ def setup_periodic_tasks(sender, **_):
     sender.add_periodic_task(30.0, test.s("hello"), name="add every 30")  # type: ignore
 
     # Calls test('world') every 30 seconds
-    sender.add_periodic_task(30.0, test.s("world"), expires=10) # type: ignore
+    sender.add_periodic_task(30.0, test.s("world"), expires=10)  # type: ignore
 
     # Executes every Monday morning at 7:30 a.m.
     sender.add_periodic_task(
-        crontab(hour=7, minute=30, day_of_week=1), # type: ignore
-        test.s("Happy Mondays!"), # type: ignore
+        crontab(hour=7, minute=30, day_of_week=1),  # type: ignore
+        test.s("Happy Mondays!"),  # type: ignore
     )
 
 

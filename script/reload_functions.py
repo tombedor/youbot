@@ -15,7 +15,7 @@ for user_id, agent_id in AGENT_IDS.items():
     agent_state = metadata_store.get_agent(
         agent_id=agent_id, user_id=uuid.UUID(user_id)
     )
-    assert(agent_state)
+    assert agent_state
     agent = Agent(agent_state=agent_state, interface=client.interface)
     load_preset_functions(agent)
     client.save()

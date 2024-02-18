@@ -154,7 +154,7 @@ def get_new_topics_for_fact(fact: str) -> str:
     """
 
     response = query_engine.query(query)
-    dict = json.loads(response.response) # type: ignore
+    dict = json.loads(response.response)  # type: ignore
     if len(dict) > 0:
         path = dict["path"]
         content = dict["content"]
@@ -164,7 +164,7 @@ def get_new_topics_for_fact(fact: str) -> str:
         else:
             WikiPage(path).replace_content(content)
 
-    return response.response # type: ignore
+    return response.response  # type: ignore
 
 
 def get_relevant_current_pages_for_fact(fact: str) -> List[WikiPage]:
@@ -199,7 +199,7 @@ def get_relevant_current_pages_for_fact(fact: str) -> List[WikiPage]:
     )
 
     response = query_engine.query(query)
-    response_dict = json.loads(response.response) # type: ignore
+    response_dict = json.loads(response.response)  # type: ignore
     pages = [WikiPage(PosixPath(p["page"])) for p in response_dict if p["score"] > 0.5]
     return pages
 
@@ -232,7 +232,7 @@ def update_page_with_fact(wiki_page_arg: WikiPage, fact: str):
 
     response = query_engine.query(query)
 
-    wiki_page.replace_content(response.response) # type: ignore
+    wiki_page.replace_content(response.response)  # type: ignore
     return response
 
 
@@ -261,7 +261,7 @@ def handle_proposed_edit(wiki_page: WikiPage, proposed_content: str) -> None:
     Your response should be the content of the new page, in Markdown format.
     """
     response = query_engine.query(query)
-    wiki_page.replace_content(response.response) # type: ignore
+    wiki_page.replace_content(response.response)  # type: ignore
 
 
 @app.task
@@ -298,7 +298,7 @@ def edit_page(wiki_page: WikiPage) -> str:
 
     response = query_engine.query(query)
 
-    return handle_proposed_edit.delay(wiki_page, response.response) # type: ignore
+    return handle_proposed_edit.delay(wiki_page, response.response)  # type: ignore
 
 
 def fetch_facts() -> List[str]:
@@ -316,7 +316,7 @@ def add_facts_to_pages(fact: str) -> None:
     logging.info(f"Adding fact {fact} to pages")
     relevant_pages = get_relevant_current_pages_for_fact(fact)
     for page in relevant_pages:
-        update_page_with_fact.delay(page, fact) # type: ignore
+        update_page_with_fact.delay(page, fact)  # type: ignore
 
 
 def edit_pages():
@@ -330,8 +330,8 @@ if __name__ == "__main__":
 
     for f in facts:
         logging.info(f"Adding fact {f} to pages")
-        add_facts_to_pages.delay(f) # type: ignore
+        add_facts_to_pages.delay(f)  # type: ignore
 
     for page in WikiPage.all():
         logging.info(f"Editing page {page.absolute_path}")
-        edit_page.delay(page) # type: ignore
+        edit_page.delay(page)  # type: ignore

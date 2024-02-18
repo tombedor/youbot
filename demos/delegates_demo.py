@@ -13,7 +13,7 @@ agent_id = next(
     if entry["name"] == agent_name
 )
 agent_state = client.server.get_agent(agent_id=agent_id, user_id=client.user_id)
-assert(agent_state)
+assert agent_state
 
 agent = Agent(agent_state=agent_state, interface=client.interface)
 
