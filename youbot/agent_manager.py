@@ -16,12 +16,12 @@ class AgentManager:
     DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
     SERVER = MemGPT().server
 
-    @lru_cache
+    # @lru_cache
     @classmethod
     def get_client(cls, user_id: UUID = DEFAULT_MEMGPT_USER_ID) -> MemGPT:
         return MemGPT(user_id=str(user_id))
 
-    @lru_cache
+    # @lru_cache
     @classmethod
     def get_or_create_agent(
         cls, agent_name: str, user_id: UUID = DEFAULT_MEMGPT_USER_ID
