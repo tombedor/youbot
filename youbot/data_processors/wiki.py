@@ -21,14 +21,16 @@ import faiss
 from youbot import ROOT_DIR
 
 app = Celery(main="wiki", broker="redis://localhost:6379/0")
-app.conf.update(
-    task_serializer="pickle",
-    accept_content=["pickle"],  # Ignore other content
-    result_serializer="pickle",
-)
+# app.conf.update(
+#     task_serializer="pickle",
+#     accept_content=["pickle"],  # Ignore other content
+#     result_serializer="pickle",
+# )
 
+log_dir = os.path.join(ROOT_DIR, "logs")
+os.makedirs(log_dir, exist_ok=True)
 logging.basicConfig(
-    filename=os.path.join(ROOT_DIR, "logs", "wiki.log"),
+    filename=os.path.join(log_dir, "wiki.log"),
     encoding="utf-8",
     level=logging.DEBUG,
 )

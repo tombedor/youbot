@@ -16,16 +16,16 @@ with open(os.path.join(ROOT_DIR, "config", "agents.yaml"), "r") as file:
 
 for env_var in [
     "OPENAI_API_KEY",
-    "GITHUB_TOKEN",
+    # "GITHUB_TOKEN",
     "POSTGRES_URL",
-    "YOUBOT_GOOGLE_EMAIL",
-    "YOUBOT_GOOGLE_CREDS_PATH",
+    # "YOUBOT_GOOGLE_EMAIL",
+    # "YOUBOT_GOOGLE_CREDS_PATH",
 ]:
     if os.getenv(env_var) is None:
         raise KeyError(f"missing required env var: {env_var}")
 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+# GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 POSTGRES_URL = os.environ["POSTGRES_URL"]
 
 # This is understood to be the Google email of *the agent* (not the user)

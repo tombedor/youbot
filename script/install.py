@@ -27,9 +27,22 @@ def symlink_files(src_dir, dest_dir):
                 os.remove(dest_path)
             os.symlink(src_file, dest_path)
             print(f"symlinked {src_file} to {dest_path}")
+            
+def copy_creds():
+    openai_key = os.environ["OPENAI_API_KEY"]
+    creds_text = f"""
+[openai]
+auth_type = bearer_token
+key = {openai_key}
+"""
+
+    creds_path = os.path.join(os.path.expanduser('~'), '.memgpt', 'credentials')
+    with open(creds_path, 'w') as file:
+        file.write(creds_text)
 
 
 if __name__ == "__main__":
+    copy_creds()
     for name in ["functions", "personas", "humans", "presets"]:
         source_dir = os.path.join(memgpt_extensions_dir, name)
         dest_dir = os.path.join(memgpt_install_dir, name)
