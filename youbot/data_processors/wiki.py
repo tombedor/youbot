@@ -19,6 +19,7 @@ import psycopg2
 import faiss
 
 from youbot import ROOT_DIR
+from youbot.data_processors.convo_replay import fetch_facts
 
 app = Celery(main="wiki", broker="redis://localhost:6379/0")
 # app.conf.update(
@@ -301,17 +302,6 @@ def edit_page(wiki_page: WikiPage) -> str:
     response = query_engine.query(query)
 
     return handle_proposed_edit.delay(wiki_page, response.response)  # type: ignore
-
-
-def fetch_facts() -> List[str]:
-    # query postgres for facts
-    with psycopg2.connect(os.getenv("POSTGRES_URL")) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT TEXT FROM memgpt_archival_memory_agent UNION ALL SELECT TEXT FROM memgpt_recall_memory_agent;"
-            )
-            return [r[0] for r in cursor.fetchall()]
-
 
 @app.task
 def add_facts_to_pages(fact: str) -> None:

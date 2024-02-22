@@ -1,12 +1,12 @@
-from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date
-from enum import Enum
-from typing import List, Optional
-from cycler import V
+import os
+import pickle
+from typing import Optional
 import networkx as nx
 import matplotlib.pyplot as plt
 
+from youbot.data_processors.convo_replay import fetch_facts
 
 @dataclass
 class Node:
@@ -58,18 +58,26 @@ VALID_EDGES = {
     (Person, Pet): ["adopted", "owns"],
 }
 
-
 class Graph:
-    def __init__(self):
-        self.G = nx.DiGraph()
+    def __init__(self, pickle_path=os.path.join('/tmp', 'graph.pickle')):
+        self.pickle_path = pickle_path
+        if os.path.exists(pickle_path):
+                self.G = pickle.load(open(pickle_path, 'rb'))
+        else:
+            self.G = nx.DiGraph()
+            
+    def persist(self):
+        with open(self.pickle_path, 'wb') as f:
+            pickle.dump(self.G, f)
 
     def add_node(self, name: str, node_type: str) -> str:
         if name in self.G.nodes:
-            raise ValueError(f"Node {name} already exists")
+            return f"Node {name} already exists"
 
         klass = Node.get_klass(node_type)
         node = klass(name)
         self.G.add_node(node.name, **node.node_attrs())
+        self.persist()
         return f"Added node {name} of type {node_type}"
 
     def get_node(self, name: str) -> Node:
@@ -105,30 +113,41 @@ class Graph:
                 f"Invalid relationship {relationship} connecting node type {out_node.get_node_type()} to node type {in_node.get_node_type()}. Valid relationships are: {valid_relationships}"
             )
 
-        self.add_edge(out_node_name, in_node_name, relationship=relationship)
+        self.G.add_edge(out_node_name, in_node_name, relationship=relationship)
+        self.persist()
         return f"Added edge from {out_node_name} to {in_node_name} with relationship {relationship}"
 
     def add_node_attribute(
-        self, name: str, attribute_name: str, attribute_value: str
+        self, node_name: str, attribute_name: str, attribute_value: str
     ) -> str:
-        node = self.get_node(name)
-        return "foo"
+        node = self.get_node(node_name)
+        valid_attributes = [k for k,v in node.node_attrs().items() if k != 'node_type']
+        if attribute_name not in valid_attributes:
+            raise ValueError(f"Cannot set attribute {attribute_name}. valid attributes for node of type {node.get_node_type()} are: {valid_attributes}")
+        else:
+            self.G.nodes[node_name][attribute_name] = attribute_value
+            
+        
+        self.persist()
+        return f"set attribute {attribute_name} to {attribute_value} for node {node_name}"
 
     def show(self):
         pos = nx.spring_layout(self.G)
-        # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+        nx.draw_networkx_edge_labels(self.G, pos)
         nx.draw(
             self.G, pos, with_labels=True, node_color="lightblue", edge_color="gray"
         )
         plt.show()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
+    facts = fetch_facts()
     g = Graph()
 
     g.add_node("Tom Bedor", "Person")
     g.add_node("Justina Hoang", "Person")
 
     g.add_edge("Tom Bedor", "Justina Hoang", "married_to")
+    g.add_node_attribute('Tom Bedor', 'birthday', '2020-01-01')
 
     g.show()
