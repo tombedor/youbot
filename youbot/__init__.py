@@ -7,7 +7,7 @@ import yaml
 load_dotenv()
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MEMGPT_CONFIG_FILE = os.path.join(ROOT_DIR, "config", "memgpt_config.yaml")
+MEMGPT_CONFIG_FILE = os.path.join(ROOT_DIR, "config", "memgpt_config")
 with open(os.path.join(ROOT_DIR, "config", "agents.yaml"), "r") as file:
     AGENTS_CONFIG = yaml.safe_load(file.read())
 

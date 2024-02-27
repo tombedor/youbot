@@ -18,22 +18,20 @@ embedding_chunk_size = 300
 
 [archival_storage]
 type = postgres
-path = /Users/tbedor/.memgpt/chroma
-uri = postgresql://memgpt:memgpt@localhost:8888/memgpt
+uri = $POSTGRES_URL
+# hard coded to read from POSTGRES_URL
 
 [recall_storage]
 type = postgres
-path = /Users/tbedor/.memgpt
-uri = postgresql://memgpt:memgpt@localhost:8888/memgpt
+# hard coded to read from POSTGRES_URL
 
 [metadata_storage]
 type = postgres
-path = /Users/tbedor/.memgpt
-uri = postgresql://memgpt:memgpt@localhost:8888/memgpt
+# hard coded to read from POSTGRES_URL
 
 [version]
 memgpt_version = 0.3.3
 
 [client]
-anon_clientid = 000000000000000000000ac596c84013
+anon_clientid = 0000000000000000000072001b73b3ea
 
