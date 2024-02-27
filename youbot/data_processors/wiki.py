@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 from celery import Celery
-from llama_index import (
+from llama_index.core import (
     SimpleDirectoryReader,
     VectorStoreIndex,
     StorageContext,

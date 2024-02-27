@@ -259,42 +259,6 @@ tests-mypy = ["mypy (>=1.6)", "pytest-mypy-plugins"]
 tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "pytest (>=4.3.0)", "pytest-xdist[psutil]"]
 
 [[package]]
-name = "azure-core"
-version = "1.30.0"
-description = "Microsoft Azure Core Library for Python"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "azure-core-1.30.0.tar.gz", hash = "sha256:6f3a7883ef184722f6bd997262eddaf80cfe7e5b3e0caaaf8db1695695893d35"},
-    {file = "azure_core-1.30.0-py3-none-any.whl", hash = "sha256:3dae7962aad109610e68c9a7abb31d79720e1d982ddf61363038d175a5025e89"},
-]
-
-[package.dependencies]
-requests = ">=2.21.0"
-six = ">=1.11.0"
-typing-extensions = ">=4.6.0"
-
-[package.extras]
-aio = ["aiohttp (>=3.0)"]
-
-[[package]]
-name = "azure-identity"
-version = "1.15.0"
-description = "Microsoft Azure Identity Library for Python"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "azure-identity-1.15.0.tar.gz", hash = "sha256:4c28fc246b7f9265610eb5261d65931183d019a23d4b0e99357facb2e6c227c8"},
-    {file = "azure_identity-1.15.0-py3-none-any.whl", hash = "sha256:a14b1f01c7036f11f148f22cd8c16e05035293d714458d6b44ddf534d93eb912"},
-]
-
-[package.dependencies]
-azure-core = ">=1.23.0,<2.0.0"
-cryptography = ">=2.5"
-msal = ">=1.24.0,<2.0.0"
-msal-extensions = ">=0.3.0,<2.0.0"
-
-[[package]]
 name = "backoff"
 version = "2.2.1"
 description = "Function decoration for backoff and retry"
@@ -932,60 +896,6 @@ traitlets = ">=4"
 
 [package.extras]
 test = ["pytest"]
-
-[[package]]
-name = "cryptography"
-version = "42.0.1"
-description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "cryptography-42.0.1-cp37-abi3-macosx_10_12_universal2.whl", hash = "sha256:265bdc693570b895eb641410b8fc9e8ddbce723a669236162b9d9cfb70bd8d77"},
-    {file = "cryptography-42.0.1-cp37-abi3-macosx_10_12_x86_64.whl", hash = "sha256:160fa08dfa6dca9cb8ad9bd84e080c0db6414ba5ad9a7470bc60fb154f60111e"},
-    {file = "cryptography-42.0.1-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:727387886c9c8de927c360a396c5edcb9340d9e960cda145fca75bdafdabd24c"},
-    {file = "cryptography-42.0.1-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4d84673c012aa698555d4710dcfe5f8a0ad76ea9dde8ef803128cc669640a2e0"},
-    {file = "cryptography-42.0.1-cp37-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:e6edc3a568667daf7d349d7e820783426ee4f1c0feab86c29bd1d6fe2755e009"},
-    {file = "cryptography-42.0.1-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:d50718dd574a49d3ef3f7ef7ece66ef281b527951eb2267ce570425459f6a404"},
-    {file = "cryptography-42.0.1-cp37-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:9544492e8024f29919eac2117edd8c950165e74eb551a22c53f6fdf6ba5f4cb8"},
-    {file = "cryptography-42.0.1-cp37-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:ab6b302d51fbb1dd339abc6f139a480de14d49d50f65fdc7dff782aa8631d035"},
-    {file = "cryptography-42.0.1-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:2fe16624637d6e3e765530bc55caa786ff2cbca67371d306e5d0a72e7c3d0407"},
-    {file = "cryptography-42.0.1-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:ed1b2130f5456a09a134cc505a17fc2830a1a48ed53efd37dcc904a23d7b82fa"},
-    {file = "cryptography-42.0.1-cp37-abi3-win32.whl", hash = "sha256:e5edf189431b4d51f5c6fb4a95084a75cef6b4646c934eb6e32304fc720e1453"},
-    {file = "cryptography-42.0.1-cp37-abi3-win_amd64.whl", hash = "sha256:6bfd823b336fdcd8e06285ae8883d3d2624d3bdef312a0e2ef905f332f8e9302"},
-    {file = "cryptography-42.0.1-cp39-abi3-macosx_10_12_universal2.whl", hash = "sha256:351db02c1938c8e6b1fee8a78d6b15c5ccceca7a36b5ce48390479143da3b411"},
-    {file = "cryptography-42.0.1-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:430100abed6d3652208ae1dd410c8396213baee2e01a003a4449357db7dc9e14"},
-    {file = "cryptography-42.0.1-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2dff7a32880a51321f5de7869ac9dde6b1fca00fc1fef89d60e93f215468e824"},
-    {file = "cryptography-42.0.1-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:b512f33c6ab195852595187af5440d01bb5f8dd57cb7a91e1e009a17f1b7ebca"},
-    {file = "cryptography-42.0.1-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:95d900d19a370ae36087cc728e6e7be9c964ffd8cbcb517fd1efb9c9284a6abc"},
-    {file = "cryptography-42.0.1-cp39-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:6ac8924085ed8287545cba89dc472fc224c10cc634cdf2c3e2866fe868108e77"},
-    {file = "cryptography-42.0.1-cp39-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:cb2861a9364fa27d24832c718150fdbf9ce6781d7dc246a516435f57cfa31fe7"},
-    {file = "cryptography-42.0.1-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:25ec6e9e81de5d39f111a4114193dbd39167cc4bbd31c30471cebedc2a92c323"},
-    {file = "cryptography-42.0.1-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:9d61fcdf37647765086030d81872488e4cb3fafe1d2dda1d487875c3709c0a49"},
-    {file = "cryptography-42.0.1-cp39-abi3-win32.whl", hash = "sha256:16b9260d04a0bfc8952b00335ff54f471309d3eb9d7e8dbfe9b0bd9e26e67881"},
-    {file = "cryptography-42.0.1-cp39-abi3-win_amd64.whl", hash = "sha256:7911586fc69d06cd0ab3f874a169433db1bc2f0e40988661408ac06c4527a986"},
-    {file = "cryptography-42.0.1-pp310-pypy310_pp73-macosx_10_12_x86_64.whl", hash = "sha256:d3594947d2507d4ef7a180a7f49a6db41f75fb874c2fd0e94f36b89bfd678bf2"},
-    {file = "cryptography-42.0.1-pp310-pypy310_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:8d7efb6bf427d2add2f40b6e1e8e476c17508fa8907234775214b153e69c2e11"},
-    {file = "cryptography-42.0.1-pp310-pypy310_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:126e0ba3cc754b200a2fb88f67d66de0d9b9e94070c5bc548318c8dab6383cb6"},
-    {file = "cryptography-42.0.1-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:802d6f83233cf9696b59b09eb067e6b4d5ae40942feeb8e13b213c8fad47f1aa"},
-    {file = "cryptography-42.0.1-pp39-pypy39_pp73-macosx_10_12_x86_64.whl", hash = "sha256:0b7cacc142260ada944de070ce810c3e2a438963ee3deb45aa26fd2cee94c9a4"},
-    {file = "cryptography-42.0.1-pp39-pypy39_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:32ea63ceeae870f1a62e87f9727359174089f7b4b01e4999750827bf10e15d60"},
-    {file = "cryptography-42.0.1-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:d3902c779a92151f134f68e555dd0b17c658e13429f270d8a847399b99235a3f"},
-    {file = "cryptography-42.0.1-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:50aecd93676bcca78379604ed664c45da82bc1241ffb6f97f6b7392ed5bc6f04"},
-    {file = "cryptography-42.0.1.tar.gz", hash = "sha256:fd33f53809bb363cf126bebe7a99d97735988d9b0131a2be59fbf83e1259a5b7"},
-]
-
-[package.dependencies]
-cffi = {version = ">=1.12", markers = "platform_python_implementation != \"PyPy\""}
-
-[package.extras]
-docs = ["sphinx (>=5.3.0)", "sphinx-rtd-theme (>=1.1.1)"]
-docstest = ["pyenchant (>=1.6.11)", "readme-renderer", "sphinxcontrib-spelling (>=4.0.1)"]
-nox = ["nox"]
-pep8test = ["check-sdist", "click", "mypy", "ruff"]
-sdist = ["build"]
-ssh = ["bcrypt (>=3.1.5)"]
-test = ["certifi", "pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-cov", "pytest-xdist"]
-test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "dataclasses-json"
@@ -2551,28 +2461,27 @@ retrying = "*"
 
 [[package]]
 name = "llama-index"
-version = "0.10.12"
+version = "0.10.9"
 description = "Interface between LLMs and your data"
 optional = false
-python-versions = ">=3.8.1,<3.12"
+python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "llama_index-0.10.12-py3-none-any.whl", hash = "sha256:6d179049112f0b4d65b908b2bc8e2521ed31db57f76b60b2fe3657ec5b71e5f9"},
-    {file = "llama_index-0.10.12.tar.gz", hash = "sha256:84150cdb52f84fbe527a321d10dfec361ffd2596a8ef1f13d19f2e36bb7a101d"},
+    {file = "llama_index-0.10.9-py3-none-any.whl", hash = "sha256:d8799ac24c56acc44f94b4a7fe47002fe2981e2e7ff28ad9de2b458f90cbfbd6"},
+    {file = "llama_index-0.10.9.tar.gz", hash = "sha256:1d43a643321e56539a4bff3001e896ee32e5d6369f110ad831afa2848229d64a"},
 ]
 
 [package.dependencies]
-llama-index-agent-openai = ">=0.1.4,<0.2.0"
-llama-index-cli = ">=0.1.2,<0.2.0"
-llama-index-core = ">=0.10.12,<0.11.0"
-llama-index-embeddings-openai = ">=0.1.5,<0.2.0"
-llama-index-indices-managed-llama-cloud = ">=0.1.2,<0.2.0"
+llama-index-agent-openai = ">=0.1.0,<0.2.0"
+llama-index-core = ">=0.10.8.post1,<0.11.0"
+llama-index-embeddings-openai = ">=0.1.0,<0.2.0"
+llama-index-indices-managed-llama-cloud = ">=0.1.0,<0.2.0"
 llama-index-legacy = ">=0.9.48,<0.10.0"
-llama-index-llms-openai = ">=0.1.5,<0.2.0"
-llama-index-multi-modal-llms-openai = ">=0.1.3,<0.2.0"
-llama-index-program-openai = ">=0.1.3,<0.2.0"
-llama-index-question-gen-openai = ">=0.1.2,<0.2.0"
-llama-index-readers-file = ">=0.1.4,<0.2.0"
-llama-index-readers-llama-parse = ">=0.1.2,<0.2.0"
+llama-index-llms-openai = ">=0.1.0,<0.2.0"
+llama-index-multi-modal-llms-openai = ">=0.1.0,<0.2.0"
+llama-index-program-openai = ">=0.1.0,<0.2.0"
+llama-index-question-gen-openai = ">=0.1.0,<0.2.0"
+llama-index-readers-file = ">=0.1.0,<0.2.0"
+llama-index-readers-llama-parse = ">=0.1.0,<0.2.0"
 
 [[package]]
 name = "llama-index-agent-openai"
@@ -2588,23 +2497,6 @@ files = [
 [package.dependencies]
 llama-index-core = ">=0.10.1,<0.11.0"
 llama-index-llms-openai = ">=0.1.5,<0.2.0"
-
-[[package]]
-name = "llama-index-cli"
-version = "0.1.5"
-description = "llama-index cli"
-optional = false
-python-versions = ">=3.8.1,<4.0"
-files = [
-    {file = "llama_index_cli-0.1.5-py3-none-any.whl", hash = "sha256:a0fcfc3239d8b05158558423ca5c1a426d2a455eab44128b2b786cab566f74ad"},
-    {file = "llama_index_cli-0.1.5.tar.gz", hash = "sha256:e2493ff7ecfd1983fd15c28c6c0c7bfdba66662c1d8960f6aea229db3d7fafda"},
-]
-
-[package.dependencies]
-llama-index-core = ">=0.10.11.post1,<0.11.0"
-llama-index-embeddings-openai = ">=0.1.1,<0.2.0"
-llama-index-llms-openai = ">=0.1.1,<0.2.0"
-llama-index-vector-stores-chroma = ">=0.1.1,<0.2.0"
 
 [[package]]
 name = "llama-index-core"
@@ -2648,22 +2540,6 @@ langchain = ["langchain (>=0.0.303)"]
 local-models = ["optimum[onnxruntime] (>=1.13.2,<2.0.0)", "sentencepiece (>=0.1.99,<0.2.0)", "transformers[torch] (>=4.33.1,<5.0.0)"]
 postgres = ["asyncpg (>=0.28.0,<0.29.0)", "pgvector (>=0.1.0,<0.2.0)", "psycopg2-binary (>=2.9.9,<3.0.0)"]
 query-tools = ["guidance (>=0.0.64,<0.0.65)", "jsonpath-ng (>=1.6.0,<2.0.0)", "lm-format-enforcer (>=0.4.3,<0.5.0)", "rank-bm25 (>=0.2.2,<0.3.0)", "scikit-learn", "spacy (>=3.7.1,<4.0.0)"]
-
-[[package]]
-name = "llama-index-embeddings-azure-openai"
-version = "0.1.6"
-description = "llama-index embeddings azure openai integration"
-optional = false
-python-versions = ">=3.8.1,<4.0"
-files = [
-    {file = "llama_index_embeddings_azure_openai-0.1.6-py3-none-any.whl", hash = "sha256:a84a6d7d67296690e5d20070ce5d9920ec56b0d339338d276eae2a7b2f822b9e"},
-    {file = "llama_index_embeddings_azure_openai-0.1.6.tar.gz", hash = "sha256:05092b1b31bd0f45257d161f1e5a17261c60e688f4c6a4fe316557349ac2aebc"},
-]
-
-[package.dependencies]
-llama-index-core = ">=0.10.11.post1,<0.11.0"
-llama-index-embeddings-openai = ">=0.1.3,<0.2.0"
-llama-index-llms-azure-openai = ">=0.1.3,<0.2.0"
 
 [[package]]
 name = "llama-index-embeddings-openai"
@@ -2734,23 +2610,6 @@ postgres = ["asyncpg (>=0.28.0,<0.29.0)", "pgvector (>=0.1.0,<0.2.0)", "psycopg2
 query-tools = ["guidance (>=0.0.64,<0.0.65)", "jsonpath-ng (>=1.6.0,<2.0.0)", "lm-format-enforcer (>=0.4.3,<0.5.0)", "rank-bm25 (>=0.2.2,<0.3.0)", "scikit-learn", "spacy (>=3.7.1,<4.0.0)"]
 
 [[package]]
-name = "llama-index-llms-azure-openai"
-version = "0.1.4"
-description = "llama-index llms azure openai integration"
-optional = false
-python-versions = ">=3.8.1,<4.0"
-files = [
-    {file = "llama_index_llms_azure_openai-0.1.4-py3-none-any.whl", hash = "sha256:b63bea578051a11ea35a08acb4889f6ee907a6eb60b5786c11770d3741616f23"},
-    {file = "llama_index_llms_azure_openai-0.1.4.tar.gz", hash = "sha256:5384c3a7bfbca9dbe132c7bd46b2226ba1b2b6a38e2dcf8f1d090e12203e9d56"},
-]
-
-[package.dependencies]
-azure-identity = ">=1.15.0,<2.0.0"
-httpx = "*"
-llama-index-core = ">=0.10.11.post1,<0.11.0"
-llama-index-llms-openai = ">=0.1.1,<0.2.0"
-
-[[package]]
 name = "llama-index-llms-openai"
 version = "0.1.6"
 description = "llama-index llms openai integration"
@@ -2813,13 +2672,13 @@ llama-index-program-openai = ">=0.1.1,<0.2.0"
 
 [[package]]
 name = "llama-index-readers-file"
-version = "0.1.6"
+version = "0.1.1"
 description = "llama-index readers file integration"
 optional = false
-python-versions = ">=3.8.1,<4.0"
+python-versions = ">=3.8.1,<3.12"
 files = [
-    {file = "llama_index_readers_file-0.1.6-py3-none-any.whl", hash = "sha256:f583bd90353a0c0985213af02c97aa2f2f22e702d4311fe719de91382c9ad8dd"},
-    {file = "llama_index_readers_file-0.1.6.tar.gz", hash = "sha256:d9fc0ca84926d04bd757c57fe87841cd9dbc2606aab5f2ce927deec14aaa1a74"},
+    {file = "llama_index_readers_file-0.1.1-py3-none-any.whl", hash = "sha256:4388b5fab6c2586eceecc44ecdcf5fc762d15d8e7c81b95fe5eb68828bd6b86e"},
+    {file = "llama_index_readers_file-0.1.1.tar.gz", hash = "sha256:ce7ed0ab1ec877f14f3ca7e1a1343d6de543c30d8a0ff61e1690d3318a101ef1"},
 ]
 
 [package.dependencies]
@@ -2827,7 +2686,6 @@ beautifulsoup4 = ">=4.12.3,<5.0.0"
 bs4 = ">=0.0.2,<0.0.3"
 llama-index-core = ">=0.10.1,<0.11.0"
 pymupdf = ">=1.23.21,<2.0.0"
-pypdf = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "llama-index-readers-llama-parse"
@@ -2845,21 +2703,18 @@ llama-index-core = ">=0.10.7,<0.11.0"
 llama-parse = ">=0.3.3,<0.4.0"
 
 [[package]]
-name = "llama-index-vector-stores-chroma"
-version = "0.1.4"
-description = "llama-index vector_stores chroma integration"
+name = "llama-index-vector-stores-faiss"
+version = "0.1.2"
+description = "llama-index vector_stores faiss integration"
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "llama_index_vector_stores_chroma-0.1.4-py3-none-any.whl", hash = "sha256:f475a450431ee4d9b2915ba9da2112dfdfacaee1ea220b8603720be1c116786c"},
-    {file = "llama_index_vector_stores_chroma-0.1.4.tar.gz", hash = "sha256:7364f2a3f8a51b83d350da39da7e7046704cfa9c848ebe8fd1c6cb39ad4878f9"},
+    {file = "llama_index_vector_stores_faiss-0.1.2-py3-none-any.whl", hash = "sha256:6db18f4f11fdcce9294d7b1725805992006094766b9dcbd3967065f8997f0be9"},
+    {file = "llama_index_vector_stores_faiss-0.1.2.tar.gz", hash = "sha256:e462641e4f99ae140a4725103a3d5cad2caf1849cbb782ca405b1a6eb5de65dc"},
 ]
 
 [package.dependencies]
-chromadb = ">=0.4.22,<0.5.0"
 llama-index-core = ">=0.10.1,<0.11.0"
-onnxruntime = ">=1.17.0,<2.0.0"
-tokenizers = ">=0.15.1,<0.16.0"
 
 [[package]]
 name = "llama-parse"
@@ -3266,44 +3121,6 @@ develop = ["codecov", "pycodestyle", "pytest (>=4.6)", "pytest-cov", "wheel"]
 docs = ["sphinx"]
 gmpy = ["gmpy2 (>=2.1.0a4)"]
 tests = ["pytest (>=4.6)"]
-
-[[package]]
-name = "msal"
-version = "1.27.0"
-description = "The Microsoft Authentication Library (MSAL) for Python library enables your app to access the Microsoft Cloud by supporting authentication of users with Microsoft Azure Active Directory accounts (AAD) and Microsoft Accounts (MSA) using industry standard OAuth2 and OpenID Connect."
-optional = false
-python-versions = ">=2.7"
-files = [
-    {file = "msal-1.27.0-py2.py3-none-any.whl", hash = "sha256:572d07149b83e7343a85a3bcef8e581167b4ac76befcbbb6eef0c0e19643cdc0"},
-    {file = "msal-1.27.0.tar.gz", hash = "sha256:3109503c038ba6b307152b0e8d34f98113f2e7a78986e28d0baf5b5303afda52"},
-]
-
-[package.dependencies]
-cryptography = ">=0.6,<45"
-PyJWT = {version = ">=1.0.0,<3", extras = ["crypto"]}
-requests = ">=2.0.0,<3"
-
-[package.extras]
-broker = ["pymsalruntime (>=0.13.2,<0.15)"]
-
-[[package]]
-name = "msal-extensions"
-version = "1.1.0"
-description = "Microsoft Authentication Library extensions (MSAL EX) provides a persistence API that can save your data on disk, encrypted on Windows, macOS and Linux. Concurrent data access will be coordinated by a file lock mechanism."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "msal-extensions-1.1.0.tar.gz", hash = "sha256:6ab357867062db7b253d0bd2df6d411c7891a0ee7308d54d1e4317c1d1c54252"},
-    {file = "msal_extensions-1.1.0-py3-none-any.whl", hash = "sha256:01be9711b4c0b1a151450068eeb2c4f0997df3bba085ac299de3a66f585e382f"},
-]
-
-[package.dependencies]
-msal = ">=0.4.1,<2.0.0"
-packaging = "*"
-portalocker = [
-    {version = ">=1.0,<3", markers = "platform_system != \"Windows\""},
-    {version = ">=1.6,<3", markers = "platform_system == \"Windows\""},
-]
 
 [[package]]
 name = "multidict"
@@ -4127,25 +3944,6 @@ docs = ["furo (>=2023.7.26)", "proselint (>=0.13)", "sphinx (>=7.1.1)", "sphinx-
 test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=7.4)", "pytest-cov (>=4.1)", "pytest-mock (>=3.11.1)"]
 
 [[package]]
-name = "portalocker"
-version = "2.8.2"
-description = "Wraps the portalocker recipe for easy usage"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "portalocker-2.8.2-py3-none-any.whl", hash = "sha256:cfb86acc09b9aa7c3b43594e19be1345b9d16af3feb08bf92f23d4dce513a28e"},
-    {file = "portalocker-2.8.2.tar.gz", hash = "sha256:2b035aa7828e46c58e9b31390ee1f169b98e1066ab10b9a6a861fe7e25ee4f33"},
-]
-
-[package.dependencies]
-pywin32 = {version = ">=226", markers = "platform_system == \"Windows\""}
-
-[package.extras]
-docs = ["sphinx (>=1.7.1)"]
-redis = ["redis"]
-tests = ["pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "pytest-timeout (>=2.1.0)", "redis", "sphinx (>=6.0.0)", "types-redis"]
-
-[[package]]
 name = "posthog"
 version = "3.3.3"
 description = "Integrate PostHog into any python application."
@@ -4664,26 +4462,6 @@ plugins = ["importlib-metadata"]
 windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
-name = "pyjwt"
-version = "2.8.0"
-description = "JSON Web Token implementation in Python"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "PyJWT-2.8.0-py3-none-any.whl", hash = "sha256:59127c392cc44c2da5bb3192169a91f429924e17aff6534d70fdc02ab3e04320"},
-    {file = "PyJWT-2.8.0.tar.gz", hash = "sha256:57e28d156e3d5c10088e0c68abb90bfac3df82b40a71bd0daa20c65ccd5c23de"},
-]
-
-[package.dependencies]
-cryptography = {version = ">=3.4.0", optional = true, markers = "extra == \"crypto\""}
-
-[package.extras]
-crypto = ["cryptography (>=3.4.0)"]
-dev = ["coverage[toml] (==5.0.4)", "cryptography (>=3.4.0)", "pre-commit", "pytest (>=6.0.0,<7.0.0)", "sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
-docs = ["sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
-tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
-
-[[package]]
 name = "pylance"
 version = "0.8.21"
 description = "python wrapper for Lance columnar format"
@@ -4723,15 +4501,14 @@ docx2txt = "^0.8"
 html2text = "^2020.1.16"
 httpx = "^0.25.2"
 lancedb = "^0.3.3"
-llama-index = "^0.10.12"
-llama-index-embeddings-azure-openai = "^0.1.6"
+llama-index = "^0.10.6"
 llama-index-embeddings-openai = "^0.1.1"
 numpy = "^1.26.2"
 pg8000 = {version = "^1.30.3", optional = true}
 pgvector = {version = "^0.2.3", optional = true}
 prettytable = "^3.9.0"
 pydantic = "^2.5.2"
-pypdf = "^4.0.2"
+pypdf = "^3.17.1"
 python-box = "^7.1.1"
 pytz = "^2023.3.post1"
 pyyaml = "^6.0.1"
@@ -4746,7 +4523,7 @@ typer = {version = "^0.9.0", extras = ["all"]}
 [package.extras]
 autogen = ["pyautogen (==0.2.0)"]
 dev = ["black (>=23.10.1,<24.0.0)", "datasets (>=2.14.6,<3.0.0)", "pexpect (>=4.9.0,<5.0.0)", "pre-commit (>=3.5.0,<4.0.0)", "pyright (>=1.1.347,<2.0.0)", "pytest (>=7.4.4,<8.0.0)", "pytest-asyncio (>=0.23.2,<0.24.0)", "pytest-order (>=1.2.0,<2.0.0)"]
-local = ["huggingface-hub (==0.20.3)", "torch (>=2.0.0,!=2.0.1,!=2.1.0)", "transformers (==4.38.1)"]
+local = ["huggingface-hub (==0.17.3)", "torch (>=2.0.0,!=2.0.1,!=2.1.0)", "transformers (==4.34.1)"]
 postgres = ["pg8000 (>=1.30.3,<2.0.0)", "pgvector (>=0.2.3,<0.3.0)"]
 server = ["fastapi (>=0.104.1,<0.105.0)", "uvicorn (>=0.24.0.post1,<0.25.0)", "websockets (>=12.0,<13.0)"]
 
@@ -4754,7 +4531,7 @@ server = ["fastapi (>=0.104.1,<0.105.0)", "uvicorn (>=0.24.0.post1,<0.25.0)", "w
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
 reference = "main"
-resolved_reference = "b1cbf4cb55b56ad57a2f82e03cccc9a797c277c8"
+resolved_reference = "ce203fdbc433e7f750bcf0092ff88577cf115a2b"
 
 [[package]]
 name = "pymupdf"
@@ -4830,13 +4607,13 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pypdf"
-version = "4.0.2"
+version = "3.17.4"
 description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "pypdf-4.0.2-py3-none-any.whl", hash = "sha256:a62daa2a24d5a608ba1b6284dde185317ce3644f89b9ebe5314d0c5d1c9f257d"},
-    {file = "pypdf-4.0.2.tar.gz", hash = "sha256:3316d9ddfcff5df67ae3cdfe8b945c432aa43e7f970bae7c2a4ab4fe129cd937"},
+    {file = "pypdf-3.17.4-py3-none-any.whl", hash = "sha256:6aa0f61b33779b64486de3f42835d3668badd48dac4a536aeb87da187a5eacd2"},
+    {file = "pypdf-3.17.4.tar.gz", hash = "sha256:ec96e2e4fc9648ac609d19c00d41e9d606e0ae2ce5a0bbe7691426f5f157166a"},
 ]
 
 [package.extras]
@@ -6996,4 +6773,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "83d29dc959b99de1dd99ed6d61ddedaecb20db7c3e3adea18702fb9a6910730c"
+content-hash = "b5f37fe965f9c5af729b9165d145b9beecc74b73060eada4acee4b68c5cdb63f"

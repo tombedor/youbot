@@ -37,6 +37,7 @@ langchain-openai = "^0.0.5"
 simplegmail = "^4.1.1"
 pyright = "^1.1.350"
 black = "^24.2.0"
+llama-index-vector-stores-faiss = "^0.1.2"
 
 
 [tool.pyright]

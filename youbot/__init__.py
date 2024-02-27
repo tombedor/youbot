@@ -1,8 +1,6 @@
 import os
 from celery import Celery
 from dotenv import load_dotenv
-from llama_index import ServiceContext
-import llama_index
 from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
 import yaml
 
@@ -40,10 +38,6 @@ SECRETS_DIR = os.path.join(ROOT_DIR, ".secrets")
 # Expose the config file to memgpt package
 os.environ["MEMGPT_CONFIG_PATH"] = MEMGPT_CONFIG_FILE
 
-
-service_context = ServiceContext.from_defaults()
-service_context.llm.model = "gpt-4-0613"
-llama_index.global_service_context = service_context
 
 postgres_url = os.environ["POSTGRES_URL"]
 ENGINE = create_engine(POSTGRES_URL, poolclass=NullPool)
