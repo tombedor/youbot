@@ -46,19 +46,14 @@ def copy_memories(self, source_agent_id: str, dest_agent_id: str) -> str:
     """
     msgs = []
 
-        
     for table_type, table_name in (
         (TableType.RECALL_MEMORY, RECALL_TABLE_NAME),
         (TableType.ARCHIVAL_MEMORY, ARCHIVAL_TABLE_NAME),
     ):
         logging.info(f"Copying {table_name} from {source_agent_id} to {dest_agent_id}")
         db_model = get_db_model(
-        config = MEMGPT_CONFIG,
-        table_name = table_name,
-        table_type= table_type, # type: ignore
-        user_id = UUID(MEMGPT_CONFIG.anon_clientid)
-        
-    )
+            config=MEMGPT_CONFIG, table_name=table_name, table_type=table_type, user_id=UUID(MEMGPT_CONFIG.anon_clientid)  # type: ignore
+        )
         with MemGPTClient.session_maker() as session:  # type: ignore
             existing_rows = session.query(db_model).filter(db_model.agent_id == dest_agent_id).all()
             distinct_text_values = set(row.text for row in existing_rows)

@@ -15,9 +15,9 @@ from memgpt.data_types import User
 class MemGPTClient:
     metadata_store = MetadataStore(MEMGPT_CONFIG)
     DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
-    
-    session_maker = metadata_store.session_maker # note this is a function
-    
+
+    session_maker = metadata_store.session_maker  # note this is a function
+
     @classmethod
     def create_user(cls, user_id: UUID) -> None:
         cls.metadata_store.create_user(User(user_id))
