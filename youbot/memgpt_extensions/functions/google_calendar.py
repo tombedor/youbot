@@ -6,6 +6,31 @@ from youbot import ENGINE, GOOGLE_CREDS_PATH, GOOGLE_EMAIL, GOOGLE_EMAILS
 from youbot.service.google_service import fetch_google_email
 
 
+# TODO: something like this:
+# import os
+# from functools import wraps
+
+# def require_env_var(env_var_name):
+#     def decorator(func):
+#         @wraps(func)
+#         def wrapper(*args, **kwargs):
+#             if env_var_name in os.environ:
+#                 return func(*args, **kwargs)
+#             else:
+#                 return f"Required environment variable '{env_var_name}' is not set."
+#         return wrapper
+#     return decorator
+
+# @require_env_var('MY_REQUIRED_ENV_VAR')
+# def my_sensitive_function():
+#     # Function logic that requires MY_REQUIRED_ENV_VAR to be present
+#     return "Function executed successfully."
+
+# # Example usage
+# result = my_sensitive_function()
+# print(result)
+
+
 def create_calendar_event(
     self,
     event_title: str,
