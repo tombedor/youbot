@@ -6,12 +6,11 @@ from typing import Optional
 import uuid
 import discord
 import os
-from sqlalchemy import NullPool, create_engine, Table, Column, String, MetaData, insert
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import insert
 from sqlalchemy.sql import text
+from youbot import DISCORD_USERS, ENGINE
 
 
-from youbot import POSTGRES_URL
 from youbot.memgpt_client import MemGPTClient
 from youbot.memgpt_client import MemGPTClient
 
@@ -22,16 +21,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 discord_client = discord.Client(intents=intents)
-engine = create_engine(POSTGRES_URL, poolclass=NullPool)
-metadata = MetaData()
-
-discord_users = Table(
-    "discord_users",
-    metadata,
-    Column("discord_member_id", String, primary_key=True),
-    Column("memgpt_user_id", UUID),
-)
-metadata.create_all(engine)
 
 
 @discord_client.event
@@ -67,7 +56,7 @@ def fetch_memgpt_user_id(discord_member_id: int) -> Optional[uuid.UUID]:
     """
 
     # fetch memgpt user id from users table, if it exists
-    with engine.connect() as connection:
+    with ENGINE.connect() as connection:
         result = connection.execute(text(f"SELECT memgpt_user_id FROM discord_users WHERE discord_member_id = '{str(discord_member_id)}'"))
         row = result.fetchone()
         if row is not None:
@@ -80,8 +69,8 @@ def fetch_memgpt_user_id(discord_member_id: int) -> Optional[uuid.UUID]:
 def create_and_link_memgpt_user_id(discord_member_id: int) -> uuid.UUID:
     memgpt_user_id = uuid.UUID(int=discord_member_id)
     MemGPTClient.create_user(memgpt_user_id)
-    with engine.connect() as connection:
-        stmt = insert(discord_users).values(discord_member_id=str(discord_member_id), memgpt_user_id=memgpt_user_id)
+    with ENGINE.connect() as connection:
+        stmt = insert(DISCORD_USERS).values(discord_member_id=str(discord_member_id), memgpt_user_id=memgpt_user_id)
         connection.execute(stmt)
         connection.commit()
     assert isinstance(memgpt_user_id, uuid.UUID)

@@ -48,6 +48,13 @@ GOOGLE_EMAILS = Table(
     Column("memgpt_user_id", UUID),
 )
 
+DISCORD_USERS = discord_users = Table(
+    "discord_users",
+    metadata,
+    Column("discord_member_id", String, primary_key=True),
+    Column("memgpt_user_id", UUID),
+)
+
 metadata.create_all(ENGINE)
 
 
