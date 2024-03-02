@@ -1,4 +1,3 @@
-import os
 from sqlalchemy import (
     UUID,
     Column,
