@@ -7,6 +7,7 @@ from youbot import GOOGLE_CREDS_PATH, GOOGLE_EMAIL, SECRETS_DIR
 from youbot.service.google_service import fetch_google_email
 
 
+assert GOOGLE_CREDS_PATH is not None, "No google creds path set"
 gmail = Gmail(
     client_secret_file=GOOGLE_CREDS_PATH,
     creds_file=os.path.join(SECRETS_DIR, "gmail_creds.json"),
@@ -34,7 +35,8 @@ def send_email(self, subject: str, message: str) -> str:
         "msg_plain": message,
         "signature": True,  # use my account signature
     }
-    message = gmail.send_message(**params)
+    gmail.send_message(**params)
+    return "message sent"
 
 
 # TODO: move to job queue

@@ -6,31 +6,6 @@ from youbot import ENGINE, GOOGLE_CREDS_PATH, GOOGLE_EMAIL, GOOGLE_EMAILS
 from youbot.service.google_service import fetch_google_email
 
 
-# TODO: something like this:
-# import os
-# from functools import wraps
-
-# def require_env_var(env_var_name):
-#     def decorator(func):
-#         @wraps(func)
-#         def wrapper(*args, **kwargs):
-#             if env_var_name in os.environ:
-#                 return func(*args, **kwargs)
-#             else:
-#                 return f"Required environment variable '{env_var_name}' is not set."
-#         return wrapper
-#     return decorator
-
-# @require_env_var('MY_REQUIRED_ENV_VAR')
-# def my_sensitive_function():
-#     # Function logic that requires MY_REQUIRED_ENV_VAR to be present
-#     return "Function executed successfully."
-
-# # Example usage
-# result = my_sensitive_function()
-# print(result)
-
-
 def create_calendar_event(
     self,
     event_title: str,
@@ -66,12 +41,15 @@ def create_calendar_event(
     Returns:
         str: The result of the event creation attempt.
     """
-    calendar = GoogleCalendar(credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL)
+    assert GOOGLE_CREDS_PATH is not None, "No google creds path set"
+    assert GOOGLE_EMAIL is not None, "No google email set"
+
+    calendar = GoogleCalendar(credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL)  # type: ignore
 
     # either all hour/min values are null, or none are
     hour_min_none = [val is None for val in [start_hour, start_min, end_hour, end_min]]
     if not all(hour_min_none) and any(hour_min_none):
-        raise "Either all or none of the start_hour, start_min, end_hour, end_min values must be null"
+        raise ValueError("Either all or none of the start_hour, start_min, end_hour, end_min values must be null")
 
     if all(hour_min_none):
         start_val = date(start_year, start_month, start_day)

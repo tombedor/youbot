@@ -1,9 +1,9 @@
-from memgpt import MemGPT
-from memgpt.config import MemGPTConfig
-from memgpt.data_types import User, AgentState
+from memgpt.data_types import AgentState
 from memgpt.metadata import MetadataStore
-from copy import deepcopy
 from uuid import UUID
+
+from youbot import MEMGPT_CONFIG
+from youbot.memgpt_client import MemGPTClient
 
 DEBUGGER = "debugger"
 TESTER = "tester"
@@ -29,25 +29,25 @@ AGENTS = {
 class AgentManager:
     def __init__(self, user_id: UUID, llm_config: dict, embedding_config: dict) -> None:
         self.user_id = user_id
-        self.ms = MetadataStore()
-        self.client = MemGPT(user_id=user_id, auto_save=True, debug=True)
-        self.agent_ids = dict((entry["name"], entry["id"]) for entry in self.client.list_agents()["agents"])
+        self.ms = MetadataStore(MEMGPT_CONFIG)
+        self.client = MemGPTClient.get_client(user_id=user_id)
+        self.agent_ids = dict((entry["name"], UUID(entry["id"])) for entry in self.client.list_agents()["agents"])
 
-        for agent_name, agent_init_state in AGENTS.iteritems():
+        for agent_name, agent_init_state in AGENTS.items():
             if agent_name not in self.agent_ids:
                 new_agent_state = AgentState(
-                    **agent_init_state,
+                    **agent_init_state,  # type: ignore
                     name=agent_name,
                     user_id=user_id,
-                    llm_config=llm_config,
-                    embedding_config=embedding_config,
+                    llm_config=llm_config,  # type: ignore
+                    embedding_config=embedding_config,  # type: ignore
                 )
-                created_agent_state = self.client.create_agent(vars(new_agent_state))
-                self.agent_ids[agent_name] = created_agent_state
+                created_agent_state = self.client.create_agent(vars(new_agent_state))  # type: ignore
+                self.agent_ids[agent_name] = created_agent_state  # type: ignore
 
     def send_message_to_agent(self, agent_name: str, message: str) -> str:
-        response_list = self.client.user_message(self.agent_ids[agent_name], message)
-        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))
+        response_list = self.client.user_message(self.agent_ids[agent_name], message)  # type: ignore
+        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
         assert reply is not None, "Error during message send, no assistant reply found"
         return reply
 

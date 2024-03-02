@@ -61,7 +61,7 @@ def add_task(self, description: str, completion_criteria: str) -> int:
         )
         session.add(new_task)
         session.commit()
-        return new_task.id # type: ignore
+        return new_task.id  # type: ignore
 
 
 def get_task(self, task_id: int) -> str:
@@ -95,8 +95,8 @@ def mark_task_as_completed(self, task_id: int, outcome: str) -> str:
         if task is None:
             return "No task found with that id."
         else:
-            task.status = "completed" # type: ignore
-            task.outcome = outcome # type: ignore
+            task.status = "completed"  # type: ignore
+            task.outcome = outcome  # type: ignore
             session.commit()
             return "Task marked as completed."
 
@@ -115,8 +115,8 @@ def mark_task_as_in_progress(self, task_id: int) -> str:
         if task is None:
             return "No task found with that id."
         else:
-            task.status = "in_progress" # type: ignore
-            task.start_timestamp = datetime.now() # type: ignore
+            task.status = "in_progress"  # type: ignore
+            task.start_timestamp = datetime.now()  # type: ignore
             session.commit()
             return "Task marked as in_progress."
 
@@ -137,8 +137,8 @@ def mark_task_as_failed(self, task_id: int, outcome: str) -> str:
         if task is None:
             return "No task found with that id."
         else:
-            task.status = "failed" # type: ignore
-            task.outcome = outcome # type: ignore
+            task.status = "failed"  # type: ignore
+            task.outcome = outcome  # type: ignore
             session.commit()
             return "Task marked as failed."
 

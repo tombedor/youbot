@@ -38,6 +38,7 @@ simplegmail = "^4.1.1"
 pyright = "^1.1.350"
 black = "^24.2.0"
 llama-index-vector-stores-faiss = "^0.1.2"
+matplotlib = "^3.8.3"
 
 
 [tool.pyright]
@@ -52,6 +53,10 @@ exclude = [
     "dist",
     "build"
 ]
+pythonVersion = "3.11"
+verboseOutput = true
+reportImportCycles = true
+reportUnusedImport = true
 
 [tool.black]
 line-length = 140
