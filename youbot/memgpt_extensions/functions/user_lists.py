@@ -81,7 +81,7 @@ def add_list_item(self, list_name: str, item_content: str) -> str:
     """
     with engine.connect() as connection:
         user_id = self.agent_state.user_id
-        list_row = connection.execute(LISTS.select().where(LISTS.c.name == list_name and LISTS.c.user_id == user_id)).fetchone()
+        list_row = connection.execute(LISTS.select().where(and_(LISTS.c.name == list_name, LISTS.c.user_id == user_id))).fetchone()
         if list_row is None:
             raise ValueError(f"No list with name {list_name} exists for the user")
         list_id = list_row[0]
