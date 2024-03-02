@@ -1,11 +1,12 @@
 import logging
-from memgpt import MemGPT
 from datetime import datetime
-from memgpt.metadata import MetadataStore, AgentModel
+from uuid import UUID
+from memgpt.metadata import AgentModel
 from memgpt.agent_store.db import get_db_model
 from memgpt.agent_store.storage import TableType, RECALL_TABLE_NAME, ARCHIVAL_TABLE_NAME
+from youbot import MEMGPT_CONFIG
 
-client = MemGPT()
+from youbot.memgpt_client import MemGPTClient
 
 
 def create_agent_checkpoint(self) -> str:
@@ -15,7 +16,7 @@ def create_agent_checkpoint(self) -> str:
         str: the result of the backup operation
     """
 
-    with MetadataStore().session_maker() as session:
+    with MemGPTClient.session_maker() as session:
         row = session.query(AgentModel).filter(AgentModel.id == self.agent_state.id).first()
 
         assert row
@@ -44,15 +45,21 @@ def copy_memories(self, source_agent_id: str, dest_agent_id: str) -> str:
         str: the result of the copy operation
     """
     msgs = []
-    get_db_model(RECALL_TABLE_NAME, TableType.RECALL_MEMORY, user_id=client.user_id)
+
+        
     for table_type, table_name in (
         (TableType.RECALL_MEMORY, RECALL_TABLE_NAME),
         (TableType.ARCHIVAL_MEMORY, ARCHIVAL_TABLE_NAME),
     ):
         logging.info(f"Copying {table_name} from {source_agent_id} to {dest_agent_id}")
-        db_model = get_db_model(table_name=table_name, table_type=table_type, user_id=client.user_id)
-
-        with MetadataStore.session_maker() as session:  # type: ignore
+        db_model = get_db_model(
+        config = MEMGPT_CONFIG,
+        table_name = table_name,
+        table_type= table_type, # type: ignore
+        user_id = UUID(MEMGPT_CONFIG.anon_clientid)
+        
+    )
+        with MemGPTClient.session_maker() as session:  # type: ignore
             existing_rows = session.query(db_model).filter(db_model.agent_id == dest_agent_id).all()
             distinct_text_values = set(row.text for row in existing_rows)
             rows = session.query(db_model).filter(db_model.agent_id == source_agent_id).all()
