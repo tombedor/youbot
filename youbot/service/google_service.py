@@ -11,9 +11,7 @@ def store_google_email(email: str, memgpt_user_id: UUID) -> str:
         memgpt_user_id (str): The user id to store in the database.
     """
     with ENGINE.connect() as connection:
-        connection.execute(
-            GOOGLE_EMAILS.insert().values(email=email, memgpt_user_id=memgpt_user_id)
-        )
+        connection.execute(GOOGLE_EMAILS.insert().values(email=email, memgpt_user_id=memgpt_user_id))
         connection.commit()
     return f"Linked {email} to the user."
 
@@ -28,14 +26,8 @@ def fetch_google_email(memgpt_user_id: UUID) -> str:
         str: The email linked to the user.
     """
     with ENGINE.connect() as connection:
-        row = connection.execute(
-            GOOGLE_EMAILS.select().where(
-                GOOGLE_EMAILS.c.memgpt_user_id == memgpt_user_id
-            )
-        ).fetchone()
+        row = connection.execute(GOOGLE_EMAILS.select().where(GOOGLE_EMAILS.c.memgpt_user_id == memgpt_user_id)).fetchone()
         if row is None:
-            raise ValueError(
-                "No google email linked to the user. Get email from user and call link_google_email"
-            )
+            raise ValueError("No google email linked to the user. Get email from user and call link_google_email")
         else:
             return row[0]

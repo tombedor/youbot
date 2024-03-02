@@ -23,9 +23,7 @@ class AgentManager:
 
     # @lru_cache
     @classmethod
-    def get_or_create_agent(
-        cls, agent_name: str, user_id: UUID = DEFAULT_MEMGPT_USER_ID
-    ) -> Agent:
+    def get_or_create_agent(cls, agent_name: str, user_id: UUID = DEFAULT_MEMGPT_USER_ID) -> Agent:
         client = cls.get_client(user_id)
         if not client.agent_exists(agent_name=agent_name):
             if agent_name not in AGENTS_CONFIG:
@@ -36,9 +34,7 @@ class AgentManager:
             init_state = {"name": agent_name, **AGENTS_CONFIG[agent_key]}
             agent_state = client.create_agent(init_state)
         else:
-            agent_state = cls.metadata_store.get_agent(
-                agent_name=agent_name, user_id=user_id
-            )
+            agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
             if agent_state is None:
                 raise ValueError(f"Agent state for {agent_name} not found.")
         return Agent(agent_state=agent_state, interface=client.interface)
@@ -57,9 +53,7 @@ class AgentManager:
                 cls.SERVER.delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
 
     @classmethod
-    def user_message(
-        cls, agent_name: str, msg: str, user_id=DEFAULT_MEMGPT_USER_ID
-    ) -> str:
+    def user_message(cls, agent_name: str, msg: str, user_id=DEFAULT_MEMGPT_USER_ID) -> str:
         agent = cls.get_or_create_agent(agent_name=agent_name, user_id=user_id)
         client = cls.get_client(user_id)
         response_list = client.user_message(str(agent.agent_state.id), msg)

@@ -41,9 +41,7 @@ def create_calendar_event(
     Returns:
         str: The result of the event creation attempt.
     """
-    calendar = GoogleCalendar(
-        credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL
-    )
+    calendar = GoogleCalendar(credentials_path=GOOGLE_CREDS_PATH, default_calendar=GOOGLE_EMAIL)
 
     # either all hour/min values are null, or none are
     hour_min_none = [val is None for val in [start_hour, start_min, end_hour, end_min]]
@@ -58,8 +56,6 @@ def create_calendar_event(
         end_val = datetime(end_year, end_month, end_day, end_hour, end_min)
 
     email = fetch_google_email(self.agent_state.user_id)
-    event = Event(
-        event_title, start=start_val, end=end_val, attendees=[Attendee(email=email)]
-    )
+    event = Event(event_title, start=start_val, end=end_val, attendees=[Attendee(email=email)])
     calendar.add_event(event)
     return f"Created event {event_title}"

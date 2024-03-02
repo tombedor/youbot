@@ -153,11 +153,5 @@ def get_available_tasks(self) -> str:
     with session_maker() as session:
 
         today = date.today()
-        available_tasks = (
-            session.query(Task)
-            .filter(or_(Task.status == "in progress", Task.start_timestamp <= today))
-            .all()
-        )
-        return ", ".join(
-            [f"ID: {t.id}, description: {t.description}" for t in available_tasks]
-        )
+        available_tasks = session.query(Task).filter(or_(Task.status == "in progress", Task.start_timestamp <= today)).all()
+        return ", ".join([f"ID: {t.id}, description: {t.description}" for t in available_tasks])

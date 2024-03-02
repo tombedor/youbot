@@ -7,11 +7,7 @@ from youbot.memgpt_extensions.functions.delegates import send_message_to_agent, 
 agent_name = "testbot"
 client = MemGPT()
 
-agent_id = next(
-    entry["id"]
-    for entry in client.list_agents()["agents"]
-    if entry["name"] == agent_name
-)
+agent_id = next(entry["id"] for entry in client.list_agents()["agents"] if entry["name"] == agent_name)
 agent_state = client.server.get_agent(agent_id=agent_id, user_id=client.user_id)
 assert agent_state
 

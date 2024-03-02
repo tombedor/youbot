@@ -13,9 +13,7 @@ def reload_functions(self):
     functions = load_all_function_sets()
 
     for function_name in self.functions_python.keys():
-        self.functions_python[function_name] = functions[function_name][
-            "python_function"
-        ]
+        self.functions_python[function_name] = functions[function_name]["python_function"]
 
 
 def list_functions(self) -> str:
@@ -105,9 +103,7 @@ def load_preset_functions(self) -> str:
         return f"Added functions {functions_to_add} to agent state"
 
 
-def create_function(
-    self, function_name: str, function_code_with_docstring: str, module_name: str
-) -> str:
+def create_function(self, function_name: str, function_code_with_docstring: str, module_name: str) -> str:
     """Creates an agent accessible function in Python. Function MUST include a docstring, and MUST include self as first argument.
 
     Args:
@@ -137,21 +133,12 @@ def create_function(
 
     # Make sure that if the function is already defined, overwrite = true and it is an agent defined function
     if function_name in self.functions_python.keys():
-        raise Exception(
-            f"Function {function_name} already exists. To overwrite, first delete with the delete_function function."
-        )
+        raise Exception(f"Function {function_name} already exists. To overwrite, first delete with the delete_function function.")
 
-    if (
-        not function_code_with_docstring.split("\n")[0]
-        .strip()
-        .startswith("def " + function_name + "(self")
-    ):
+    if not function_code_with_docstring.split("\n")[0].strip().startswith("def " + function_name + "(self"):
         raise Exception("Function must start with def " + function_name + "(self, ...")
 
-    if (
-        '"""' not in function_code_with_docstring
-        and "'''" not in function_code_with_docstring
-    ):
+    if '"""' not in function_code_with_docstring and "'''" not in function_code_with_docstring:
         raise Exception("Function code must have a docstring.")
 
     file_path = os.path.join(FUNCTIONS_DIR, module_name + ".py")

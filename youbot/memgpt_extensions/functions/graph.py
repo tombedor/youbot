@@ -13,6 +13,7 @@ def add_node(self, name: str, node_type: str) -> str:
     """
     return self._get_graph().add_node(name, node_type)
 
+
 def _get_graph(self):
     self.graph = Graph()
     return self.graph

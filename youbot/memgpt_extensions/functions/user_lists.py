@@ -50,9 +50,7 @@ def create_list(self, list_name: str) -> str:
         str: The result of the list creation attempt.
     """
     with engine.connect() as connection:
-        connection.execute(
-            LISTS.insert().values(name=list_name, user_id=self.agent_state.user_id)
-        )
+        connection.execute(LISTS.insert().values(name=list_name, user_id=self.agent_state.user_id))
         connection.commit()
     return f"created list {list_name}"
 
@@ -65,9 +63,7 @@ def get_lists(self) -> str:
     """
     with engine.connect() as connection:
         user_id = self.agent_state.user_id
-        lists = connection.execute(
-            LISTS.select().where(LISTS.c.user_id == user_id)
-        ).fetchall()
+        lists = connection.execute(LISTS.select().where(LISTS.c.user_id == user_id)).fetchall()
         lists = [list_row[1] for list_row in lists]
     return f"retrieved lists {lists}"
 
@@ -84,17 +80,11 @@ def add_list_item(self, list_name: str, item_content: str) -> str:
     """
     with engine.connect() as connection:
         user_id = self.agent_state.user_id
-        list_row = connection.execute(
-            LISTS.select().where(
-                LISTS.c.name == list_name and LISTS.c.user_id == user_id
-            )
-        ).fetchone()
+        list_row = connection.execute(LISTS.select().where(LISTS.c.name == list_name and LISTS.c.user_id == user_id)).fetchone()
         if list_row is None:
             raise ValueError(f"No list with name {list_name} exists for the user")
         list_id = list_row[0]
-        connection.execute(
-            LIST_ITEMS.insert().values(content=item_content, list_id=list_id)
-        )
+        connection.execute(LIST_ITEMS.insert().values(content=item_content, list_id=list_id))
         connection.commit()
     return f"added item {item_content} to list {list_name}"
 
@@ -110,17 +100,11 @@ def get_list_items(self, list_name: str) -> str:
     """
     with engine.connect() as connection:
         user_id = self.agent_state.user_id
-        list_row = connection.execute(
-            LISTS.select().where(
-                LISTS.c.name == list_name and LISTS.c.user_id == user_id
-            )
-        ).fetchone()
+        list_row = connection.execute(LISTS.select().where(LISTS.c.name == list_name and LISTS.c.user_id == user_id)).fetchone()
         if list_row is None:
             raise ValueError(f"No list with name {list_name} exists for the user")
         list_id = list_row[0]
-        list_items = connection.execute(
-            LIST_ITEMS.select().where(LIST_ITEMS.c.list_id == list_id)
-        ).fetchall()
+        list_items = connection.execute(LIST_ITEMS.select().where(LIST_ITEMS.c.list_id == list_id)).fetchall()
         list_items = [list_item[1] for list_item in list_items]
     return f"retrieved items {list_items} from list {list_name}"
 
@@ -136,8 +120,6 @@ def remove_list_item(self, list_name: str, item_content: str) -> str:
         str: The result of the list item removal attempt.
     """
     with engine.connect() as connection:
-        connection.execute(
-            LIST_ITEMS.delete().where(LIST_ITEMS.c.content == item_content)
-        )
+        connection.execute(LIST_ITEMS.delete().where(LIST_ITEMS.c.content == item_content))
         connection.commit()
     return f"removed item {item_content} from list {list_name}"

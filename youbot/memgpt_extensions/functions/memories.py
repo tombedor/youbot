@@ -16,11 +16,7 @@ def create_agent_checkpoint(self) -> str:
     """
 
     with MetadataStore().session_maker() as session:
-        row = (
-            session.query(AgentModel)
-            .filter(AgentModel.id == self.agent_state.id)
-            .first()
-        )
+        row = session.query(AgentModel).filter(AgentModel.id == self.agent_state.id).first()
 
         assert row
 
@@ -29,9 +25,7 @@ def create_agent_checkpoint(self) -> str:
         new_row = AgentModel()
 
         for key, value in row.__dict__.items():
-            if (
-                key != "id" and key != "_sa_instance_state"
-            ):  # Exclude these special fields
+            if key != "id" and key != "_sa_instance_state":  # Exclude these special fields
                 setattr(new_row, key, value)
                 new_row.name = new_name  # type: ignore
         session.add(new_row)
@@ -56,29 +50,18 @@ def copy_memories(self, source_agent_id: str, dest_agent_id: str) -> str:
         (TableType.ARCHIVAL_MEMORY, ARCHIVAL_TABLE_NAME),
     ):
         logging.info(f"Copying {table_name} from {source_agent_id} to {dest_agent_id}")
-        db_model = get_db_model(
-            table_name=table_name, table_type=table_type, user_id=client.user_id
-        )
+        db_model = get_db_model(table_name=table_name, table_type=table_type, user_id=client.user_id)
 
         with MetadataStore.session_maker() as session:  # type: ignore
-            existing_rows = (
-                session.query(db_model).filter(db_model.agent_id == dest_agent_id).all()
-            )
+            existing_rows = session.query(db_model).filter(db_model.agent_id == dest_agent_id).all()
             distinct_text_values = set(row.text for row in existing_rows)
-            rows = (
-                session.query(db_model)
-                .filter(db_model.agent_id == source_agent_id)
-                .all()
-            )
+            rows = session.query(db_model).filter(db_model.agent_id == source_agent_id).all()
 
             rows_to_insert = []
 
             for row in rows:
                 # filter out system messages
-                if (
-                    '"status": "OK", "message": "None"' in row.text
-                    or row.text in distinct_text_values
-                ):
+                if '"status": "OK", "message": "None"' in row.text or row.text in distinct_text_values:
                     continue
 
                 row.agent_id = dest_agent_id
@@ -88,9 +71,7 @@ def copy_memories(self, source_agent_id: str, dest_agent_id: str) -> str:
             for row in rows_to_insert:
                 new_row = db_model()
                 for key, value in row.__dict__.items():
-                    if (
-                        key != "id" and key != "_sa_instance_state"
-                    ):  # Exclude these special fields
+                    if key != "id" and key != "_sa_instance_state":  # Exclude these special fields
                         setattr(new_row, key, value)
                         new_row.agent_id = dest_agent_id
                         session.add(new_row)

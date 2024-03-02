@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from youbot.data_processors.convo_replay import fetch_facts
 
+
 @dataclass
 class Node:
     node_types = []
@@ -18,9 +19,7 @@ class Node:
         for klass in cls.node_types:
             if klass.__name__ == node_type:
                 return klass
-        raise ValueError(
-            f"Invalid node type: {node_type}. Valid node types are: {cls.node_types}"
-        )
+        raise ValueError(f"Invalid node type: {node_type}. Valid node types are: {cls.node_types}")
 
     def get_node_type(self) -> type:
         return self.__class__
@@ -58,16 +57,17 @@ VALID_EDGES = {
     (Person, Pet): ["adopted", "owns"],
 }
 
+
 class Graph:
-    def __init__(self, pickle_path=os.path.join('/tmp', 'graph.pickle')):
+    def __init__(self, pickle_path=os.path.join("/tmp", "graph.pickle")):
         self.pickle_path = pickle_path
         if os.path.exists(pickle_path):
-                self.G = pickle.load(open(pickle_path, 'rb'))
+            self.G = pickle.load(open(pickle_path, "rb"))
         else:
             self.G = nx.DiGraph()
-            
+
     def persist(self):
-        with open(self.pickle_path, 'wb') as f:
+        with open(self.pickle_path, "wb") as f:
             pickle.dump(self.G, f)
 
     def add_node(self, name: str, node_type: str) -> str:
@@ -85,8 +85,8 @@ class Graph:
         node_type = node_attrs["node_type"]
         klass = Node.get_klass(node_type)
         node_attrs["name"] = name
-        
-        return klass(**{k:v for k,v in node_attrs.items() if k != "node_type"})
+
+        return klass(**{k: v for k, v in node_attrs.items() if k != "node_type"})
 
     def add_edge(self, out_node_name: str, in_node_name: str, relationship: str) -> str:
         if out_node_name not in self.G.nodes:
@@ -98,11 +98,7 @@ class Graph:
         in_node = self.get_node(in_node_name)
 
         if (out_node.get_node_type(), in_node.get_node_type()) not in VALID_EDGES:
-            valid_in_node_types = [
-                k[1].__name__
-                for k in VALID_EDGES.keys()
-                if k[0] == out_node.get_node_type()
-            ]
+            valid_in_node_types = [k[1].__name__ for k in VALID_EDGES.keys() if k[0] == out_node.get_node_type()]
             raise ValueError(
                 f"out node {out_node_name} of type {out_node.get_node_type()} cannot be connected to in node {in_node_name} of type {in_node.get_node_type()}. Valid edge types from node type {out_node.get_node_type()} are: {valid_in_node_types}"
             )
@@ -117,30 +113,27 @@ class Graph:
         self.persist()
         return f"Added edge from {out_node_name} to {in_node_name} with relationship {relationship}"
 
-    def add_node_attribute(
-        self, node_name: str, attribute_name: str, attribute_value: str
-    ) -> str:
+    def add_node_attribute(self, node_name: str, attribute_name: str, attribute_value: str) -> str:
         node = self.get_node(node_name)
-        valid_attributes = [k for k,v in node.node_attrs().items() if k != 'node_type']
+        valid_attributes = [k for k, v in node.node_attrs().items() if k != "node_type"]
         if attribute_name not in valid_attributes:
-            raise ValueError(f"Cannot set attribute {attribute_name}. valid attributes for node of type {node.get_node_type()} are: {valid_attributes}")
+            raise ValueError(
+                f"Cannot set attribute {attribute_name}. valid attributes for node of type {node.get_node_type()} are: {valid_attributes}"
+            )
         else:
             self.G.nodes[node_name][attribute_name] = attribute_value
-            
-        
+
         self.persist()
         return f"set attribute {attribute_name} to {attribute_value} for node {node_name}"
 
     def show(self):
         pos = nx.spring_layout(self.G)
         nx.draw_networkx_edge_labels(self.G, pos)
-        nx.draw(
-            self.G, pos, with_labels=True, node_color="lightblue", edge_color="gray"
-        )
+        nx.draw(self.G, pos, with_labels=True, node_color="lightblue", edge_color="gray")
         plt.show()
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     facts = fetch_facts()
     g = Graph()
 
@@ -148,6 +141,6 @@ if __name__ == "__main__":
     g.add_node("Justina Hoang", "Person")
 
     g.add_edge("Tom Bedor", "Justina Hoang", "married_to")
-    g.add_node_attribute('Tom Bedor', 'birthday', '2020-01-01')
+    g.add_node_attribute("Tom Bedor", "birthday", "2020-01-01")
 
     g.show()

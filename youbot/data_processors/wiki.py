@@ -58,13 +58,9 @@ class WikiPage:
 
     def __init__(self, path: PosixPath):
         if type(path) != PosixPath:
-            raise ValueError(
-                f"Path {path} is not a PosixPath. Please respond with a PosixPath."
-            )
+            raise ValueError(f"Path {path} is not a PosixPath. Please respond with a PosixPath.")
         if path.suffix != ".md":
-            raise ValueError(
-                f"Path {path} is not a markdown file. Please respond with a path that ends with '.md'."
-            )
+            raise ValueError(f"Path {path} is not a markdown file. Please respond with a path that ends with '.md'.")
 
         if path.is_absolute():
             self.relative_path = PosixPath(Path(path).relative_to(WIKI_ROOT))
@@ -90,19 +86,10 @@ class WikiPage:
             return None
 
     def get_sibling_pages(self) -> List["WikiPage"]:
-        return [
-            p
-            for p in WikiPage.all()
-            if p.absolute_path.parent == self.parent_path
-            and p.absolute_path != self.absolute_path
-        ]
+        return [p for p in WikiPage.all() if p.absolute_path.parent == self.parent_path and p.absolute_path != self.absolute_path]
 
     def get_child_pages(self) -> List["WikiPage"]:
-        return [
-            p
-            for p in WikiPage.all()
-            if os.path.dirname(p.parent_path) == self.parent_path
-        ]
+        return [p for p in WikiPage.all() if os.path.dirname(p.parent_path) == self.parent_path]
 
     def replace_content(self, new_content: str):
         with open(self.absolute_path, "w") as f:
@@ -122,9 +109,7 @@ class WikiPage:
 d = 1536
 faiss_index = faiss.IndexFlatL2(d)
 
-documents = SimpleDirectoryReader(
-    "/Users/tbedor/Development/obsidian/", recursive=True
-).load_data()
+documents = SimpleDirectoryReader("/Users/tbedor/Development/obsidian/", recursive=True).load_data()
 
 vector_store = FaissVectorStore(faiss_index=faiss_index)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -215,9 +200,7 @@ def update_page_with_fact(wiki_page_arg: WikiPage, fact: str):
         wiki_page = wiki_page_arg
 
     current_content = wiki_page.get_content() or "The page is currently empty."
-    current_page_content_fragment = (
-        f"Incorporate the fact into the current page content: {current_content}"
-    )
+    current_page_content_fragment = f"Incorporate the fact into the current page content: {current_content}"
 
     query = (
         f"""
@@ -302,6 +285,7 @@ def edit_page(wiki_page: WikiPage) -> str:
     response = query_engine.query(query)
 
     return handle_proposed_edit.delay(wiki_page, response.response)  # type: ignore
+
 
 @app.task
 def add_facts_to_pages(fact: str) -> None:

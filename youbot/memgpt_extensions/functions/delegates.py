@@ -31,10 +31,7 @@ class AgentManager:
         self.user_id = user_id
         self.ms = MetadataStore()
         self.client = MemGPT(user_id=user_id, auto_save=True, debug=True)
-        self.agent_ids = dict(
-            (entry["name"], entry["id"])
-            for entry in self.client.list_agents()["agents"]
-        )
+        self.agent_ids = dict((entry["name"], entry["id"]) for entry in self.client.list_agents()["agents"])
 
         for agent_name, agent_init_state in AGENTS.iteritems():
             if agent_name not in self.agent_ids:
@@ -50,11 +47,7 @@ class AgentManager:
 
     def send_message_to_agent(self, agent_name: str, message: str) -> str:
         response_list = self.client.user_message(self.agent_ids[agent_name], message)
-        reply = next(
-            r.get("assistant_message")
-            for r in response_list
-            if r.get("assistant_message")
-        )
+        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))
         assert reply is not None, "Error during message send, no assistant reply found"
         return reply
 

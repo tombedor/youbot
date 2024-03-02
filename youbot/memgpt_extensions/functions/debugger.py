@@ -68,9 +68,7 @@ def find_text(self, root_dir: str, target_text: str) -> str:
                 for line_no, line in enumerate(f, 1):
                     next_line = f.readline()
                     if target_text in line:
-                        results.append(
-                            f"{filename}:{line_no}:\n{prev_line + line + next_line}"
-                        )
+                        results.append(f"{filename}:{line_no}:\n{prev_line + line + next_line}")
                     prev_line = line
 
             if len(results) > 5:

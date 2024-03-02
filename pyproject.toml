@@ -53,7 +53,9 @@ exclude = [
     "build"
 ]
 
-
+[tool.black]
+line-length = 140
+target-version = ['py310', 'py311']
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.26.0"

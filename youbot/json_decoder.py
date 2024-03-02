@@ -16,9 +16,7 @@ def parse_json(input: str, attempts=0) -> dict:
     try:
         output = json.loads(input)
         if attempts > 0:
-            logging.info(
-                f"agent successfully correted JSON: attempt {attempts} of {MAX_DECODE_ATTEMPTS}"
-            )
+            logging.info(f"agent successfully correted JSON: attempt {attempts} of {MAX_DECODE_ATTEMPTS}")
         return output
     except json.decoder.JSONDecodeError as e:
         if attempts >= MAX_DECODE_ATTEMPTS:
