@@ -9,11 +9,16 @@ from memgpt.metadata import MetadataStore
 from memgpt.config import MemGPTConfig
 from memgpt.client.client import LocalClient
 from memgpt.server.server import SyncServer
+from memgpt.data_types import User
 
 
-class AgentManager:
+class MemGPTClient:
     metadata_store = MetadataStore(MEMGPT_CONFIG)
     DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
+    
+    @classmethod
+    def create_user(cls, user_id: UUID) -> None:
+        cls.metadata_store.create_user(User(user_id))
 
     @classmethod
     def get_server(cls) -> SyncServer:

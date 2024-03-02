@@ -10,11 +10,10 @@ from sqlalchemy import NullPool, create_engine, Table, Column, String, MetaData,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import text
 
-from memgpt.data_types import User
-from memgpt.metadata import MetadataStore
 
 from youbot import POSTGRES_URL
-from youbot.agent_manager import AgentManager
+from youbot.memgpt_client import MemGPTClient
+from youbot.memgpt_client import MemGPTClient
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 AGENT_NAME = "youbot"
@@ -52,7 +51,7 @@ async def on_message(message) -> None:
         logging.warn(f"no memgpt user found for discord member {str(message.author)}")
         memgpt_user_id = create_and_link_memgpt_user_id(message.author.id)
 
-    reply = AgentManager.user_message(agent_name=AGENT_NAME, msg=message.content, user_id=memgpt_user_id)
+    reply = MemGPTClient.user_message(agent_name=AGENT_NAME, msg=message.content, user_id=memgpt_user_id)
 
     await message.channel.send(reply)
 
@@ -79,10 +78,8 @@ def fetch_memgpt_user_id(discord_member_id: int) -> Optional[uuid.UUID]:
 
 
 def create_and_link_memgpt_user_id(discord_member_id: int) -> uuid.UUID:
-    user = User()
-    ms = MetadataStore()
-    ms.create_user(user)
-    memgpt_user_id = user.id
+    memgpt_user_id = uuid.UUID(int=discord_member_id)
+    MemGPTClient.create_user(memgpt_user_id)
     with engine.connect() as connection:
         stmt = insert(discord_users).values(discord_member_id=str(discord_member_id), memgpt_user_id=memgpt_user_id)
         connection.execute(stmt)
