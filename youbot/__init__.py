@@ -3,15 +3,19 @@ from celery import Celery
 from dotenv import load_dotenv
 from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
 import yaml
+from memgpt.config import MemGPTConfig
 
 load_dotenv()
 
+# Expose memgpt config to MemGPT
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MEMGPT_CONFIG_FILE = os.path.join(ROOT_DIR, "config", "memgpt_config")
+os.environ["MEMGPT_CONFIG_PATH"] = os.path.join(ROOT_DIR, "config", "memgpt_config")
+MEMGPT_CONFIG = MemGPTConfig.load()
 with open(os.path.join(ROOT_DIR, "config", "agents.yaml"), "r") as file:
     AGENTS_CONFIG = yaml.safe_load(file.read())
 
 
+# Set up package specific env vars
 for env_var in [
     "OPENAI_API_KEY",
     # "GITHUB_TOKEN",
@@ -31,15 +35,9 @@ POSTGRES_URL = os.environ["POSTGRES_URL"]
 # Obviously not a privacy-friendly design, just a placeholder.
 GOOGLE_EMAIL = os.getenv("YOUBOT_GOOGLE_EMAIL")
 GOOGLE_CREDS_PATH = os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
-
-
 SECRETS_DIR = os.path.join(ROOT_DIR, ".secrets")
 
-# Expose the config file to memgpt package
-os.environ["MEMGPT_CONFIG_PATH"] = MEMGPT_CONFIG_FILE
-
-
-postgres_url = os.environ["POSTGRES_URL"]
+# Set up db tables
 ENGINE = create_engine(POSTGRES_URL, poolclass=NullPool)
 metadata = MetaData()
 
@@ -53,6 +51,7 @@ GOOGLE_EMAILS = Table(
 metadata.create_all(ENGINE)
 
 
+# job queue
 def get_celery(queue: str) -> Celery:
     app = Celery(queue, broker="redis://localhost:6379/0")
     app.conf.update(
@@ -61,3 +60,6 @@ def get_celery(queue: str) -> Celery:
         result_serializer="pickle",
     )
     return app
+
+
+# accessors for MEMGPT classes

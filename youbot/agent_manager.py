@@ -1,25 +1,28 @@
 from contextlib import contextmanager
-from functools import lru_cache
 import logging
 from typing import Any, Generator
 from uuid import UUID
 import uuid
-from youbot import AGENTS_CONFIG
-from memgpt import MemGPT
+from youbot import AGENTS_CONFIG, MEMGPT_CONFIG
 from memgpt.agent import Agent
 from memgpt.metadata import MetadataStore
 from memgpt.config import MemGPTConfig
+from memgpt.client.client import LocalClient
+from memgpt.server.server import SyncServer
 
 
 class AgentManager:
-    metadata_store = MetadataStore()
+    metadata_store = MetadataStore(MEMGPT_CONFIG)
     DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
-    SERVER = MemGPT().server
+
+    @classmethod
+    def get_server(cls) -> SyncServer:
+        return cls.get_client().server
 
     # @lru_cache
     @classmethod
-    def get_client(cls, user_id: UUID = DEFAULT_MEMGPT_USER_ID) -> MemGPT:
-        return MemGPT(user_id=str(user_id))
+    def get_client(cls, user_id: UUID = DEFAULT_MEMGPT_USER_ID) -> LocalClient:
+        return LocalClient(auto_save=True, user_id=str(user_id))
 
     # @lru_cache
     @classmethod
@@ -32,7 +35,7 @@ class AgentManager:
             else:
                 agent_key = agent_name
             init_state = {"name": agent_name, **AGENTS_CONFIG[agent_key]}
-            agent_state = client.create_agent(init_state)
+            agent_state = client.create_agent(**init_state)  # type: ignore
         else:
             agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
             if agent_state is None:
@@ -50,7 +53,7 @@ class AgentManager:
             yield agent
         finally:
             if agent is not None:
-                cls.SERVER.delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
+                cls.get_server().delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
 
     @classmethod
     def user_message(cls, agent_name: str, msg: str, user_id=DEFAULT_MEMGPT_USER_ID) -> str:
