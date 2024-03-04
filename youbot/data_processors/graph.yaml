@@ -1,0 +1,3 @@
+nodes:
+  global:
+    name: string

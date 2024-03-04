@@ -11,8 +11,12 @@ from youbot.data_processors.convo_replay import fetch_facts
 
 @dataclass
 class Node:
+    # class attr
     node_types = []
     name: str
+
+    def __post_init__(self):
+        self.node_type = self.__class__.__name__
 
     @classmethod
     def get_klass(cls, node_type: str) -> type:
@@ -21,12 +25,8 @@ class Node:
                 return klass
         raise ValueError(f"Invalid node type: {node_type}. Valid node types are: {cls.node_types}")
 
-    def get_node_type(self) -> type:
-        return self.__class__
-
     def node_attrs(self):
-        d = {k: v for k, v in vars(self).items() if k != "name"}
-        d["node_type"] = self.get_node_type().__name__
+        d = {k: v for k, v in vars(self).items()}
         return d
 
     def __init_subclass__(cls) -> None:
@@ -45,7 +45,7 @@ class Pet(Node):
 
 
 VALID_EDGES = {
-    (Person, Person): [
+    ("Person", "Person"): [
         "married_to",
         "engaged_to",
         "dating",
@@ -54,7 +54,7 @@ VALID_EDGES = {
         "family_with",
         "works_with",
     ],
-    (Person, Pet): ["adopted", "owns"],
+    ("Person", "Pet"): ["adopted", "owns"],
 }
 
 
@@ -97,16 +97,16 @@ class Graph:
         out_node = self.get_node(out_node_name)
         in_node = self.get_node(in_node_name)
 
-        if (out_node.get_node_type(), in_node.get_node_type()) not in VALID_EDGES:
-            valid_in_node_types = [k[1].__name__ for k in VALID_EDGES.keys() if k[0] == out_node.get_node_type()]
+        if (out_node.node_type, in_node.node_type) not in VALID_EDGES:
+            valid_in_node_types = [k[1].__name__ for k in VALID_EDGES.keys() if k[0] == out_node.node_type]
             raise ValueError(
-                f"out node {out_node_name} of type {out_node.get_node_type()} cannot be connected to in node {in_node_name} of type {in_node.get_node_type()}. Valid edge types from node type {out_node.get_node_type()} are: {valid_in_node_types}"
+                f"out node {out_node_name} of type {out_node.node_type} cannot be connected to in node {in_node_name} of type {in_node.node_type}. Valid edge types from node type {out_node.node_type} are: {valid_in_node_types}"
             )
 
-        valid_relationships = VALID_EDGES[(out_node.get_node_type(), in_node.get_node_type())]
+        valid_relationships = VALID_EDGES[(out_node.node_type, in_node.node_type)]  # type: ignore
         if relationship not in valid_relationships:
             raise ValueError(
-                f"Invalid relationship {relationship} connecting node type {out_node.get_node_type()} to node type {in_node.get_node_type()}. Valid relationships are: {valid_relationships}"
+                f"Invalid relationship {relationship} connecting node type {out_node.node_type} to node type {in_node.node_type}. Valid relationships are: {valid_relationships}"
             )
 
         self.G.add_edge(out_node_name, in_node_name, relationship=relationship)
@@ -118,7 +118,7 @@ class Graph:
         valid_attributes = [k for k, v in node.node_attrs().items() if k != "node_type"]
         if attribute_name not in valid_attributes:
             raise ValueError(
-                f"Cannot set attribute {attribute_name}. valid attributes for node of type {node.get_node_type()} are: {valid_attributes}"
+                f"Cannot set attribute {attribute_name}. valid attributes for node of type {node.node_type} are: {valid_attributes}"
             )
         else:
             self.G.nodes[node_name][attribute_name] = attribute_value
@@ -134,7 +134,7 @@ class Graph:
 
 
 if __name__ == "__main__":
-    facts = fetch_facts()
+    # facts = fetch_facts()
     g = Graph()
 
     g.add_node("Tom Bedor", "Person")
