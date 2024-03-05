@@ -1,0 +1,2 @@
+psql $POSTGRES_URL -c "SELECT text FROM memgpt_archival_agent" --tuples-only > /tmp/memgpt_archival_agent.txt
+psql $POSTGRES_URL -c "SELECT role, text FROM memgpt_recall_memory_agent" --tuples-only > /tmp/recall.txt
