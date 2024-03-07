@@ -41,6 +41,8 @@ llama-index-vector-stores-faiss = "^0.1.2"
 matplotlib = "^3.8.3"
 autoflake = "^2.3.0"
 spacy = "^3.7.4"
+bertopic = "^0.16.0"
+scikit-learn = "^1.4.1.post1"
 
 
 [tool.pyright]
