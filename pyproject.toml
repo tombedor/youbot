@@ -44,6 +44,7 @@ spacy = "^3.7.4"
 bertopic = "^0.16.0"
 scikit-learn = "^1.4.1.post1"
 spacy-llm = "^0.7.1"
+llm = "^0.13.1"
 
 
 [tool.pyright]
