@@ -4,6 +4,7 @@
 
 import logging
 import os
+from pathlib import Path
 import shutil
 
 from youbot import ROOT_DIR
@@ -15,7 +16,8 @@ memgpt_install_dir = os.path.expanduser("~/.memgpt")
 # flattens and symlinks python files within a dir
 def symlink_files(src_dir, dest_dir):
     if os.path.exists(dest_dir):
-        shutil.rmtree(dest_dir)
+        path = Path(dest_dir)
+        path.unlink()
     os.symlink(src_dir, dest_dir)
 
 
