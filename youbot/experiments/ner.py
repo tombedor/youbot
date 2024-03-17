@@ -1,8 +1,9 @@
 import spacy
-
+# import en_core_web_sm
 # Load the pre-trained model
-with open('/tmp/archive.txt', 'r') as f:
+with open('/tmp/recall.txt', 'r') as f:
     text = f.read()
+    
 nlp = spacy.load('en_core_web_sm')
 
 # Process a text

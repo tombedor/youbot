@@ -6857,6 +6857,26 @@ files = [
 ]
 
 [[package]]
+name = "spacy-llm"
+version = "0.7.1"
+description = "Integrating LLMs into structured NLP pipelines"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "spacy-llm-0.7.1.tar.gz", hash = "sha256:c59fe8fbf71aee1bc4243488ecdb7b7e9b3df81877d5e7ac661b899b658b73d6"},
+    {file = "spacy_llm-0.7.1-py2.py3-none-any.whl", hash = "sha256:20ee79dae645edc64a38ee15e7f725c38358188f73ac426ab043b145c1be52c4"},
+]
+
+[package.dependencies]
+confection = ">=0.1.3,<1.0.0"
+jinja2 = "*"
+spacy = ">=3.5,<4.0"
+
+[package.extras]
+langchain = ["langchain (>=0.1,<0.2)"]
+transformers = ["einops (>=0.4)", "torch (>=1.13.1,<2.0)", "transformers (>=4.28.1,<5.0)", "xformers"]
+
+[[package]]
 name = "spacy-loggers"
 version = "1.0.5"
 description = "Logging utilities for SpaCy"
@@ -8406,4 +8426,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "e9d2d2bd2b0f36a2ae4793aba45b13e5bbaf29947406e743b0034cc3b8690acb"
+content-hash = "8612f6cd070619114d3eef560becd4aae64a9fa5c5a7199b57f07bb41270b6de"
