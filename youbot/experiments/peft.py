@@ -6,6 +6,7 @@ from peft import (LoraConfig, PeftModel, get_peft_model,
                   prepare_model_for_kbit_training)
 from transformers import (AutoModelForCausalLM, AutoTokenizer,
                           BitsAndBytesConfig, LlamaForCausalLM, LlamaTokenizer)
+from peft.constants
 
 
 class QloraTrainer:
