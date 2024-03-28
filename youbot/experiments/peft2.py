@@ -16,14 +16,11 @@ import os
 
 from peft import get_peft_model
 
-# ds = load_dataset("food101", split='validation')
-# print('yay')
-# model_name_or_path = "mistralai/Mixtral-8x7B-v0.1"
 model_name_or_path = "t5-large"
 batch_size = 8
 max_length = 128
 lr = 1e-2
-num_epochs = 5
+num_epochs = 1
 batch_size = 8
 device = "cpu"
 
@@ -119,7 +116,7 @@ for epoch in range(num_epochs):
     
 correct = 0
 total = 0
-for pred, true in zip(eval_preds, dataset["test"]["PROMPT"]):
+for pred, true in zip(eval_preds, dataset["test"]["LABEL"]):
     print(f"PREDICTED = {pred}")
     print(f"TRUE = {true}")
     if pred.strip() == true.strip():
