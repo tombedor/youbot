@@ -30,7 +30,6 @@ class AgentManager:
     def __init__(self, user_id: UUID, llm_config: dict, embedding_config: dict) -> None:
         self.user_id = user_id
         self.ms = MetadataStore(MEMGPT_CONFIG)
-        self.client = MemGPTClient.get_client(user_id=user_id)
         self.agent_ids = dict((entry["name"], UUID(entry["id"])) for entry in self.client.list_agents()["agents"])
 
         for agent_name, agent_init_state in AGENTS.items():

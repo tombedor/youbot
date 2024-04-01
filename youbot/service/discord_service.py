@@ -1,5 +1,3 @@
-# This example requires the 'message_content' intent.
-
 import logging
 import os
 from typing import Optional
@@ -42,7 +40,7 @@ async def on_message(message) -> None:
     if youbot_user is None:
         logging.warn(f"no memgpt user found for discord member {str(message.author)}")
     else:
-        reply = MemGPTClient.user_message_new(agent_id=youbot_user.memgpt_agent_id, user_id=youbot_user.memgpt_user_id, msg=message.content)
+        reply = MemGPTClient.user_message(agent_id=youbot_user.memgpt_agent_id, user_id=youbot_user.memgpt_user_id, msg=message.content)
         await message.channel.send(reply)
 
 

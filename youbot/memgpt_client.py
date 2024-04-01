@@ -4,15 +4,14 @@ from typing import Any, Generator
 from uuid import UUID
 import uuid
 
-from llm import user_dir
 from youbot import AGENTS_CONFIG, MEMGPT_CONFIG
 from memgpt.agent import Agent
 from memgpt.metadata import MetadataStore
 from memgpt.config import MemGPTConfig
-from memgpt.client.client import LocalClient
 from memgpt.server.server import SyncServer
 from memgpt.data_types import User, Preset, AgentState, LLMConfig, EmbeddingConfig
-from memgpt.models.pydantic_models import HumanModel, PersonaModel, PresetModel
+from memgpt.models.pydantic_models import HumanModel, PersonaModel
+from memgpt.server.rest_api.interface import QueuingInterface
 
 from memgpt.presets.presets import generate_functions_json
 
@@ -53,6 +52,8 @@ class MemGPTClient:
     DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
 
     session_maker = metadata_store.session_maker  # note this is a function
+
+    server = SyncServer(default_interface=QueuingInterface(debug=True))
 
     @classmethod
     def create_preset(
@@ -113,17 +114,13 @@ class MemGPTClient:
         return user
 
     @classmethod
-    def get_server(cls) -> SyncServer:
-        return cls.get_client().server
-
-    @classmethod
-    def get_client(cls, user_id: UUID = DEFAULT_MEMGPT_USER_ID) -> LocalClient:
-        return LocalClient(auto_save=True, user_id=str(user_id))
+    def agent_exists(cls, agent_name: str, user_id: UUID) -> bool:
+        agents = cls.server.list_agents(user_id=user_id)["agents"]
+        return any(agent["name"] == agent_name for agent in agents)
 
     @classmethod
     def get_or_create_agent(cls, agent_name: str, user_id: UUID = DEFAULT_MEMGPT_USER_ID) -> Agent:
-        client = cls.get_client(user_id)
-        if not client.agent_exists(agent_name=agent_name):
+        if not cls.agent_exists(user_id=user_id, agent_name=agent_name):
             if agent_name not in AGENTS_CONFIG:
                 agent_key = "youbot"
                 logging.warning(f"defaulting to {agent_key} agent profile")
@@ -135,7 +132,7 @@ class MemGPTClient:
             agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
             if agent_state is None:
                 raise ValueError(f"Agent state for {agent_name} not found.")
-        return Agent(agent_state=agent_state, interface=client.interface)
+        return Agent(agent_state=agent_state, interface=cls.server.default_interface)
 
     @classmethod
     @contextmanager
@@ -148,21 +145,11 @@ class MemGPTClient:
             yield agent
         finally:
             if agent is not None:
-                cls.get_server().delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
+                cls.server.delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
 
     @classmethod
-    def user_message_new(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
-        client = cls.get_client(user_id)
-        response_list = client.user_message(str(agent_id), msg)
-        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
-        assert isinstance(reply, str)
-        return reply
-
-    @classmethod
-    def user_message(cls, agent_name: str, msg: str, user_id=DEFAULT_MEMGPT_USER_ID) -> str:
-        agent = cls.get_or_create_agent(agent_name=agent_name, user_id=user_id)
-        client = cls.get_client(user_id)
-        response_list = client.user_message(str(agent.agent_state.id), msg)
+    def user_message(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
+        response_list = cls.server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
         reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
         assert isinstance(reply, str)
         return reply
