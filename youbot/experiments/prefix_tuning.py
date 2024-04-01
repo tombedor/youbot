@@ -6,6 +6,7 @@ from transformers import AutoTokenizer
 from youbot.experiments.q_and_a_dataset_generation import get_data
 
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, default_data_collator, get_linear_schedule_with_warmup
+
 # from peft import get_peft_model
 from peft import PrefixTuningConfig
 from peft import TaskType
@@ -28,8 +29,8 @@ dataset = Dataset.from_list(get_data())
 dataset = dataset.train_test_split(test_size=0.1)
 
 for q_and_a in get_data():
-    print(q_and_a['PROMPT'], q_and_a['LABEL'])
-    
+    print(q_and_a["PROMPT"], q_and_a["LABEL"])
+
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
@@ -40,14 +41,15 @@ tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
 
 
 def preprocess_function(examples):
-    inputs = examples['PROMPT']
-    targets = examples['LABEL']
+    inputs = examples["PROMPT"]
+    targets = examples["LABEL"]
     model_inputs = tokenizer(inputs, max_length=128, padding="max_length", truncation=True, return_tensors="pt")
     labels = tokenizer(targets, max_length=2, padding="max_length", truncation=True, return_tensors="pt")
     labels = labels["input_ids"]
     labels[labels == tokenizer.pad_token_id] = -100
     model_inputs["labels"] = labels
     return model_inputs
+
 
 processed_datasets = dataset.map(
     preprocess_function,
@@ -61,9 +63,7 @@ processed_datasets = dataset.map(
 train_dataset = processed_datasets["train"]
 eval_dataset = processed_datasets["test"]
 
-train_dataloader = DataLoader(
-    train_dataset, shuffle=True, collate_fn=default_data_collator, batch_size=batch_size, pin_memory=True
-)
+train_dataloader = DataLoader(train_dataset, shuffle=True, collate_fn=default_data_collator, batch_size=batch_size, pin_memory=True)
 eval_dataloader = DataLoader(eval_dataset, collate_fn=default_data_collator, batch_size=batch_size, pin_memory=True)
 
 
@@ -104,16 +104,14 @@ for epoch in range(num_epochs):
             outputs = model(**batch)
         loss = outputs.loss
         eval_loss += loss.detach().float()
-        eval_preds.extend(
-            tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
-        )
+        eval_preds.extend(tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True))
 
     eval_epoch_loss = eval_loss / len(eval_dataloader)
     eval_ppl = torch.exp(eval_epoch_loss)
     train_epoch_loss = total_loss / len(train_dataloader)
     train_ppl = torch.exp(train_epoch_loss)
     print(f"{epoch=}: {train_ppl=} {train_epoch_loss=} {eval_ppl=} {eval_epoch_loss=}")
-    
+
 correct = 0
 total = 0
 for pred, true in zip(eval_preds, dataset["test"]["LABEL"]):
@@ -128,7 +126,7 @@ print(f"{eval_preds[:10]=}")
 print(f"{dataset['test']['PROMPT'][:10]=}")
 # "accuracy=97.3568281938326 % on the evaluation dataset"
 # "eval_preds[:10]=['neutral', 'positive', 'neutral', 'positive', 'neutral', 'negative', 'negative', 'neutral', 'neutral', 'neutral']"
-# "dataset['validation']['text_label'][:10]=['neutral', 'positive', 'neutral', 'positive', 'neutral', 'negative', 'negative', 'neutral', 'neutral', 'neutral']"    
+# "dataset['validation']['text_label'][:10]=['neutral', 'positive', 'neutral', 'positive', 'neutral', 'negative', 'negative', 'neutral', 'neutral', 'neutral']"
 
 # Dataset.from_list(ds['train'])
 

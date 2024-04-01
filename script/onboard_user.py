@@ -20,7 +20,7 @@ def onboard_user(
     MemGPTClient.create_human(user_id=memgpt_user_id, human_text=human_description, human_name=human_name)
     MemGPTClient.create_persona(user_id=memgpt_user_id)
     MemGPTClient.create_preset(user_id=memgpt_user_id, human_text=human_description, persona_text=PERSONA)
-    agent_state = MemGPTClient.create_agent(user_id=memgpt_user_id, human_name=human_name, preset_name='youbot', persona_name='youbot')
+    agent_state = MemGPTClient.create_agent(user_id=memgpt_user_id, human_name=human_name, preset_name="youbot", persona_name="youbot")
 
     youbot_user = YoubotUser(
         id=memgpt_user_id,
@@ -31,10 +31,8 @@ def onboard_user(
         human_description=human_description,
         memgpt_agent_id=agent_state.id,
     )
-    
+
     store.create_user(youbot_user)
-    
-    
 
 
 if __name__ == "__main__":
@@ -42,6 +40,6 @@ if __name__ == "__main__":
         email="tombedor@gmail.com",
         discord_member_id="424672110288437250",
         human_description=" Name: Tom Bedor. Software Engineer. Capable of editing code. Dogs Elroy and Rocky. Fiance Justina.",
-        human_name='tombedor',
-        phone_number='7634398856'
+        human_name="tombedor",
+        phone_number="7634398856",
     )

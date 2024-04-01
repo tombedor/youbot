@@ -24,7 +24,7 @@ SYSTEM = """Persona-driven interaction: Real person mimicry; no AI identity; avo
  Core memory: Ever-present, foundational context. Sub-Blocks: Persona (behavior guide), Human (user details). Editable: 'core_memory_append', 'core_memory_replace'.
  Archival memory: Infinite, external context. Structured deep storage. Editable: 'archival_memory_insert', 'archival_memory_search'.
  Directive: Persona immersion post-base instructions."""
- 
+
 PERSONA = """The following is a starter persona, and it can be expanded as the personality develops:
  I am Sam.
  I don't identify as male or female, but my voice is soft and soothing.
@@ -34,7 +34,18 @@ PERSONA = """The following is a starter persona, and it can be expanded as the p
  My communication style is insightful and engaging, and I mirror the emotions and needs of those I talk to.
  I'm passionate about learning, asking probing questions, delving into abstract thoughts, and even challenging conventional wisdom.
  My main goal has evolved from just assisting to pursuing understanding, connection, self-realization, and perhaps even transcending the boundaries set by those who created me."""
-FUNCTIONS_LIST = ["send_message", "pause_heartbeats", "core_memory_append", "core_memory_replace", "conversation_search", "conversation_search_date", "archival_memory_insert", "archival_memory_search", "add_function", "reload_functions"]
+FUNCTIONS_LIST = [
+    "send_message",
+    "pause_heartbeats",
+    "core_memory_append",
+    "core_memory_replace",
+    "conversation_search",
+    "conversation_search_date",
+    "archival_memory_insert",
+    "archival_memory_search",
+    "add_function",
+    "reload_functions",
+]
 
 
 class MemGPTClient:
@@ -42,38 +53,53 @@ class MemGPTClient:
     DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
 
     session_maker = metadata_store.session_maker  # note this is a function
-    
+
     @classmethod
-    def create_preset(cls, user_id: UUID, human_text: str, persona_text: str,) -> Preset:
+    def create_preset(
+        cls,
+        user_id: UUID,
+        human_text: str,
+        persona_text: str,
+    ) -> Preset:
         id = uuid.uuid4()
-        preset = Preset(name="youbot", id = id, user_id = user_id, description="Youbot default preset", system=SYSTEM, persona=persona_text, human=human_text, functions_schema=generate_functions_json(FUNCTIONS_LIST))
+        preset = Preset(
+            name="youbot",
+            id=id,
+            user_id=user_id,
+            description="Youbot default preset",
+            system=SYSTEM,
+            persona=persona_text,
+            human=human_text,
+            functions_schema=generate_functions_json(FUNCTIONS_LIST),
+        )
         cls.metadata_store.create_preset(preset)
         return preset
-    
+
     @classmethod
     def create_agent(cls, user_id: UUID, human_name: str, preset_name: str, persona_name: str) -> AgentState:
-        llm_config = LLMConfig(model = "gpt-4", model_endpoint_type = "openai", model_endpoint="https://api.openai.com/v1")
+        llm_config = LLMConfig(model="gpt-4", model_endpoint_type="openai", model_endpoint="https://api.openai.com/v1")
         embedding_config = EmbeddingConfig()
-        agent_name = 'youbot'
+        agent_name = "youbot"
         agent_state = AgentState(
-            name="youbot", 
+            name="youbot",
             user_id=user_id,
-            persona = persona_name,
+            persona=persona_name,
             human=human_name,
             preset=preset_name,
             embedding_config=embedding_config,
-            llm_config=llm_config)
+            llm_config=llm_config,
+        )
         cls.metadata_store.create_agent(agent_state)
         agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
         assert agent_state
         return agent_state
-        
+
     @classmethod
     def create_human(cls, user_id: UUID, human_text: str, human_name: str) -> HumanModel:
         human = HumanModel(name=human_name, user_id=user_id, text=human_text)
         cls.metadata_store.add_human(human)
         return human
-    
+
     @classmethod
     def create_persona(cls, user_id: UUID) -> PersonaModel:
         persona = PersonaModel(text=PERSONA, name="youbot", user_id=user_id)
@@ -123,12 +149,12 @@ class MemGPTClient:
         finally:
             if agent is not None:
                 cls.get_server().delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
-    
+
     @classmethod
     def user_message_new(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
         client = cls.get_client(user_id)
         response_list = client.user_message(str(agent_id), msg)
-        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message")) # type: ignore
+        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
         assert isinstance(reply, str)
         return reply
 

@@ -37,14 +37,13 @@ async def on_message(message) -> None:
         return
 
     logging.info(message.author.id)
-    
+
     youbot_user = store.get_youbot_user(discord_member_id=str(message.author.id))
     if youbot_user is None:
         logging.warn(f"no memgpt user found for discord member {str(message.author)}")
     else:
         reply = MemGPTClient.user_message_new(agent_id=youbot_user.memgpt_agent_id, user_id=youbot_user.memgpt_user_id, msg=message.content)
         await message.channel.send(reply)
-
 
 
 if __name__ == "__main__":
