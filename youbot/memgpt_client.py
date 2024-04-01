@@ -12,6 +12,7 @@ from memgpt.server.server import SyncServer
 from memgpt.data_types import User, Preset, AgentState, LLMConfig, EmbeddingConfig
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
 from memgpt.server.rest_api.interface import QueuingInterface
+from memgpt.client.client import LocalClient
 
 from memgpt.presets.presets import generate_functions_json
 
@@ -55,6 +56,8 @@ class MemGPTClient:
 
     server = SyncServer(default_interface=QueuingInterface(debug=True))
 
+    clients = {}
+
     @classmethod
     def create_preset(
         cls,
@@ -90,7 +93,7 @@ class MemGPTClient:
             embedding_config=embedding_config,
             llm_config=llm_config,
         )
-        cls.metadata_store.create_agent(agent_state)
+        cls.server.create_agent(user_id=user_id, name="youbot", persona=persona_name, human=human_name, preset=preset_name)
         agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
         assert agent_state
         return agent_state
@@ -149,7 +152,14 @@ class MemGPTClient:
 
     @classmethod
     def user_message(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
-        response_list = cls.server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
+        # hack to get around a typing bug in memgpt
+        if user_id not in cls.clients:
+            cls.clients[user_id] = LocalClient(auto_save=True, user_id=str(user_id), debug=True)
+        local_client = cls.clients[user_id]
+        local_client.interface.clear()
+        local_client.server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
+        local_client.server.save_agents()
+        response_list = local_client.interface.to_list()
         reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
         assert isinstance(reply, str)
         return reply
