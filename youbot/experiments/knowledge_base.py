@@ -13,7 +13,6 @@ log_to_stdout()
 model_name = "en_core_web_lg"
 kb_path = os.path.join(STORAGE_DIR, 'knowledge_base')
 
-
 try:
     nlp = spacy.load(model_name)
 except OSError:

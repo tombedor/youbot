@@ -1,0 +1,1 @@
+youbot @ git+https://github.com/tombedor/youbot@0.0.1
