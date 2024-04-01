@@ -2,11 +2,8 @@ import torch
 import transformers
 from datasets import load_dataset
 from datasets.dataset_dict import DatasetDict
-from peft import (LoraConfig, PeftModel, get_peft_model,
-                  prepare_model_for_kbit_training)
-from transformers import (AutoModelForCausalLM, AutoTokenizer,
-                          BitsAndBytesConfig, LlamaForCausalLM, LlamaTokenizer)
-from peft.constants
+from peft import LoraConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, LlamaForCausalLM, LlamaTokenizer
 
 
 class QloraTrainer:
@@ -21,23 +18,20 @@ class QloraTrainer:
         model_id = self.config["base_model"]
 
         bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16
+            load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
         )
 
         if "model_family" in self.config and self.config["model_family"] == "llama":
             tokenizer = LlamaTokenizer.from_pretrained(model_id)
-            model = LlamaForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"":0})
+            model = LlamaForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"": 0})
         else:
             tokenizer = AutoTokenizer.from_pretrained(model_id)
-            model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"":0})
+            model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"": 0})
 
         if not tokenizer.pad_token:
             # Add padding token if missing, e.g. for llama tokenizer
-            #tokenizer.pad_token = tokenizer.eos_token  # https://github.com/huggingface/transformers/issues/22794
-            tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+            # tokenizer.pad_token = tokenizer.eos_token  # https://github.com/huggingface/transformers/issues/22794
+            tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
         model.gradient_checkpointing_enable()
         model = prepare_model_for_kbit_training(model)
@@ -46,19 +40,14 @@ class QloraTrainer:
         self.base_model = model
 
     def load_adapter_model(self, adapter_path: str):
-        """ Load pre-trained lora adapter """
+        """Load pre-trained lora adapter"""
         self.adapter_model = PeftModel.from_pretrained(self.base_model, adapter_path)
 
     def train(self):
         # Set up lora config or load pre-trained adapter
         if self.adapter_model is None:
             config = LoraConfig(
-                r=8,
-                lora_alpha=32,
-                target_modules=self.config["target_modules"],
-                lora_dropout=0.05,
-                bias="none",
-                task_type="CAUSAL_LM"
+                r=8, lora_alpha=32, target_modules=self.config["target_modules"], lora_dropout=0.05, bias="none", task_type="CAUSAL_LM"
             )
             model = get_peft_model(self.base_model, config)
         else:
@@ -77,14 +66,14 @@ class QloraTrainer:
                 per_device_train_batch_size=1,
                 gradient_accumulation_steps=4,
                 warmup_steps=100,
-                #max_steps=200,  # short run for debugging
+                # max_steps=200,  # short run for debugging
                 num_train_epochs=1,  # full run
                 learning_rate=2e-4,
                 fp16=True,
                 logging_steps=20,
                 output_dir=self.config["trainer_output_dir"],
                 report_to="tensorboard",
-                #optim="adamw"
+                # optim="adamw"
             ),
             data_collator=transformers.DataCollatorForLanguageModeling(self.tokenizer, mlm=False),
         )
@@ -97,7 +86,7 @@ class QloraTrainer:
         print(f"Training complete, adapter model saved in {model_save_path}")
 
     def merge_and_save(self):
-        """ Merge base model and adapter, save to disk """
+        """Merge base model and adapter, save to disk"""
         # Cannot merge when base model loaded in 8-bit/4-bit mode, so load separately
         model_id = self.config["base_model"]
         if "model_family" in self.config and self.config["model_family"] == "llama":
@@ -115,7 +104,7 @@ class QloraTrainer:
         self.tokenizer.save_pretrained(model_save_path)
 
     def push_to_hub(self):
-        """ Push merged model to HuggingFace Hub """
+        """Push merged model to HuggingFace Hub"""
         raise NotImplementedError("push_to_hub not implemented yet")
 
     def _print_trainable_parameters(self, model):
@@ -128,9 +117,7 @@ class QloraTrainer:
             all_param += param.numel()
             if param.requires_grad:
                 trainable_params += param.numel()
-        print(
-            f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
-        )
+        print(f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}")
 
     def _generate_prompt(self, convo: list, eos_token: str, instruct: bool = False) -> str:
         convo_text = ""
@@ -162,12 +149,11 @@ class QloraTrainer:
             context_window = self.tokenizer.model_max_length
 
         data = load_dataset(self.config["dataset"])
-        data = data.map(lambda data_point: self.tokenizer(
-            self._generate_prompt(
-                data_point["conversations"],
-                self.tokenizer.eos_token, 
-                instruct=self.config["instruct"]),
-            max_length=context_window,
-            truncation=True,
-        ))
+        data = data.map(
+            lambda data_point: self.tokenizer(
+                self._generate_prompt(data_point["conversations"], self.tokenizer.eos_token, instruct=self.config["instruct"]),
+                max_length=context_window,
+                truncation=True,
+            )
+        )
         return data
