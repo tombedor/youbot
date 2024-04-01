@@ -1,4 +1,6 @@
 
+from typing import Tuple
+from uuid import UUID
 from sqlalchemy import NullPool, create_engine
 
 from youbot import POSTGRES_URL
@@ -22,6 +24,13 @@ class Store:
         session = self.session_maker()
         user = session.query(YoubotUser).filter(YoubotUser.email == email).first()
         session.close()
+        return user
+    
+    def get_youbot_user(self, discord_member_id: str) -> YoubotUser:
+        session = self.session_maker()
+        user = session.query(YoubotUser).filter(YoubotUser.discord_member_id == discord_member_id).first()
+        session.close()
+        assert user
         return user
 
 if __name__ == "__main__":

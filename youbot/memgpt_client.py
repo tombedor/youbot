@@ -123,6 +123,14 @@ class MemGPTClient:
         finally:
             if agent is not None:
                 cls.get_server().delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
+    
+    @classmethod
+    def user_message_new(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
+        client = cls.get_client(user_id)
+        response_list = client.user_message(str(agent_id), msg)
+        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message")) # type: ignore
+        assert isinstance(reply, str)
+        return reply
 
     @classmethod
     def user_message(cls, agent_name: str, msg: str, user_id=DEFAULT_MEMGPT_USER_ID) -> str:
