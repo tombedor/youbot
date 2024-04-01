@@ -4,11 +4,18 @@ from dotenv import load_dotenv
 from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
 import yaml
 from memgpt.config import MemGPTConfig
+import logging
+import sys
 
 load_dotenv()
 
 # Expose memgpt config to MemGPT
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STORAGE_DIR = os.path.join(ROOT_DIR, "storage")
+
+def log_to_stdout():
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
 os.environ["MEMGPT_CONFIG_PATH"] = os.path.join(ROOT_DIR, "config", "memgpt_config")
 MEMGPT_CONFIG = MemGPTConfig.load()
 with open(os.path.join(ROOT_DIR, "config", "agents.yaml"), "r") as file:

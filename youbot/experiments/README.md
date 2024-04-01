@@ -2,7 +2,7 @@
 
 The overall goal is to enhance the conversational model such that conversation outputs reflect knowledge of an individual user
 
-Two primary approaches:
+The primary approaches:
 
 ## Fine tuning the conversational model
 Here, the conversational model itself is fine tuned with discussion including knowledge of the user. Training data is synthetically generated:
@@ -23,3 +23,23 @@ The model itself seems easier to train, as the outputs should be more constraine
 An initial step for this could be generate conversational inputs using a predefined set of facts.
 
 If this works, it could be extended such that a knowledge graph is maintained.
+
+
+Context bracketing
+
+## Auxilary Dynamic Entity Representation model
+
+Model options:
+- RNN
+- LSTM
+- Transformer
+
+pipeline:
+
+offline:
+- for each chat log
+  - extract entities using BERT model
+  - use 
+  - compare entities against already-existing entities in the knowledge base
+  - update or add as necessary
+

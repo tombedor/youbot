@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import subprocess
 
+import spacy.cli
+
 from youbot import ROOT_DIR
 
 memgpt_extensions_dir = os.path.join(ROOT_DIR, "youbot", "memgpt_extensions")
@@ -52,6 +54,7 @@ def setup_database_ssh_tunnel():
 
 
 if __name__ == "__main__":
+    spacy.cli.download('en_core_web_sm')
     copy_creds()
     for name in ["functions", "personas", "humans", "presets"]:
         source_dir = os.path.join(memgpt_extensions_dir, name)
