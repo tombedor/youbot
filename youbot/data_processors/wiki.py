@@ -14,7 +14,6 @@ import json
 
 from pathlib import Path, PosixPath
 
-import psycopg2
 
 import faiss
 

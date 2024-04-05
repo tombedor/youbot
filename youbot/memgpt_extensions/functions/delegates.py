@@ -3,27 +3,6 @@ from memgpt.metadata import MetadataStore
 from uuid import UUID
 
 from youbot import MEMGPT_CONFIG
-from youbot.memgpt_client import MemGPTClient
-
-DEBUGGER = "debugger"
-TESTER = "tester"
-
-
-AGENTS = {
-    DEBUGGER: {
-        "name": "debuger",
-        "preset": "debugger",
-        "human": "agent",
-        "persona": "debugger",
-    },
-    TESTER: {
-        "name": "tester",
-        "preset": "tester",
-        "human": "agent",
-        "persona": "tester",
-    },
-}
-
 
 # Manages agent instantiation, as well as messaging to agents.
 class AgentManager:
