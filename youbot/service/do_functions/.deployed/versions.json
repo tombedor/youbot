@@ -1,0 +1,26 @@
+[
+  {
+    "apihost": "https://faas-sfo3-7872a1dd.doserverless.co",
+    "namespace": "fn-bcf8e07a-7be1-4401-af7f-b86ad32e1fb3",
+    "packageVersions": {
+      "twilio": {
+        "version": "0.0.3",
+        "digest": "e1654377ac86331a312ff319b4a91eba4196e04e0c7da77978641d4793012627"
+      },
+      "youbot_site": {
+        "version": "0.0.1",
+        "digest": "44ad0f91843081321bc72a4dbac0c8cad108d817e5a214ceff1876de495c8855"
+      }
+    },
+    "actionVersions": {
+      "twilio/webhooks": {
+        "version": "0.0.3",
+        "digest": "8c03697f85fcf05c3af9ce2d4e055360c3315d2c7d7a0f90b8588556f4f78b9f"
+      },
+      "youbot_site/receive_signup": {
+        "version": "0.0.1",
+        "digest": "b52a5ddfd5b95d13618331967e8b0fa1faa4e76d4dedc97314c67025370aeb26"
+      }
+    }
+  }
+]
