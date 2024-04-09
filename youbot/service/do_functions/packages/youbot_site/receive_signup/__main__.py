@@ -13,7 +13,6 @@ def main(event, context):
         logging.warn("Honeypot triggered")
         return {
             "body": {
-                "msg": "Form submitted",
                 "name": name,
                 "phone_number": phone_number,
                 "discord_username": discord_username,
