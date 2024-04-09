@@ -1,7 +1,7 @@
 import os
 from celery import Celery
 from dotenv import load_dotenv
-from sqlalchemy import UUID, Column, MetaData, NullPool, String, Table, create_engine
+from sqlalchemy import UUID, Column, Integer, MetaData, NullPool, String, Table, create_engine
 import yaml
 from memgpt.config import MemGPTConfig
 import logging
@@ -47,11 +47,20 @@ GOOGLE_EMAILS = Table(
     Column("memgpt_user_id", UUID),
 )
 
-DISCORD_USERS = discord_users = Table(
+DISCORD_USERS = Table(
     "discord_users",
     metadata,
     Column("discord_member_id", String, primary_key=True),
     Column("memgpt_user_id", UUID),
+)
+
+SIGNUPS = Table(
+    "signups",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String),
+    Column("phone_number", String, unique=True),
+    Column("discord_username", String, unique=True)
 )
 
 metadata.create_all(ENGINE)
