@@ -26,6 +26,7 @@ sudo -u root sudo -u postgres psql -c "CREATE DATABASE youbot;"
 sudo -u root sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE youbot TO youbot;"
 
 ####### install dependencies #######
+poetry config virtualenvs.in-project true
 poetry install
 
 ###### memgpt setup #######
