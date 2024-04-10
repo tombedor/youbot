@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+# note: expects OPENAI_API_TOKEN and DIGITAL_OCEAN_TOKEN to be available 
+# (for vscode container, use codespace secrets)
+
 ####### install postgres #######
 
 # updating package list and installing some utilities
@@ -35,7 +38,26 @@ key = $(echo $OPENAI_API_KEY)
 EOF
 
 
+##### install digital ocean tools #####
+# if DIGITAL_OCEAN_TOKEN is available, install and configure doctl
+if [ -n "$DIGITAL_OCEAN_TOKEN" ]; then
+    pushd .
+    cd $HOME
+    wget https://github.com/digitalocean/doctl/releases/download/v1.104.0/doctl-1.104.0-linux-amd64.tar.gz
+    tar xf ~/doctl-1.104.0-linux-amd64.tar.gz
+    sudo mv $HOME/doctl /usr/local/bin
+
+    doctl completion bash >> $HOME/.bash_profile
+    source $HOME/.bash_profile
+
+    doctl auth init -t $DIGITAL_OCEAN_TOKEN
+    popd
+fi
+
 ####### setup aliases #######
+
+cat << EOF >> $HOME/.bash_profile
 export POSTGRES_URL="postgresql://youbot:youbot@localhost/youbot"
 export MEMGPT_CONFIG_PATH="/workspaces/youbot/config/memgpt_config"
 alias youbot="poetry run memgpt run --agent youbot --persona sam_pov --human basic --first --debug"
+EOF
