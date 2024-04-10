@@ -1,8 +1,7 @@
 packages:
     - name: youbot_site
       shared: false
-      environment: 
-        DROPLET_IP: MY_IP
+      environment: {}
       parameters: {}
       annotations: {}
       functions:
@@ -16,3 +15,13 @@ packages:
           environment: {}
           annotations: {}
           limits: {}
+        - name: hello_world
+          binary: false
+          main: ""
+          runtime: python:default
+          web: true
+          webSecure: false
+          parameters: {}
+          environment: {}
+          annotations: {}
+          limits: {}          
