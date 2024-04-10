@@ -52,6 +52,8 @@ if [ -n "$DIGITAL_OCEAN_TOKEN" ]; then
     source $HOME/.bash_profile
 
     doctl auth init -t $DIGITAL_OCEAN_TOKEN
+    doctl serverless install
+    doctl serverless connect
     popd
 fi
 

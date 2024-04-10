@@ -1,0 +1,1 @@
+doctl serverless deploy $0/youbot/service/do_functions

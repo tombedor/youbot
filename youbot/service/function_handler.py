@@ -4,6 +4,8 @@ from flask.wrappers import Response
 
 from youbot import ENGINE, SIGNUPS
 
+# start with: gunicorn -w 4 function_handler:app
+
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])

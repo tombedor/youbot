@@ -1,0 +1,1 @@
+gunicorn function_handler:app
