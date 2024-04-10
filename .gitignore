@@ -1,5 +1,6 @@
 .env
 .secrets/
+.github/
 **/__pycache__/
 **/storage/
 logs/
