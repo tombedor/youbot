@@ -9,8 +9,8 @@ services:
   http_port: 8080
   instance_count: 1
   instance_size_slug: basic-xxs
-  name: discord_service
   build_command: pip install -r requirements.txt
   run_command: python youbot/service/discord_service.py
+  name: discord
   routes:
   - path: /
