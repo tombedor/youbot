@@ -1,7 +1,8 @@
 packages:
     - name: youbot_site
       shared: false
-      environment: {}
+      environment: 
+        DROPLET_IP: MY_IP
       parameters: {}
       annotations: {}
       functions:
