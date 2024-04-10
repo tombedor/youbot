@@ -1,1 +1,4 @@
-gunicorn function_handler:app
+#!/bin/bash
+set -ex
+
+gunicorn -c gunicorn.py function_handler:app
