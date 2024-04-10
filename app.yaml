@@ -1,15 +1,16 @@
 name: youbot
 region: nyc
 services:
-- environment_slug: python
+- environment_slug: python3
   github:
     branch: main
     deploy_on_push: true
-    repo: tombedor/youbot
+    repo: yourGithubUsername/yourRepositoryName
   http_port: 8080
   instance_count: 1
   instance_size_slug: basic-xxs
   name: discord_service
+  build_command: pip install -r requirements.txt
+  run_command: python youbot/service/discord_service.py
   routes:
   - path: /
-  run_command: poetry run python youbot/service/discord_service.py
