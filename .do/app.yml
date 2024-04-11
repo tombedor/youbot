@@ -1,0 +1,53 @@
+databases:
+  - cluster_name: dbaas-db-10977930
+    db_name: tombot
+    db_user: doadmin
+    engine: PG
+    name: dbaas-db-10977930
+    production: true
+    version: "13"
+envs:
+  - key: OPENAI_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:1vfG3GEjBbpoOo8YPTKLugNOXcwDrG3J:ftpJR64W/WlqM5dpMrKqRexgMWjK/IFe5HzGyUCLv5bptJ9OhZWEkCBUohMn55pA6vNg/kfkjxwfq6LqWywKeeud/g==]
+  - key: DISCORD_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:SBdTJT2P/U8K5wpVZ/XUrmUjRAkD2gFJ:vyp5tpX0BvSUDf3wdSGuJkdLN7q5w1KGkVYL1QPzqA+iLdVdpEL2Gzw16bnPug7t4fdabd0gWUR/tiEgDnRO+dA6+BoSZWwGDVkeW80eY3PpQHZMxN72Cg==]
+features:
+  - buildpack-stack=ubuntu-22
+ingress:
+  rules:
+    - component:
+        name: discord
+      match:
+        path:
+          prefix: /
+name: youbot
+region: sfo
+services:
+  - build_command: pip install -r requirements.txt
+    environment_slug: python
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${dbaas-db-10977930.DATABASE_URL}
+    github:
+      branch: main
+      deploy_on_push: true
+      repo: tombedor/youbot
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xs
+    name: discord
+    run_command: python youbot/service/discord_service.py
+static_sites:
+  - name: homepage
+    github:
+      repo: tombedor/youbot
+      branch: main
+      deploy_on_push: true
+    source_dir: web
+    routes:
+      - path: /
