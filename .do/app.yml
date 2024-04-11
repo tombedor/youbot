@@ -23,6 +23,11 @@ ingress:
         name: discord
       match:
         path:
+          prefix: /foo
+    - component:
+        name: homepage
+      match:
+        path:
           prefix: /
 name: youbot
 region: sfo
@@ -43,11 +48,9 @@ services:
     name: discord
     run_command: python youbot/service/discord_service.py
 static_sites:
-  - name: homepage
-    github:
-      repo: tombedor/youbot
+  - github:
       branch: main
       deploy_on_push: true
+      repo: tombedor/youbot
+    name: homepage
     source_dir: web
-    routes:
-      - path: /
