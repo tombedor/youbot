@@ -2,7 +2,7 @@ packages:
     - name: youbot_site
       shared: false
       environment:
-        DATABASE_URL: ${DATABASE_URL}
+        DATABASE_URL: "${DATABASE_URL}"
       parameters: {}
       annotations: {}
       functions:
