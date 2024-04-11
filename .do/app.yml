@@ -38,3 +38,12 @@ services:
   instance_size_slug: basic-xs
   name: discord
   run_command: python youbot/service/discord_service.py
+static_sites:
+- name: homepage
+  github:
+    repo: tombedor/youbot
+    branch: main
+    deploy_on_push: true
+  source_dir: web
+  routes:
+  - path: /  
