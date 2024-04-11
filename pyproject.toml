@@ -8,14 +8,9 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 pgvector = "^0.2.4"
-tiktoken = "^0.5.1"
 psycopg2-binary = "^2.9.9"
 pymemgpt = {extras = ["postgres"], git = 'https://github.com/tombedor/MemGPT.git', branch='main'}
-unstructured = "^0.12.4"
 markdown = "^3.5.1"
-elasticsearch = "^8.11.0"
-diskcache = "^5.6.3"
-nbconvert = "^7.13.1"
 sqlalchemy = "^2.0.25"
 discord = "^2.3.2"
 celery = {extras = ["redis"], version = "^5.3.6"}
@@ -51,6 +46,9 @@ autoflake = "^2.3.0"
 pyright = "^1.1.350"
 
 [tool.poetry.group.experiment.dependencies]
+tiktoken = "^0.5.1"
+nbconvert = "^7.13.1"
+unstructured = "^0.12.4"
 langchain-openai = "^0.0.5"
 langchain = "^0.0.340"
 langchainhub = "^0.1.14"
