@@ -1,8 +1,7 @@
 packages:
     - name: youbot_site
       shared: false
-      environment:
-        DATABASE_URL: "${DATABASE_URL}"
+      environment: {} # DATABASE_URL: "${DATABASE_URL}" doesn't work, why?
       parameters: {}
       annotations: {}
       functions:
