@@ -11,6 +11,10 @@ envs:
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:1vfG3GEjBbpoOo8YPTKLugNOXcwDrG3J:ftpJR64W/WlqM5dpMrKqRexgMWjK/IFe5HzGyUCLv5bptJ9OhZWEkCBUohMn55pA6vNg/kfkjxwfq6LqWywKeeud/g==]
+  - key: DISCORD_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:SBdTJT2P/U8K5wpVZ/XUrmUjRAkD2gFJ:vyp5tpX0BvSUDf3wdSGuJkdLN7q5w1KGkVYL1QPzqA+iLdVdpEL2Gzw16bnPug7t4fdabd0gWUR/tiEgDnRO+dA6+BoSZWwGDVkeW80eY3PpQHZMxN72Cg==]
 features:
   - buildpack-stack=ubuntu-22
 ingress:
