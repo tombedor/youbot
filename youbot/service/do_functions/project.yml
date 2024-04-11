@@ -10,7 +10,7 @@ packages:
           main: ""
           runtime: python:default
           web: true
-          webSecure: false
+          webSecure: true
           parameters: {}
           environment: {}
           annotations: {}
@@ -20,7 +20,7 @@ packages:
           main: ""
           runtime: python:default
           web: true
-          webSecure: false
+          webSecure: true
           parameters: {}
           environment: {}
           annotations: {}
