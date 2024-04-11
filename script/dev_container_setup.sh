@@ -60,7 +60,7 @@ fi
 ####### setup aliases #######
 
 cat << EOF >> $HOME/.bash_profile
-export POSTGRES_URL="postgresql://youbot:youbot@localhost/youbot"
+export DATABASE_URL="postgresql://youbot:youbot@localhost/youbot"
 export MEMGPT_CONFIG_PATH="/workspaces/youbot/config/memgpt_config"
 alias youbot="poetry run memgpt run --agent youbot --persona sam_pov --human basic --first --debug"
 EOF

@@ -6,7 +6,7 @@ import psycopg2
 
 def fetch_facts(archival_only=True) -> List[str]:
     # query postgres for facts
-    with psycopg2.connect(os.getenv("POSTGRES_URL")) as conn:
+    with psycopg2.connect(os.getenv("DATABASE_URL")) as conn:
         with conn.cursor() as cursor:
             query = "SELECT TEXT FROM memgpt_archival_memory_agent "
             if not archival_only:

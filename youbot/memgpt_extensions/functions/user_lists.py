@@ -13,10 +13,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 
-from youbot import POSTGRES_URL
+from youbot import DATABASE_URL
 
 Base = declarative_base()
-engine = create_engine(POSTGRES_URL, poolclass=NullPool)
+engine = create_engine(DATABASE_URL, poolclass=NullPool)
 metadata = MetaData()
 
 LISTS = Table(

@@ -22,6 +22,6 @@ default_embedding_config:
 
 
 storage_type: postgres
-storage_uri_env: POSTGRES_URL
+storage_uri_env: DATABASE_URL
 
 memgpt_version: 0.2.12

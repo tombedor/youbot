@@ -8,7 +8,7 @@ from datasets import Dataset
 
 
 def retrieve_archival_memories():
-  subprocess.run("""psql $POSTGRES_URL -c "SELECT text FROM memgpt_archival_memory_agent" --tuples-only > /tmp/archival.txt""", shell=True)
+  subprocess.run("""psql $DATABASE_URL -c "SELECT text FROM memgpt_archival_memory_agent" --tuples-only > /tmp/archival.txt""", shell=True)
   with open('/tmp/archival.txt', 'r') as f:
     return f.readlines()
   
@@ -110,7 +110,7 @@ Each question and answer should be relatively brief.
 
 def get_data():
     subprocess.run(
-        """psql $POSTGRES_URL -c "SELECT text FROM memgpt_archival_memory_agent" --tuples-only > /tmp/archival.txt""", shell=True
+        """psql $DATABASE_URL -c "SELECT text FROM memgpt_archival_memory_agent" --tuples-only > /tmp/archival.txt""", shell=True
     )
     q_and_a = []
     with open("/tmp/archival.txt", "r") as f:

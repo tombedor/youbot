@@ -13,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from youbot import POSTGRES_URL
+from youbot import DATABASE_URL
 
 Base = declarative_base()
 
@@ -40,7 +40,7 @@ class Task(Base):
 
 load_dotenv()
 
-engine = create_engine(POSTGRES_URL, poolclass=NullPool)
+engine = create_engine(DATABASE_URL, poolclass=NullPool)
 Base.metadata.create_all(engine)
 session_maker = sessionmaker(bind=engine)
 

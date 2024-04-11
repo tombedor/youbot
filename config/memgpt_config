@@ -18,16 +18,16 @@ embedding_chunk_size = 300
 
 [archival_storage]
 type = postgres
-uri = $POSTGRES_URL
-# hard coded to read from POSTGRES_URL
+uri = $DATABASE_URL
+# hard coded to read from DATABASE_URL
 
 [recall_storage]
 type = postgres
-# hard coded to read from POSTGRES_URL
+# hard coded to read from DATABASE_URL
 
 [metadata_storage]
 type = postgres
-# hard coded to read from POSTGRES_URL
+# hard coded to read from DATABASE_URL
 
 [version]
 memgpt_version = 0.3.3

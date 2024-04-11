@@ -2,7 +2,7 @@ from typing import Tuple
 from uuid import UUID
 from sqlalchemy import NullPool, create_engine
 
-from youbot import POSTGRES_URL
+from youbot import DATABASE_URL
 from youbot.persistence.youbot_user import YoubotUser
 from sqlalchemy.orm import sessionmaker, mapped_column, declarative_base
 
@@ -11,7 +11,7 @@ Base = declarative_base()
 
 class Store:
     def __init__(self) -> None:
-        self.engine = create_engine(POSTGRES_URL, poolclass=NullPool)
+        self.engine = create_engine(DATABASE_URL, poolclass=NullPool)
         Base.metadata.create_all(
             self.engine,
             tables=[

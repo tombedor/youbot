@@ -25,7 +25,7 @@ SECRETS_DIR = os.path.join(ROOT_DIR, ".secrets")
 
 # required env vars
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-POSTGRES_URL = os.environ["POSTGRES_URL"]
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 # optional env vars
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -37,7 +37,7 @@ GOOGLE_EMAIL = os.getenv("YOUBOT_GOOGLE_EMAIL")
 GOOGLE_CREDS_PATH = os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
 
 # Set up db tables
-ENGINE = create_engine(POSTGRES_URL, poolclass=NullPool)
+ENGINE = create_engine(DATABASE_URL, poolclass=NullPool)
 metadata = MetaData()
 
 GOOGLE_EMAILS = Table(
