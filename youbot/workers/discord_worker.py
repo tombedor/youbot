@@ -1,12 +1,7 @@
 import logging
 import os
-from typing import Optional
-import uuid
 import discord
 import os
-from sqlalchemy import insert
-from sqlalchemy.sql import text
-from youbot import DISCORD_USERS, ENGINE
 
 
 from youbot.memgpt_client import MemGPTClient
