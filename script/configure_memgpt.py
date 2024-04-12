@@ -3,9 +3,9 @@
 import os
 from pathlib import Path
 
-from youbot import ROOT_DIR
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-memgpt_extensions_dir = os.path.join(ROOT_DIR, "youbot", "memgpt_extensions")
+memgpt_extensions_dir = os.path.join(root_dir, "youbot", "memgpt_extensions")
 memgpt_install_dir = os.path.expanduser("~/.memgpt")
 
 
