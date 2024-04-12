@@ -1,7 +1,6 @@
 #!/bin/bash -ue
 pwd
 env
-whomai
 
 pip install -r requirements.txt
 
