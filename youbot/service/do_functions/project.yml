@@ -1,5 +1,5 @@
 packages:
-    - name: youbot_site
+    - name: web
       shared: false
       environment: {}
       parameters: {}
