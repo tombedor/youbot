@@ -12,7 +12,10 @@
 		"vscode": {
 			"extensions": [
 				"GitHub.copilot"
-			]
+			],
+			"settings": {
+                "python.defaultInterpreterPath": "/workspaces/youbot/.venv/bin/python"
+            }
 		}
 	},
 

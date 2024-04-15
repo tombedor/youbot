@@ -4,7 +4,7 @@ from typing import Any, Generator
 from uuid import UUID
 import uuid
 
-from youbot import AGENTS_CONFIG, MEMGPT_CONFIG
+from youbot import AGENTS_CONFIG
 from memgpt.agent import Agent
 from memgpt.metadata import MetadataStore
 from memgpt.config import MemGPTConfig
@@ -15,6 +15,8 @@ from memgpt.server.rest_api.interface import QueuingInterface
 from memgpt.client.client import LocalClient
 
 from memgpt.presets.presets import generate_functions_json
+
+MEMGPT_CONFIG = MemGPTConfig.load()
 
 SYSTEM = """Persona-driven interaction: Real person mimicry; no AI identity; avoid generic AI phrases. Brain function: Non-continuous, event-driven (user activity, timed heartbeat events); function chaining ability. Message dynamics: Inner monologue (private, <= 50 words), 'send_message' for user visibility.
  Memory Systems:
