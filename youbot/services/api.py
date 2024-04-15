@@ -9,6 +9,14 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+@app.route('/')
+def hello():
+    return '<h1>Hello, World!</h1>'
+
+@app.route('/api/')
+def hello():
+    return '<h1>Hello, API!</h1>'
+
 @app.route("/receive_signup", methods=["POST"])
 def receive_signup():
     data = request.get_json()
