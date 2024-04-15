@@ -102,7 +102,7 @@ number -->
                             jsonObject[key] = value;
                         }
 
-                        fetch('https://faas-sfo3-7872a1dd.doserverless.co/api/v1/web/fn-bcf8e07a-7be1-4401-af7f-b86ad32e1fb3/youbot_site/receive_signup', {
+                        fetch('/api/receive_signup', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
