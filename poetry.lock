@@ -6010,7 +6010,7 @@ server = ["fastapi (>=0.104.1,<0.105.0)", "uvicorn (>=0.24.0.post1,<0.25.0)", "w
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
 reference = "main"
-resolved_reference = "f21dce7b105e0e5aaf7e576b5614cdb57956790a"
+resolved_reference = "8fce3d9e5bd73f44c41325a4547ae278ccee9921"
 
 [[package]]
 name = "pymupdf"

@@ -4,9 +4,7 @@ env
 
 pip install -r requirements.txt
 
-mkdir -p $HOME/.memgpt/functions
-
-cp /workspace/youbot/memgpt_extensions/functions/*py $HOME/.memgpt/functions
+mkdir -p $HOME/.memgpt/
 
 cat << EOF > $HOME/.memgpt/credentials
 [openai]
