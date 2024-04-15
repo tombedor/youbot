@@ -2,8 +2,6 @@
 pwd
 env
 
-pip install -r requirements.txt
-
 mkdir -p $HOME/.memgpt/
 
 cat << EOF > $HOME/.memgpt/credentials
