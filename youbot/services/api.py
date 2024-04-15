@@ -9,7 +9,7 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-@app.route("/receive_signup)", methods=["POST"])
+@app.route("/receive_signup", methods=["POST"])
 def receive_signup():
     data = request.get_json()
     name = data.get("name")
@@ -41,7 +41,12 @@ def receive_signup():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return {"status": "ok"}
+    return {
+        "body": {
+            "message": "healthy",
+        },
+        "statusCode": 200,
+    }
 
 @app.route("/twilio", methods=["POST"])
 def sms_reply():
