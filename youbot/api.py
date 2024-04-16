@@ -5,6 +5,7 @@ from twilio.request_validator import RequestValidator
 from twilio.rest import Client
 from flask import Flask, request
 from youbot.persistence.store import Store
+from youbot.persistence.youbot_user import YoubotUser
 
 
 
@@ -34,12 +35,9 @@ def receive_signup():
         }
     else:
         logging.info(f"received form submission: {name}")
+        user = YoubotUser(name=name, phone_number=phone_number, discord_username=discord_username)
 
-        Store().create_user(
-            name=name,
-            phone_number=phone_number,
-            discord_username=discord_username,
-        )
+        Store().create_user(user=user)
 
         return {
             "body": {
