@@ -2,7 +2,7 @@ from re import M
 from typing import Optional
 from uuid import UUID, uuid4
 from youbot.memgpt_client import PERSONA, MemGPTClient
-from youbot.persistence.store import Store
+from youbot.store import Store
 from youbot.persistence.youbot_user import YoubotUser
 
 

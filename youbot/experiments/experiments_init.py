@@ -4,9 +4,10 @@ from youbot import DATABASE_URL, ROOT_DIR
 from sqlalchemy import UUID, Column, Integer, MetaData, NullPool, String, Table, create_engine
 from celery import Celery
 
+
 def init():
     SECRETS_DIR = os.path.join(ROOT_DIR, ".secrets")
-    
+
     # optional env vars
     GOOGLE_CREDS_PATH = os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
     # This is understood to be the Google email of *the agent* (not the user)
@@ -14,9 +15,7 @@ def init():
     # Obviously not a privacy-friendly design, just a placeholder.
     GOOGLE_EMAIL = os.getenv("YOUBOT_GOOGLE_EMAIL")
     GOOGLE_CREDS_PATH = os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
-        
-    
-    
+
     # Set up db tables
     ENGINE = create_engine(DATABASE_URL, poolclass=NullPool)
     metadata = MetaData()
@@ -41,11 +40,10 @@ def init():
         Column("id", Integer, primary_key=True),
         Column("name", String),
         Column("phone_number", String, unique=True),
-        Column("discord_username", String, unique=True)
+        Column("discord_username", String, unique=True),
     )
 
     metadata.create_all(ENGINE)
-
 
     # job queue
     def get_celery(queue: str) -> Celery:

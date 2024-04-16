@@ -4,6 +4,7 @@ from uuid import UUID
 
 from youbot import MEMGPT_CONFIG
 
+
 # Manages agent instantiation, as well as messaging to agents.
 class AgentManager:
     def __init__(self, user_id: UUID, llm_config: dict, embedding_config: dict) -> None:

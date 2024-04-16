@@ -3,4 +3,3 @@
 # BERT: do Named Entity Resolution
 
 # relationship extraction
-

@@ -6,7 +6,7 @@ import os
 
 from youbot.memgpt_client import MemGPTClient
 from youbot.memgpt_client import MemGPTClient
-from youbot.persistence.store import Store
+from youbot.store import Store
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 AGENT_NAME = "youbot"

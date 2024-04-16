@@ -35,4 +35,3 @@ if __name__ == "__main__":
         source_dir = os.path.join(memgpt_extensions_dir, name)
         dest_dir = os.path.join(memgpt_install_dir, name)
         symlink_files(source_dir, dest_dir)
-

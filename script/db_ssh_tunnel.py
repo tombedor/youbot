@@ -1,4 +1,8 @@
 # assumes one host and one db, TODO do this with tags?
+import json
+import subprocess
+
+
 def setup_database_ssh_tunnel():
     subprocess.run("doctl auth init", shell=True, capture_output=True, text=True)
 
@@ -11,6 +15,8 @@ def setup_database_ssh_tunnel():
     host = db_connection_info["host"]
     port = db_connection_info["port"]
 
-    subprocess.run(f"ssh -N -L {port}:{host}:{port} root@{public_ip}", shell=True, capture_output=True)
+    # run subprocess in background
+    subprocess.Popen(f"ssh -N -L {port}:{host}:{port} root@{public_ip}", shell=True)
+
     # replace background process
     # TODO: use autossh
