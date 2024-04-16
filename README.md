@@ -14,6 +14,7 @@ An AI personal assistant with long term memory.
 ### User onboarding
 - [ ] Signup page
 - [ ] Onboarding flow
+- [ ] logo / design for pages
 - [ ] Updated onboarding, smooth initial conversation to capture initial information about user. Agent should take more initiative in learning about the user, without being spammy
 
 ### Integrations
@@ -59,5 +60,5 @@ Gemini: How does the larger context window impact what is needed from memory con
 Suspicion: larger context window does not eliminate need for structured knowledge representation. If human "context window" is much smaller than the models, does the model become less relatable?
 
 ### Interesting resources
-[Simon Willison](https://simonwillison.net/)
-[Cererbal Valley](https://cerebralvalley.ai/blog)
+- [Simon Willison](https://simonwillison.net/)
+- [Cererbal Valley](https://cerebralvalley.ai/blog)
