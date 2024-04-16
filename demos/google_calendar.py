@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from youbot.memgpt_client import MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
 from youbot.memgpt_extensions.functions.google_calendar import (
     create_calendar_event,
 )

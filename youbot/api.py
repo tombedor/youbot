@@ -39,7 +39,6 @@ def receive_signup():
         }
     else:
         logging.info(f"received form submission: {name}")
-        user = YoubotUser(name=name, phone_number=phone_number, discord_username=discord_username)
 
         Store().create_signup(name=name, phone_number=phone_number, discord_member_id=discord_username)
 
@@ -62,6 +61,13 @@ def health():
         },
         "statusCode": 200,
     }
+    
+@app.route("/sms/helloworld", methods=["GET"])
+def sms_send():
+    phone_number = os.environ.get("TEST_PHONE_NUMBER")
+    
+    
+
 
 
 @app.route("/twilio", methods=["POST"])

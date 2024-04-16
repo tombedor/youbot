@@ -4,8 +4,8 @@ import discord
 import os
 
 
-from youbot.memgpt_client import MemGPTClient
-from youbot.memgpt_client import MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
 from youbot.store import Store
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]

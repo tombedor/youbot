@@ -1,4 +1,4 @@
-from youbot.memgpt_client import MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
 from youbot.memgpt_extensions.functions.graph import add_node
 
 

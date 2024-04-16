@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from youbot import get_celery
-from youbot.memgpt_client import MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
 import pytz
 
 app = get_celery(queue="reminders")

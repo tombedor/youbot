@@ -1,4 +1,4 @@
-from youbot.memgpt_client import MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
 from youbot.memgpt_extensions.functions.gmail import send_email
 
 with MemGPTClient.ephemeral_agent() as agent:

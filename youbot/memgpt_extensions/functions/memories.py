@@ -6,7 +6,7 @@ from memgpt.agent_store.db import get_db_model
 from memgpt.agent_store.storage import TableType, RECALL_TABLE_NAME, ARCHIVAL_TABLE_NAME
 from youbot import MEMGPT_CONFIG
 
-from youbot.memgpt_client import MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
 
 
 def create_agent_checkpoint(self) -> str:
