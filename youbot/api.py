@@ -4,6 +4,7 @@ from urllib.parse import parse_qs
 from twilio.request_validator import RequestValidator
 from twilio.rest import Client
 from flask import Flask, request
+from youbot.persistence.store import Store
 
 
 
@@ -32,6 +33,14 @@ def receive_signup():
             "statusCode": 200,
         }
     else:
+        logging.info(f"received form submission: {name}")
+
+        Store().create_user(
+            name=name,
+            phone_number=phone_number,
+            discord_username=discord_username,
+        )
+
         return {
             "body": {
                 "msg": "Form submitted",
