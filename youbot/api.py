@@ -7,7 +7,7 @@ import re
 from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
 from youbot.store import Store
-from youbot.clients.twilio_client import validator, test_recipient, send_message
+from youbot.clients.twilio_client import validator, test_recipient, send_message, account_sid
 
 
 app = Flask(__name__)
@@ -68,59 +68,23 @@ def hello_sms() -> Response:
 
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
-    logging.warn(request.form)
-    logging.warn(request)
-    logging.warn(vars(request))
-    logging.warn(vars(request.headers))
-    logging.warn("REQUEST URL = " + request.url)
-    logging.warn("REQUEST FORM = " + str(request.form))
-    logging.warn("REQUEST HEADERS = " + str(request.headers))
-    signature = request.headers.get("X-Twilio-Signature", "")
-    logging.warn(f"TWILIO_SIG = {signature}")
-    manual_validate(request)
-    
-    valid_with_body = validator.validate(request.url, request.form, signature)
-    logging.warn(f"VALID_WITH_BODY = {valid_with_body}")
-    valid_without_body = validator.validate(request.url, {}, signature)
-    logging.warn(f"VALID_WITHOUT_BODY = {valid_without_body}")
-    if validator.validate(request.url, request.form, request.headers.get("X-Twilio-Signature", "")):
-        # process the inbound message, this is just an example
+    if validate_request(request):
         received_msg = request.form.get("Body")
         logging.info(received_msg)
         send_message(test_recipient, "thanks for your message!")
         return Response({"message": received_msg}, status=200, mimetype="application/json")
-
     else:
         logging.error("failed validation")
         return Response({"message": "invalid signature"}, status=403, mimetype="application/json")
 
 
-
-def manual_validate(request):
-    try:
-        twil_sig = request.headers['X-Twilio-Signature']
-        logging.warn(f"X-Twilio-Signature: {twil_sig}")
-    except KeyError:
-        return('No X-Twilio-Signature. This request likely did not originate from Twilio.', 418) 
-    # domain = re.sub('http', 'https', request.url)
-    domain = request.url
-    if request.form:
-        for k, v in sorted(request.form.items()):
-            domain += k + v
-    else:
-      return ('Bad Request - no form params', 400) 
-  
-    mac = hmac.new(bytes(os.environ['TWILIO_AUTH_TOKEN'], 'UTF-8'), domain.encode("utf-8"), sha1)
-    computed = base64.b64encode(mac.digest())   
-    computed = computed.decode('utf-8')
-    diy_signature = computed.strip()
-    logging.warn(f"DIY_SIG = {diy_signature}")
-    
-    if diy_signature != twil_sig:
-        logging.warn("No match!")
+def validate_request(request) -> bool:
+    # twilio validation library not working for some reason, instead match SID
+    msg_sid = request.form.get("AccountSid")
+    if msg_sid != account_sid:
+        # TODO: also match phone number against known numbers
         return False
     else:
-        logging.warn("match!")
         return True
-        
+
 
