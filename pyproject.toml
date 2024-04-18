@@ -44,6 +44,7 @@ ipykernel = "^6.26.0"
 black = "^24.3.0"
 autoflake = "^2.3.0"
 pyright = "^1.1.350"
+pytest = "^8.1.1"
 
 [tool.poetry.group.experiment.dependencies]
 tiktoken = "^0.5.1"
