@@ -2,7 +2,7 @@ from gcsa.google_calendar import GoogleCalendar
 from gcsa.event import Event, Attendee
 from datetime import datetime, date
 
-from youbot import ENGINE, GOOGLE_CREDS_PATH, GOOGLE_EMAIL, GOOGLE_EMAILS
+from youbot import GOOGLE_CREDS_PATH, GOOGLE_EMAIL
 from youbot.service.google_service import fetch_google_email
 
 

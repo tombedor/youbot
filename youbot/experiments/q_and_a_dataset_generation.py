@@ -4,7 +4,6 @@ import subprocess
 from openai import OpenAI
 
 from youbot.json_decoder import parse_json
-from datasets import Dataset
 
 
 def retrieve_archival_memories():

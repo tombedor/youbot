@@ -56,6 +56,7 @@ def receive_signup() -> Response:
 def health():
     return Response("healthy", status=200, mimetype="text/plain")
 
+
 @app.route("/hello_sms", methods=["GET"])
 def hello_sms() -> Response:
     send_message("Hello, World!", test_recipient)
@@ -64,10 +65,10 @@ def hello_sms() -> Response:
 
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
-    logging.info(request.form)
-    logging.info(request)
-    logging.info(vars(request))
-    logging.info(vars(request.headers))
+    logging.warn(request.form)
+    logging.warn(request)
+    logging.warn(vars(request))
+    logging.warn(vars(request.headers))
     if validator.validate(request.url, request.form, request.headers.get("X-Twilio-Signature", "")):
         # process the inbound message, this is just an example
         received_msg = request.form.get("Body")

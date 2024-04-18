@@ -1,7 +1,7 @@
 import logging
 import os
 import spacy
-from spacy.kb import InMemoryLookupKB, KnowledgeBase
+from spacy.kb import InMemoryLookupKB
 import spacy.kb.kb_in_memory
 import spacy.cli
 

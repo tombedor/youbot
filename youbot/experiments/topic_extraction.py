@@ -14,7 +14,6 @@ print(topic_model.get_topics(True))
 
 import spacy
 from transformers import BertModel, BertTokenizer
-import torch
 
 # Initialize the tokenizer and model
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")

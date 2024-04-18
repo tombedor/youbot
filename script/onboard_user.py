@@ -1,6 +1,5 @@
-from re import M
 from typing import Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
 from youbot.clients.memgpt_client import PERSONA, MemGPTClient
 from youbot.store import Store
 from youbot.persistence.youbot_user import YoubotUser

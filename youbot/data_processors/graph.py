@@ -6,7 +6,6 @@ from typing import Optional
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from youbot.data_processors.convo_replay import fetch_facts
 
 
 @dataclass

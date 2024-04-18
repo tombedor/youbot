@@ -13,22 +13,14 @@ test_recipient = os.environ.get("TEST_PHONE_NUMBER")
 def hello_world():
     test_recipient = os.environ.get("TEST_PHONE_NUMBER")
     assert test_recipient
-    message = client.messages.create(
-        body="Hello, World!",
-        to=test_recipient,
-        from_=sender_number
-    )
+    message = client.messages.create(body="Hello, World!", to=test_recipient, from_=sender_number)
     print(message.sid)
-    
-    
+
+
 def send_message(message, receipient_phone):
     # TODO: log
-    message = client.messages.create(
-        body=message,
-        to=receipient_phone,
-        from_=sender_number
-    )
+    message = client.messages.create(body=message, to=receipient_phone, from_=sender_number)
+
 
 if __name__ == "__main__":
     hello_world()
-    

@@ -6,15 +6,15 @@ from celery import Celery
 
 
 def init():
-    SECRETS_DIR = os.path.join(ROOT_DIR, ".secrets")
+    os.path.join(ROOT_DIR, ".secrets")
 
     # optional env vars
-    GOOGLE_CREDS_PATH = os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
+    os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
     # This is understood to be the Google email of *the agent* (not the user)
     # The agent sends emails and creates events, *inviting the user to them*
     # Obviously not a privacy-friendly design, just a placeholder.
-    GOOGLE_EMAIL = os.getenv("YOUBOT_GOOGLE_EMAIL")
-    GOOGLE_CREDS_PATH = os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
+    os.getenv("YOUBOT_GOOGLE_EMAIL")
+    os.getenv("YOUBOT_GOOGLE_CREDS_PATH")
 
     # Set up db tables
     ENGINE = create_engine(DATABASE_URL, poolclass=NullPool)

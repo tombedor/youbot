@@ -1,4 +1,3 @@
-from youbot import ENGINE, GOOGLE_EMAILS
 from youbot.service.google_service import store_google_email
 
 

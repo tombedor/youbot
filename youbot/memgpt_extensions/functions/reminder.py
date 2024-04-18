@@ -1,4 +1,3 @@
-from datetime import datetime
 
 from youbot import get_celery
 
