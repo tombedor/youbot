@@ -1,10 +1,9 @@
 import logging
 import os
-from twilio.request_validator import RequestValidator
 from flask import Flask, request
 from youbot import ROOT_DIR
 from youbot.store import Store
-from youbot.store import YoubotUser
+from youbot.clients.twilio_client import validator, test_recipient, send_message
 
 
 app = Flask(__name__)
@@ -62,28 +61,18 @@ def health():
         "statusCode": 200,
     }
     
-@app.route("/sms/helloworld", methods=["GET"])
-def sms_send():
-    phone_number = os.environ.get("TEST_PHONE_NUMBER")
-    
-    
-
-
-
-@app.route("/twilio", methods=["POST"])
+@app.route("/sms/receive", methods=["POST"])
 def sms_reply():
-    # replace with your Twilio auth token
-    validator = RequestValidator("YOUR AUTH TOKEN")
-
+    # TODO: log
     # validate Twilio POST request
     if validator.validate(request.url, request.form, request.headers.get("X-Twilio-Signature", "")):
-
+        logging.info(request.form)
+        logging.info(request)
+        logging.info(vars(request))
         # process the inbound message, this is just an example
         received_msg = request.form.get("Body")
-
-        # ... code to process the message ...
-
-        # return 200 and received message
+        logging.info(received_msg)
+        send_message(test_recipient, 'thanks for your message!')
         return received_msg, 200
 
     else:
