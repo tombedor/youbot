@@ -16,4 +16,4 @@ black "$ROOT_DIR"
 find "$ROOT_DIR" -type f -name "*.py" -not -path "*/.venv/*" | xargs autoflake --remove-all-unused-imports --remove-unused-variables --in-place --exclude=__init__.py
 
 # Run all tests
-pytest "$ROOT_DIR/youbot/tests"
+pytest "$ROOT_DIR/tests"

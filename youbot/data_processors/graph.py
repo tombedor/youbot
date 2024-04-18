@@ -7,7 +7,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 
-
 @dataclass
 class Node:
     # class attr

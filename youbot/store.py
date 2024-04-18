@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Optional
 from uuid import UUID
 from sqlalchemy import NullPool, create_engine
@@ -12,6 +13,8 @@ Base = declarative_base()
 # raw signup table from web
 class Signup(SQLModel, table=True):
     id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
+    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     name: str = Field(..., description="The name of the user")
     discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
     phone_number: Optional[str] = Field(None, description="The phone number for the user")
@@ -19,12 +22,22 @@ class Signup(SQLModel, table=True):
 
 class YoubotUser(SQLModel, table=True):
     id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
+    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     name: str = Field(..., description="The name of the user")
     memgpt_user_id: UUID = Field(..., description="The unique identifier for the user in the memgpt system")
     memgpt_agent_id: UUID = Field(..., description="The unique identifier for the user's agent in the memgpt system")
     discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
     phone_number: str = Field(str, description="The phone number for the user")
     human_description: str = Field(..., description="Text description of th user to be provided to the MemGPT agent")
+
+
+class SmsWebhookLog(SQLModel, table=True):
+    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
+    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    source: str = Field(..., description="Where the webhook came from")
+    info: str = Field(..., description="The information from the webhook")
 
 
 class Store:
@@ -35,6 +48,7 @@ class Store:
             tables=[
                 Signup.__table__,
                 YoubotUser.__table__,
+                SmsWebhookLog.__table__,
             ],
         )
         self.session_maker = sessionmaker(bind=self.engine)
@@ -50,11 +64,16 @@ class Store:
             session.commit()
 
     def get_user_by_email(self, email: str) -> YoubotUser:
-        session = self.session_maker()
-        user = session.query(YoubotUser).filter(YoubotUser.email == email).first()
-        assert user
-        session.close()
-        return user
+        with self.session_maker() as session:
+            user = session.query(YoubotUser).filter(YoubotUser.email == email).first()
+            assert user
+            return user
+
+    def create_sms_webhook_log(self, source: str, msg: str) -> None:
+        with self.session_maker() as session:
+            webhook_log = SmsWebhookLog(source=source, info=msg)  # type: ignore
+            session.add(webhook_log)
+            session.commit()
 
     def get_youbot_user(self, discord_member_id: str) -> YoubotUser:
         session = self.session_maker()

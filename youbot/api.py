@@ -1,13 +1,9 @@
-import base64
-from hashlib import sha1
-import hmac
 import logging
 import os
-import re
 from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
 from youbot.store import Store
-from youbot.clients.twilio_client import validator, test_recipient, send_message, account_sid
+from youbot.clients.twilio_client import test_recipient, send_message, account_sid
 
 
 app = Flask(__name__)
@@ -29,7 +25,7 @@ def receive_signup() -> Response:
     honeypot = data.get("url")
 
     if honeypot:
-        logging.warn("Honeypot triggered")
+        logging.warning("Honeypot triggered")
         return Response(
             {
                 "name": name,
@@ -41,7 +37,6 @@ def receive_signup() -> Response:
         )
     else:
         logging.info(f"received form submission: {name}")
-
         Store().create_signup(name=name, phone_number=phone_number, discord_member_id=discord_username)
 
         return Response(
@@ -66,15 +61,29 @@ def hello_sms() -> Response:
     send_message("Hello, World!", test_recipient)
     return Response("message sent", status=200, mimetype="text/plain")
 
+
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
     if validate_request(request):
         received_msg = request.form.get("Body")
         logging.info(received_msg)
         send_message(test_recipient, "thanks for your message!")
+        Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
         return Response({"message": received_msg}, status=200, mimetype="application/json")
     else:
         logging.error("failed validation")
+        return Response({"message": "invalid signature"}, status=403, mimetype="application/json")
+
+
+@app.route("/receive_sms_fallback", methods=["POST"])
+def sms_fallback() -> Response:
+    if validate_request(request):
+        logging.info("fallback triggered")
+        Store().create_sms_webhook_log(source="sms_fallback", msg=str(request.form))
+        return Response({"message": "received"}, status=200, mimetype="application/json")
+
+    else:
+        logging.error("rejecting fallback")
         return Response({"message": "invalid signature"}, status=403, mimetype="application/json")
 
 
@@ -86,5 +95,3 @@ def validate_request(request) -> bool:
         return False
     else:
         return True
-
-

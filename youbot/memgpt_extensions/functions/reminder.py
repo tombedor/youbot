@@ -1,4 +1,3 @@
-
 from youbot import get_celery
 
 
