@@ -62,7 +62,6 @@ def hello_sms() -> Response:
     send_message("Hello, World!", test_recipient)
     return Response("message sent", status=200, mimetype="text/plain")
 
-
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
     logging.warn(request.form)
@@ -74,6 +73,11 @@ def sms_receive() -> Response:
     logging.warn("REQUEST HEADERS = " + str(request.headers))
     signature = request.headers.get("X-Twilio-Signature", "")
     logging.warn(f"TWILIO_SIG = {signature}")
+    
+    valid_with_body = validator.validate(request.url, request.form, signature)
+    logging.warn(f"VALID_WITH_BODY = {valid_with_body}")
+    valid_without_body = validator.validate(request.url, {}, signature)
+    logging.warn(f"VALID_WITHOUT_BODY = {valid_without_body}")
     if validator.validate(request.url, request.form, request.headers.get("X-Twilio-Signature", "")):
         # process the inbound message, this is just an example
         received_msg = request.form.get("Body")
