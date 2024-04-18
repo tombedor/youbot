@@ -69,6 +69,11 @@ def sms_receive() -> Response:
     logging.warn(request)
     logging.warn(vars(request))
     logging.warn(vars(request.headers))
+    logging.warn("REQUEST URL = " + request.url)
+    logging.warn("REQUEST FORM = " + str(request.form))
+    logging.warn("REQUEST HEADERS = " + str(request.headers))
+    signature = request.headers.get("X-Twilio-Signature", "")
+    logging.warn(f"TWILIO_SIG = {signature}")
     if validator.validate(request.url, request.form, request.headers.get("X-Twilio-Signature", "")):
         # process the inbound message, this is just an example
         received_msg = request.form.get("Body")
