@@ -65,9 +65,11 @@ def hello_sms() -> Response:
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
     if validate_request(request):
+        logging.warning(f"REQUEST_FORM = {request.form}")
         received_msg = request.form.get("Body")
         logging.info(received_msg)
         sender_number = request.form.get("From")
+        logging.warning(f"SENDER_NUMBER = {sender_number}")
         send_message(sender_number, "thanks for your message!")
         Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
         return Response({"message": received_msg}, status=200, mimetype="application/json")
