@@ -1,6 +1,7 @@
 import logging
 import os
-from flask import Flask, request
+from flask import Flask, Response, render_template, request
+from ulid import R
 from youbot import ROOT_DIR
 from youbot.store import Store
 from youbot.clients.twilio_client import validator, test_recipient, send_message
@@ -9,17 +10,15 @@ from youbot.clients.twilio_client import validator, test_recipient, send_message
 app = Flask(__name__)
 
 
-# hacky way to get home page to run
+# hacky way to get home page to run locally.
 @app.route("/")
 def root():
     home_dir = os.path.join(ROOT_DIR, "web", "index.html")
-    with open(home_dir, "r") as f:
-        return f.read()
+    return render_template(home_dir)
 
 
-@app.route("/api/receive_signup", methods=["POST"])
 @app.route("/receive_signup", methods=["POST"])
-def receive_signup():
+def receive_signup() -> Response:
     data = request.get_json()
     name = data.get("name")
     phone_number = data.get("phone_number")
@@ -28,41 +27,44 @@ def receive_signup():
 
     if honeypot:
         logging.warn("Honeypot triggered")
-        return {
-            "body": {
+        return Response(
+            {
                 "name": name,
                 "phone_number": phone_number,
                 "discord_username": discord_username,
             },
-            "statusCode": 200,
-        }
+            status=200,
+            mimetype="application/json",
+        )
     else:
         logging.info(f"received form submission: {name}")
 
         Store().create_signup(name=name, phone_number=phone_number, discord_member_id=discord_username)
 
-        return {
-            "body": {
+        return Response(
+            {
                 "msg": "Form submitted",
                 "name": name,
                 "phone_number": phone_number,
                 "discord_username": discord_username,
             },
-            "statusCode": 200,
-        }
+            status=200,
+            mimetype="application/json",
+        )
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    return {
-        "body": {
-            "message": "healthy",
-        },
-        "statusCode": 200,
-    }
-    
-@app.route("/sms/receive", methods=["POST"])
-def sms_reply():
+    return Response("healthy", status=200, mimetype="text/plain")
+
+@app.route("hello_sms", methods=["GET"])
+def hello_sms() -> Response:
+    send_message("Hello, World!", test_recipient)
+    return Response("message sent", status=200, mimetype="text/plain")
+
+
+@app.route("/receive_sms", methods=["POST"])
+def sms_receive() -> Response:
     # TODO: log
     # validate Twilio POST request
     if validator.validate(request.url, request.form, request.headers.get("X-Twilio-Signature", "")):
@@ -72,8 +74,8 @@ def sms_reply():
         # process the inbound message, this is just an example
         received_msg = request.form.get("Body")
         logging.info(received_msg)
-        send_message(test_recipient, 'thanks for your message!')
-        return received_msg, 200
+        send_message(test_recipient, "thanks for your message!")
+        return Response({"message": received_msg}, status=200, mimetype="application/json")
 
     else:
-        return "Validation failed", 403
+        return Response({"message": "invalid signature"}, status=403, mimetype="application/json")
