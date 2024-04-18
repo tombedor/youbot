@@ -64,12 +64,11 @@ def hello_sms() -> Response:
 
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
-    # TODO: log
-    # validate Twilio POST request
+    logging.info(request.form)
+    logging.info(request)
+    logging.info(vars(request))
+    logging.info(vars(request.headers))
     if validator.validate(request.url, request.form, request.headers.get("X-Twilio-Signature", "")):
-        logging.info(request.form)
-        logging.info(request)
-        logging.info(vars(request))
         # process the inbound message, this is just an example
         received_msg = request.form.get("Body")
         logging.info(received_msg)
@@ -77,4 +76,5 @@ def sms_receive() -> Response:
         return Response({"message": received_msg}, status=200, mimetype="application/json")
 
     else:
+        logging.error("failed validation")
         return Response({"message": "invalid signature"}, status=403, mimetype="application/json")
