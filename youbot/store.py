@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
+import re
 from typing import Optional
 from uuid import UUID
+from pydantic import field_validator
 from sqlalchemy import NullPool, create_engine
 from sqlmodel import SQLModel, Field
 
@@ -30,6 +32,12 @@ class YoubotUser(SQLModel, table=True):
     discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
     phone_number: str = Field(str, description="The phone number for the user")
     human_description: str = Field(..., description="Text description of th user to be provided to the MemGPT agent")
+
+    @field_validator("phone_number")
+    def phone_is_e164(cls, phone_number: str) -> str:
+        if not bool(re.match(r"^\+\d{1,15}$", phone_number)):
+            raise ValueError("Invalid phone number format")
+        return phone_number
 
 
 class SmsWebhookLog(SQLModel, table=True):

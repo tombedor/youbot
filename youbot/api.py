@@ -67,7 +67,7 @@ def sms_receive() -> Response:
     if validate_request(request):
         received_msg = request.form.get("Body")
         logging.info(received_msg)
-        sender_number = request.form.get('From')
+        sender_number = request.form.get("From")
         send_message(sender_number, "thanks for your message!")
         Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
         return Response({"message": received_msg}, status=200, mimetype="application/json")
