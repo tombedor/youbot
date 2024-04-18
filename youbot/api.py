@@ -58,7 +58,7 @@ def health():
 
 @app.route("/hello_sms", methods=["GET"])
 def hello_sms() -> Response:
-    send_message("Hello, World!", test_recipient)
+    send_message(message="Hello, World!", receipient_phone=test_recipient)
     return Response("message sent", status=200, mimetype="text/plain")
 
 
@@ -70,7 +70,7 @@ def sms_receive() -> Response:
         logging.info(received_msg)
         sender_number = request.form.get("From")
         logging.warning(f"SENDER_NUMBER = {sender_number}")
-        send_message(sender_number, "thanks for your message!")
+        send_message(message="thanks for your message!", receipient_phone=sender_number)
         Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
         return Response({"message": received_msg}, status=200, mimetype="application/json")
     else:
