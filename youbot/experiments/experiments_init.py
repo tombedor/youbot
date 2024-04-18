@@ -39,7 +39,7 @@ def init():
         metadata,
         Column("id", Integer, primary_key=True),
         Column("name", String),
-        Column("phone_number", String, unique=True),
+        Column("phone", String, unique=True),
         Column("discord_username", String, unique=True),
     )
 

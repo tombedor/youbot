@@ -6,7 +6,7 @@ from youbot.persistence.youbot_user import YoubotUser
 
 
 def onboard_user(
-    email: str, human_name: str, human_description: str, discord_member_id: Optional[str], phone_number: Optional[str]
+    email: str, human_name: str, human_description: str, discord_member_id: Optional[str], phone: Optional[str]
 ) -> None:
     store = Store()
     existing_user = store.get_user_by_email(email)
@@ -26,7 +26,7 @@ def onboard_user(
         memgpt_user_id=memgpt_user_id,
         email=email,
         discord_member_id=discord_member_id,
-        phone_number=phone_number,
+        phone=phone,
         human_description=human_description,
         memgpt_agent_id=agent_state.id,
     )
@@ -40,5 +40,5 @@ if __name__ == "__main__":
         discord_member_id="424672110288437250",
         human_description=" Name: Tom Bedor. Software Engineer. Capable of editing code. Dogs Elroy and Rocky. Fiance Justina.",
         human_name="tombedor",
-        phone_number="7634398856",
+        phone="7634398856",
     )

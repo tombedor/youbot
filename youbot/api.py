@@ -20,7 +20,7 @@ def root():
 def receive_signup() -> Response:
     data = request.get_json()
     name = data.get("name")
-    phone_number = data.get("phone_number")
+    phone = data.get("phone")
     discord_username = data.get("discord_username")
     honeypot = data.get("url")
 
@@ -29,7 +29,7 @@ def receive_signup() -> Response:
         return Response(
             {
                 "name": name,
-                "phone_number": phone_number,
+                "phone": phone,
                 "discord_username": discord_username,
             },
             status=200,
@@ -37,13 +37,13 @@ def receive_signup() -> Response:
         )
     else:
         logging.info(f"received form submission: {name}")
-        Store().create_signup(name=name, phone_number=phone_number, discord_member_id=discord_username)
+        Store().create_signup(name=name, phone=phone, discord_member_id=discord_username)
 
         return Response(
             {
                 "msg": "Form submitted",
                 "name": name,
-                "phone_number": phone_number,
+                "phone": phone,
                 "discord_username": discord_username,
             },
             status=200,

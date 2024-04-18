@@ -19,7 +19,7 @@ def user():
         memgpt_user_id=uuid.uuid4(),
         memgpt_agent_id=uuid.uuid4(),
         discord_member_id="1234567890",
-        phone_number="+12345678901",
+        phone="+12345678901",
         human_description="nice man",
     )
 
@@ -27,13 +27,13 @@ def user():
 def test_phone_happy(user: YoubotUser):
     # Test a valid E.164 number
     good_phone = "+12345678901"
-    user.phone_number = good_phone
+    user.phone = good_phone
     YoubotUser.model_validate(user)
 
 
 def test_phone_sad(user: YoubotUser):
     bad_phone = "12345678901"
-    user.phone_number = bad_phone
+    user.phone = bad_phone
     with pytest.raises(ValidationError):
-        user = YoubotUser(phone_number=bad_phone)  # type: ignore
+        user = YoubotUser(phone=bad_phone)  # type: ignore
         YoubotUser.model_validate(user)
