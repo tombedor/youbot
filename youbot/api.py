@@ -1,7 +1,6 @@
 import logging
 import os
 from flask import Flask, Response, render_template, request
-from ulid import R
 from youbot import ROOT_DIR
 from youbot.store import Store
 from youbot.clients.twilio_client import validator, test_recipient, send_message
