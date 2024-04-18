@@ -1,5 +1,9 @@
+import base64
+from hashlib import sha1
+import hmac
 import logging
 import os
+import re
 from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
 from youbot.store import Store
@@ -73,6 +77,7 @@ def sms_receive() -> Response:
     logging.warn("REQUEST HEADERS = " + str(request.headers))
     signature = request.headers.get("X-Twilio-Signature", "")
     logging.warn(f"TWILIO_SIG = {signature}")
+    manual_validate(request)
     
     valid_with_body = validator.validate(request.url, request.form, signature)
     logging.warn(f"VALID_WITH_BODY = {valid_with_body}")
@@ -88,3 +93,34 @@ def sms_receive() -> Response:
     else:
         logging.error("failed validation")
         return Response({"message": "invalid signature"}, status=403, mimetype="application/json")
+
+
+
+def manual_validate(request):
+    try:
+        twil_sig = request.headers['X-Twilio-Signature']
+        logging.warn(f"X-Twilio-Signature: {twil_sig}")
+    except KeyError:
+        return('No X-Twilio-Signature. This request likely did not originate from Twilio.', 418) 
+    # domain = re.sub('http', 'https', request.url)
+    domain = request.url
+    if request.form:
+        for k, v in sorted(request.form.items()):
+            domain += k + v
+    else:
+      return ('Bad Request - no form params', 400) 
+  
+    mac = hmac.new(bytes(os.environ['TWILIO_AUTH_TOKEN'], 'UTF-8'), domain.encode("utf-8"), sha1)
+    computed = base64.b64encode(mac.digest())   
+    computed = computed.decode('utf-8')
+    diy_signature = computed.strip()
+    logging.warn(f"DIY_SIG = {diy_signature}")
+    
+    if diy_signature != twil_sig:
+        logging.warn("No match!")
+        return False
+    else:
+        logging.warn("match!")
+        return True
+        
+
