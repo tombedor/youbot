@@ -56,7 +56,7 @@ def receive_signup() -> Response:
 def health():
     return Response("healthy", status=200, mimetype="text/plain")
 
-@app.route("hello_sms", methods=["GET"])
+@app.route("/hello_sms", methods=["GET"])
 def hello_sms() -> Response:
     send_message("Hello, World!", test_recipient)
     return Response("message sent", status=200, mimetype="text/plain")
