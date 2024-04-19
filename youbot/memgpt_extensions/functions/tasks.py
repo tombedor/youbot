@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from dotenv import load_dotenv
 from sqlalchemy import (
     NullPool,
     create_engine,
@@ -37,8 +36,6 @@ class Task(Base):
         """
         return f"Task id: {self.id}, description: {self.description}, completion criteria: {self.completion_criteria}, outcome: {self.outcome}, status: {self.status}, start timestamp: {self.start_timestamp}, end timestamp: {self.end_timestamp}"
 
-
-load_dotenv()
 
 engine = create_engine(DATABASE_URL, poolclass=NullPool)
 Base.metadata.create_all(engine)

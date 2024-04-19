@@ -1,10 +1,8 @@
 import os
-from dotenv import load_dotenv
 import yaml
 import logging
 import sys
 
-load_dotenv()
 
 # Expose memgpt config to MemGPT
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
