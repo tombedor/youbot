@@ -82,7 +82,7 @@ def sms_receive() -> Response:
             return Response({"message": "no user found"}, status=403, mimetype="application/json")
 
         Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
-        return Response({"message": received_msg}, status=200, mimetype="application/json")
+        return Response({}, status=200, mimetype="application/json")
     else:
         logging.error("failed validation")
         return Response({"message": "invalid signature"}, status=403, mimetype="application/json")
