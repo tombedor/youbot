@@ -54,6 +54,7 @@ def receive_signup() -> Response:
 
 @app.route("/health", methods=["GET"])
 def health():
+    logging.warning(os.environ)
     return {
         "body": {
             "message": "healthy",
