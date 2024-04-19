@@ -54,7 +54,12 @@ def receive_signup() -> Response:
 
 @app.route("/health", methods=["GET"])
 def health():
-    return Response("healthy", status=200, mimetype="text/plain")
+    return {
+        "body": {
+            "message": "healthy",
+        },
+        "statusCode": 200,
+    }
 
 
 @app.route("/hello_sms", methods=["GET"])
