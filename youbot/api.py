@@ -2,6 +2,7 @@ import logging
 import os
 from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
+from youbot.clients.memgpt_client import MemGPTClient
 from youbot.store import Store
 from youbot.clients.twilio_client import test_recipient, send_message, account_sid
 
@@ -65,12 +66,21 @@ def hello_sms() -> Response:
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
     if validate_request(request):
-        logging.warning(f"REQUEST_FORM = {request.form}")
         received_msg = request.form.get("Body")
-        logging.info(received_msg)
+        assert received_msg
         sender_number = request.form.get("From")
-        logging.warning(f"SENDER_NUMBER = {sender_number}")
-        send_message(message="thanks for your message!", receipient_phone=sender_number)
+        assert sender_number
+
+        try:
+            youbot_user = Store().get_youbot_user_by_phone(phone=sender_number)
+            message = f"[the following was sent via SMS, keep responses brief]: {received_msg}"
+            response = MemGPTClient.user_message(youbot_user=youbot_user, msg=message)
+            send_message(message=response, receipient_phone=sender_number)
+
+        except KeyError:
+            logging.warning(f"no user found with phone number {sender_number}")
+            return Response({"message": "no user found"}, status=403, mimetype="application/json")
+
         Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
         return Response({"message": received_msg}, status=200, mimetype="application/json")
     else:

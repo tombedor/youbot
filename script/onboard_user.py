@@ -5,9 +5,7 @@ from youbot.store import Store
 from youbot.persistence.youbot_user import YoubotUser
 
 
-def onboard_user(
-    email: str, human_name: str, human_description: str, discord_member_id: Optional[str], phone: Optional[str]
-) -> None:
+def onboard_user(email: str, human_name: str, human_description: str, discord_member_id: Optional[str], phone: Optional[str]) -> None:
     store = Store()
     existing_user = store.get_user_by_email(email)
     if existing_user:
@@ -31,7 +29,7 @@ def onboard_user(
         memgpt_agent_id=agent_state.id,
     )
 
-    store.create_user(youbot_user)
+    store.create_youbot_user(youbot_user)
 
 
 if __name__ == "__main__":

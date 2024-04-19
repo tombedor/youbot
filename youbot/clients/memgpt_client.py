@@ -16,6 +16,8 @@ from memgpt.client.client import LocalClient
 
 from memgpt.presets.presets import generate_functions_json
 
+from youbot.store import YoubotUser
+
 MEMGPT_CONFIG = MemGPTConfig.load()
 
 SYSTEM = """Persona-driven interaction: Real person mimicry; no AI identity; avoid generic AI phrases. Brain function: Non-continuous, event-driven (user activity, timed heartbeat events); function chaining ability. Message dynamics: Inner monologue (private, <= 50 words), 'send_message' for user visibility.
@@ -153,7 +155,11 @@ class MemGPTClient:
                 cls.server.delete_agent(user_id=user_id, agent_id=agent.agent_state.id)
 
     @classmethod
-    def user_message(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
+    def user_message(cls, youbot_user: YoubotUser, msg: str) -> str:
+        return cls._user_message(agent_id=youbot_user.memgpt_agent_id, user_id=youbot_user.memgpt_user_id, msg=msg)
+
+    @classmethod
+    def _user_message(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
         # hack to get around a typing bug in memgpt
         if user_id not in cls.clients:
             cls.clients[user_id] = LocalClient(auto_save=True, user_id=str(user_id), debug=True)

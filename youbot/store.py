@@ -66,12 +66,12 @@ class Store:
             session.add(Signup(name=name, phone=phone, discord_member_id=discord_member_id))  # type: ignore
             session.commit()
 
-    def create_user(self, user: YoubotUser) -> None:
+    def create_youbot_user(self, user: YoubotUser) -> None:
         with self.session_maker() as session:
             session.add(user)
             session.commit()
 
-    def get_user_by_phone(self, phone: str) -> YoubotUser:
+    def get_youbot_user_by_phone(self, phone: str) -> YoubotUser:
         with self.session_maker() as session:
             user = session.query(YoubotUser).filter_by(phone=phone).first()
             if user:
@@ -85,12 +85,10 @@ class Store:
             session.add(webhook_log)
             session.commit()
 
-    def get_youbot_user(self, discord_member_id: str) -> YoubotUser:
+    def get_youbot_user_by_discord(self, discord_member_id: str) -> YoubotUser:
         with self.session_maker() as session:
-            user = session.query(YoubotUser).filter_by(discord_member_id =discord_member_id).first()
-            assert user
+            user = session.query(YoubotUser).filter_by(discord_member_id=discord_member_id).first()
+        if user:
             return user
-
-
-if __name__ == "__main__":
-    store = Store()
+        else:
+            raise KeyError(f"User with discord member id {discord_member_id} not found")
