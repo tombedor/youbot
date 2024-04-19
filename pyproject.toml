@@ -17,6 +17,7 @@ celery = {extras = ["redis"], version = "^5.3.6"}
 flask = "^3.0.2"
 twilio = "^9.0.3"
 gunicorn = "^21.2.0"
+fastapi = "^0.110.2"
 
 [tool.pyright]
 include = [
