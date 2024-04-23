@@ -5,11 +5,17 @@ from uuid import UUID
 from pydantic import field_validator
 from sqlalchemy import NullPool, create_engine
 from sqlmodel import SQLModel, Field
+from memgpt.agent_store.db import get_db_model
+from memgpt.agent_store.storage import TableType, RECALL_TABLE_NAME, ARCHIVAL_TABLE_NAME
+
 
 from youbot import DATABASE_URL
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 Base = declarative_base()
+
+MEMGPT_RECALL_TABLE = get_db_model(RECALL_TABLE_NAME, TableType.RECALL_MEMORY) # type: ignore
+MEMGPT_ARCHIVAL_TABLE = get_db_model(ARCHIVAL_TABLE_NAME, TableType.ARCHIVAL_MEMORY) # type: ignore
 
 
 # raw signup table from web
@@ -92,3 +98,7 @@ class Store:
             return user
         else:
             raise KeyError(f"User with discord member id {discord_member_id} not found")
+        
+    def get_memgpt_recall(self):
+        with self.session_maker() as session:
+            return session.query(MEMGPT_RECALL_TABLE).all()
