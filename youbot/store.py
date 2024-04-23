@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
+import json
 import re
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
+from attr import dataclass
 from pydantic import field_validator
 from sqlalchemy import NullPool, create_engine
 from sqlmodel import SQLModel, Field
@@ -14,8 +16,8 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 Base = declarative_base()
 
-MEMGPT_RECALL_TABLE = get_db_model(RECALL_TABLE_NAME, TableType.RECALL_MEMORY) # type: ignore
-MEMGPT_ARCHIVAL_TABLE = get_db_model(ARCHIVAL_TABLE_NAME, TableType.ARCHIVAL_MEMORY) # type: ignore
+MEMGPT_RECALL_TABLE = get_db_model(RECALL_TABLE_NAME, TableType.RECALL_MEMORY)  # type: ignore
+MEMGPT_ARCHIVAL_TABLE = get_db_model(ARCHIVAL_TABLE_NAME, TableType.ARCHIVAL_MEMORY)  # type: ignore
 
 
 # raw signup table from web
@@ -52,6 +54,14 @@ class SmsWebhookLog(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     source: str = Field(..., description="Where the webhook came from")
     info: str = Field(..., description="The information from the webhook")
+
+
+@dataclass
+class RecallMessage:
+    user_id: UUID
+    content: str
+    role: str
+    time: Optional[datetime]
 
 
 class Store:
@@ -98,7 +108,45 @@ class Store:
             return user
         else:
             raise KeyError(f"User with discord member id {discord_member_id} not found")
-        
-    def get_memgpt_recall(self):
+
+    def get_memgpt_recall(self, limit=None) -> List[RecallMessage]:
         with self.session_maker() as session:
-            return session.query(MEMGPT_RECALL_TABLE).all()
+            raw_messages = session.query(MEMGPT_RECALL_TABLE).all()
+
+        skipped = 0
+        cleaned_messages = []
+        for msg in raw_messages:
+            text = msg.text
+
+            if not msg.text:
+                continue
+
+            bad_strings = ['"type": "heartbeat"', '"status": "OK"', "Bootup sequence complete", '"type": "login"']
+            if any(bad_string in text for bad_string in bad_strings):
+                skipped += 1
+                continue
+
+            if msg.role in ["system", "tool"] or '{"type": "login",' in msg.text:
+                role = "system"
+            elif msg.role == "user":
+                role = "user"
+            elif msg.role == "assistant":
+                role = "assistant"
+            else:
+                raise ValueError(f"Unknown role: {msg.role}")
+            text = msg.text
+
+            # check if text is actually a json object
+            try:
+                d = json.loads(text)
+                text = d["message"]
+                try:
+                    msg_time = datetime.strptime(d.get("time"), "%Y-%m-%d %I:%M:%S %p %Z-%f")
+                except ValueError:
+                    msg_time = None
+            except json.JSONDecodeError:
+                text = msg.text
+                msg_time = None
+
+            cleaned_messages.append(RecallMessage(role=role, content=text, user_id=msg.user_id, time=msg_time))
+        return cleaned_messages
