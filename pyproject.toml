@@ -11,9 +11,9 @@ pgvector = "^0.2.4"
 psycopg2-binary = "^2.9.9"
 pymemgpt = {extras = ["postgres"], git = 'https://github.com/tombedor/MemGPT.git', branch='skinny'}
 markdown = "^3.5.1"
-sqlalchemy = "^2.0.25"
+sqlalchemy = "^2.0.29"
 discord = "^2.3.2"
-celery = {extras = ["redis"], version = "^5.3.6"}
+celery = {extras = ["redis"], version = "^5.4.0"}
 flask = "^3.0.2"
 twilio = "^9.0.3"
 gunicorn = "^21.2.0"
