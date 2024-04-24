@@ -76,6 +76,7 @@ simplegmail = "^4.1.1"
 gspread = "^6.0.0"
 matplotlib = "^3.8.3"
 llama-index-vector-stores-faiss = "^0.1.2"
+pyvis = "^0.3.2"
 
 
 [build-system]
