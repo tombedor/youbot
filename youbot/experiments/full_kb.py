@@ -20,6 +20,8 @@ MAX_CONVO_PAUSE = timedelta(minutes=60)
 
 current_convo_messages = []
 for msg in messages:
+    if msg.role != 'user':
+        continue
     # check if we need to rest the convo
     if len(current_convo_messages) > 0 and msg.time - current_convo_messages[-1].time > MAX_CONVO_PAUSE:
         conversation_message_collections.append(current_convo_messages)
@@ -32,14 +34,15 @@ conversations = []
 for convo_messages in conversation_message_collections:
     convo_text = ""
     for msg in convo_messages:
-        timestamp_fragment = f" ({msg.time.strftime('%Y-%m-%d %H:%M:%S')}) " if msg.time else ""
-        convo_text += f"{msg.role} {timestamp_fragment}:\n {msg.content}\n\n"
+        convo_text += msg.content + '\n'
     conversations.append(convo_text)
 
 
 print('foo')
 
 tmpdir = '/tmp/convo_test'
+
+# do i maybe want to only have user messages?
 
 os.makedirs(tmpdir, exist_ok=True)
 for idx, convo in enumerate(conversations):
