@@ -108,6 +108,11 @@ class Store:
             return user
         else:
             raise KeyError(f"User with discord member id {discord_member_id} not found")
+        
+    def get_archival_messages(self, limit=None) -> List[str]:
+        with self.session_maker() as session:
+            raw_messages = session.query(MEMGPT_ARCHIVAL_TABLE).limit(limit).all()
+        return [msg.text for msg in raw_messages]
 
     def get_memgpt_recall(self, limit=None) -> List[RecallMessage]:
         with self.session_maker() as session:
