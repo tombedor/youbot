@@ -16,8 +16,8 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 Base = declarative_base()
 
-MEMGPT_RECALL_TABLE = get_db_model(RECALL_TABLE_NAME, TableType.RECALL_MEMORY)  # type: ignore
-MEMGPT_ARCHIVAL_TABLE = get_db_model(ARCHIVAL_TABLE_NAME, TableType.ARCHIVAL_MEMORY)  # type: ignore
+MEMGPT_RECALL_TABLE = get_db_model(RECALL_TABLE_NAME, TableType.RECALL_MEMORY).__table__  # type: ignore
+MEMGPT_ARCHIVAL_TABLE = get_db_model(ARCHIVAL_TABLE_NAME, TableType.ARCHIVAL_MEMORY).__table__  # type: ignore
 
 
 # raw signup table from web
@@ -61,7 +61,7 @@ class RecallMessage:
     user_id: UUID
     content: str
     role: str
-    time: Optional[datetime]
+    time: datetime
 
 
 class Store:
@@ -111,7 +111,8 @@ class Store:
 
     def get_memgpt_recall(self, limit=None) -> List[RecallMessage]:
         with self.session_maker() as session:
-            raw_messages = session.query(MEMGPT_RECALL_TABLE).all()
+            # raw messages ordered by created_at
+            raw_messages = session.query(MEMGPT_RECALL_TABLE).order_by(MEMGPT_RECALL_TABLE.c.created_at).limit(limit).all()
 
         skipped = 0
         cleaned_messages = []
@@ -121,7 +122,7 @@ class Store:
             if not msg.text:
                 continue
 
-            bad_strings = ['"type": "heartbeat"', '"status": "OK"', "Bootup sequence complete", '"type": "login"']
+            bad_strings = ['"type": "heartbeat"', '"status": "OK"', "Bootup sequence complete", '"type": "login"', "You are MemGPT, the latest version of Limnal Corporation", "This is an automated system message hidden from the user", 'This is placeholder text']
             if any(bad_string in text for bad_string in bad_strings):
                 skipped += 1
                 continue
@@ -138,15 +139,9 @@ class Store:
 
             # check if text is actually a json object
             try:
-                d = json.loads(text)
-                text = d["message"]
-                try:
-                    msg_time = datetime.strptime(d.get("time"), "%Y-%m-%d %I:%M:%S %p %Z-%f")
-                except ValueError:
-                    msg_time = None
+                text = json.loads(text)['message']
             except json.JSONDecodeError:
                 text = msg.text
-                msg_time = None
 
-            cleaned_messages.append(RecallMessage(role=role, content=text, user_id=msg.user_id, time=msg_time))
+            cleaned_messages.append(RecallMessage(role=role, content=text, user_id=msg.user_id, time=msg.created_at))
         return cleaned_messages

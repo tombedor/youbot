@@ -2,6 +2,8 @@
 
 # vectors are calculated via descriptions of the model
 
+from datetime import timedelta
+import os
 from spacy.kb import InMemoryLookupKB
 from youbot.store import Store
 
@@ -11,7 +13,38 @@ from spacy.lang.en import English
 # 0. Create documents as transcription logs of converstaions
 messages = Store().get_memgpt_recall()
 
+# batch messages into conversations. If pause is greater than MAX_CONVO_PAUSE, start a new conversation.
+# some messages have null timestamp. in this case, use the last non-null timestamp.
+conversation_message_collections = []
+MAX_CONVO_PAUSE = timedelta(minutes=60)
+
+current_convo_messages = []
+for msg in messages:
+    # check if we need to rest the convo
+    if len(current_convo_messages) > 0 and msg.time - current_convo_messages[-1].time > MAX_CONVO_PAUSE:
+        conversation_message_collections.append(current_convo_messages)
+        current_convo_messages = []
+    current_convo_messages.append(msg)
+    last_message_time = msg.time
+
+
+conversations = []
+for convo_messages in conversation_message_collections:
+    convo_text = ""
+    for msg in convo_messages:
+        timestamp_fragment = f" ({msg.time.strftime('%Y-%m-%d %H:%M:%S')}) " if msg.time else ""
+        convo_text += f"{msg.role} {timestamp_fragment}:\n {msg.content}\n\n"
+    conversations.append(convo_text)
+
+
 print('foo')
+
+tmpdir = '/tmp/convo_test'
+
+os.makedirs(tmpdir, exist_ok=True)
+for idx, convo in enumerate(conversations):
+    with open(os.path.join(tmpdir, f'convo_{idx}.txt'), 'w') as f:
+        f.write(convo)
 
 
 
