@@ -2,7 +2,6 @@
 # https://spacy.io/api/large-language-models#rel-v1
 
 import os
-from re import L
 from time import sleep
 from spacy_llm.util import assemble
 import spacy
