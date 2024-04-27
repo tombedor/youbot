@@ -2,6 +2,11 @@
 
 # vectors are calculated via descriptions of the model
 
+
+####################
+# Store entities, resolve which facts are relevant to which entities, summarize
+# result: summaries aren't all that useful, there's a hot key issue. 
+
 import os
 import pickle
 from typing import Set, Tuple
@@ -10,7 +15,6 @@ from tqdm import tqdm
 from youbot.store import Store
 from spacy.tokens import Doc
 
-from spacy.lang.en import English
 
 
 
