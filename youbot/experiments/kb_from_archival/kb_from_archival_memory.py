@@ -95,6 +95,7 @@ for kb in tqdm(kb_entities.values()):
         final_docs.append(summarize_nlp(doc))
 
 
+# summaries are maybe not useful. we might instead need to just vectorize all the facts and use relations between them
 
 with open('/tmp/checkpoint3.pkl', 'wb') as f:
     pickle.dump(final_docs, f)
