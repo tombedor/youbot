@@ -15,9 +15,11 @@ from tqdm import tqdm
 from youbot.store import Store
 from spacy.tokens import Doc
 
+MESSAGES_COUNT = 10
+
 
 # 0. Create documents as transcription logs of converstaions
-docs = Store().get_archival_messages()
+docs = Store().get_archival_messages()[:MESSAGES_COUNT]
 
 
 import os
