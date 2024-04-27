@@ -20,7 +20,7 @@ MAX_CONVO_PAUSE = timedelta(minutes=60)
 
 current_convo_messages = []
 for msg in messages:
-    if msg.role != 'user':
+    if msg.role != "user":
         continue
     # check if we need to rest the convo
     if len(current_convo_messages) > 0 and msg.time - current_convo_messages[-1].time > MAX_CONVO_PAUSE:
@@ -34,28 +34,27 @@ conversations = []
 for convo_messages in conversation_message_collections:
     convo_text = ""
     for msg in convo_messages:
-        convo_text += msg.content + '\n'
+        convo_text += msg.content + "\n"
     conversations.append(convo_text)
 
 
-print('foo')
+print("foo")
 
-tmpdir = '/tmp/convo_test'
+tmpdir = "/tmp/convo_test"
 
 # do i maybe want to only have user messages?
 
 os.makedirs(tmpdir, exist_ok=True)
 for idx, convo in enumerate(conversations):
-    with open(os.path.join(tmpdir, f'convo_{idx}.txt'), 'w') as f:
+    with open(os.path.join(tmpdir, f"convo_{idx}.txt"), "w") as f:
         f.write(convo)
-
 
 
 nlp = English()
 vocab = nlp.vocab
 kb = InMemoryLookupKB(vocab=vocab, entity_vector_length=64)
 
-# pipeline: 
+# pipeline:
 #### naive knowledge base ####
 # 1. ner from text using en_core_web_md
 # 2. for each entity, extract a fact about the entity, and save the text.

@@ -108,7 +108,7 @@ class Store:
             return user
         else:
             raise KeyError(f"User with discord member id {discord_member_id} not found")
-        
+
     def get_archival_messages(self, limit=None) -> List[str]:
         with self.session_maker() as session:
             raw_messages = session.query(MEMGPT_ARCHIVAL_TABLE).limit(limit).all()
@@ -127,7 +127,16 @@ class Store:
             if not msg.text:
                 continue
 
-            bad_strings = ['"type": "heartbeat"', '"status": "OK"', "Bootup sequence complete", '"type": "login"', "You are MemGPT, the latest version of Limnal Corporation", "This is an automated system message hidden from the user", 'This is placeholder text', 'have been hidden from view due to conversation memory constraints']
+            bad_strings = [
+                '"type": "heartbeat"',
+                '"status": "OK"',
+                "Bootup sequence complete",
+                '"type": "login"',
+                "You are MemGPT, the latest version of Limnal Corporation",
+                "This is an automated system message hidden from the user",
+                "This is placeholder text",
+                "have been hidden from view due to conversation memory constraints",
+            ]
             if any(bad_string in text for bad_string in bad_strings):
                 skipped += 1
                 continue
@@ -144,7 +153,7 @@ class Store:
 
             # check if text is actually a json object
             try:
-                text = json.loads(text)['message']
+                text = json.loads(text)["message"]
             except json.JSONDecodeError:
                 text = msg.text
 

@@ -5,7 +5,7 @@
 
 ####################
 # Store entities, resolve which facts are relevant to which entities, summarize
-# result: summaries aren't all that useful, there's a hot key issue. 
+# result: summaries aren't all that useful, there's a hot key issue.
 
 import os
 import pickle
@@ -14,9 +14,6 @@ from attr import dataclass
 from tqdm import tqdm
 from youbot.store import Store
 from spacy.tokens import Doc
-
-
-
 
 
 # 0. Create documents as transcription logs of converstaions
@@ -28,15 +25,15 @@ from spacy_llm.util import assemble
 import spacy
 
 # if checkpoint file exists, load it
-if os.path.exists('/tmp/checkpoint.pkl'):
-    with open('/tmp/checkpoint.pkl', 'rb') as f:
+if os.path.exists("/tmp/checkpoint.pkl"):
+    with open("/tmp/checkpoint.pkl", "rb") as f:
         docs_with_entities = pickle.load(f)
 else:
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     config = os.path.join(dir_path, "config.cfg")
 
-    model_name = 'en_core_web_md'
+    model_name = "en_core_web_md"
     try:
         nlp = assemble(config)
     except OSError:
@@ -47,21 +44,22 @@ else:
 
     docs_with_entities = [nlp(doc) for doc in tqdm(docs)]
 
-    with open('/tmp/checkpoint.pkl', 'wb') as f:
+    with open("/tmp/checkpoint.pkl", "wb") as f:
         pickle.dump(docs_with_entities, f)
-        
-        
+
+
 @dataclass
 class KbEntity:
     name: str
     label: str
     facts: Set[str]
-    
+
     def id(self) -> Tuple[str, str]:
-        return (self.name, self.label)    
-    
-if os.path.exists('/tmp/checkpoint2.pkl'):
-    kb_entities = pickle.load(open('/tmp/checkpoint2.pkl', 'rb'))
+        return (self.name, self.label)
+
+
+if os.path.exists("/tmp/checkpoint2.pkl"):
+    kb_entities = pickle.load(open("/tmp/checkpoint2.pkl", "rb"))
 else:
     kb_entities = {}
 
@@ -70,19 +68,18 @@ else:
             if (ent.text, ent.label_) not in kb_entities:
                 kb_entities[(ent.text, ent.label_)] = KbEntity(ent.text, ent.label_, set())
             kb_entities[(ent.text, ent.label_)].facts.add(doc.text)
-        
-    with open('/tmp/checkpoint2.pkl', 'wb') as f:
-        pickle.dump(kb_entities, f)        
-    
+
+    with open("/tmp/checkpoint2.pkl", "wb") as f:
+        pickle.dump(kb_entities, f)
 
 
-Doc.set_extension('summary', default=None)
-Doc.set_extension('entity_label', default=None)
-Doc.set_extension('entity_name', default=None)
+Doc.set_extension("summary", default=None)
+Doc.set_extension("entity_label", default=None)
+Doc.set_extension("entity_name", default=None)
 
-summarize_nlp = spacy.load('en_core_web_md')
+summarize_nlp = spacy.load("en_core_web_md")
 # for more options on llm see https://spacy.io/api/large-language-models#config
-summarize_nlp.add_pipe('llm_summarization', last=True)
+summarize_nlp.add_pipe("llm_summarization", last=True)
 
 
 final_docs = []
@@ -101,9 +98,8 @@ for kb in tqdm(kb_entities.values()):
 
 # summaries are maybe not useful. we might instead need to just vectorize all the facts and use relations between them
 
-with open('/tmp/checkpoint3.pkl', 'wb') as f:
+with open("/tmp/checkpoint3.pkl", "wb") as f:
     pickle.dump(final_docs, f)
 
-    
+
 # add relational data, and if two entities are in a conversation, add the relation
-    

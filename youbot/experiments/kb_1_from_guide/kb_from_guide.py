@@ -12,7 +12,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 config = os.path.join(dir_path, "config.cfg")
 
-model_name = 'en_core_web_md'
+model_name = "en_core_web_md"
 try:
     nlp = assemble(config)
 except OSError:
@@ -20,8 +20,9 @@ except OSError:
     nlp = assemble(config)
 
 from datasets import load_dataset
-print('downloading data')
-docs = [d['text'] for d in load_dataset("argilla/news-summary")['train']][0:DOCS_TO_INGEST] # type: ignore
+
+print("downloading data")
+docs = [d["text"] for d in load_dataset("argilla/news-summary")["train"]][0:DOCS_TO_INGEST]  # type: ignore
 total = len(docs)
 
 docs_with_rels = []
@@ -31,12 +32,12 @@ for doc in docs:
     try:
         new_doc = nlp(doc)
         docs_with_rels.append(new_doc)
-        i +=1 
+        i += 1
     except Exception as e:
-        print(f'failed: {e}')
+        print(f"failed: {e}")
         sleep(5)
-        
-print('finished with docs')
+
+print("finished with docs")
 relation_data = []
 total = len(docs_with_rels)
 i = 0
@@ -48,7 +49,8 @@ for doc in docs_with_rels:
     i += 1
 
 from pyvis.network import Network
-net = Network('500px', '500px', cdn_resources='in_line') #cdn_resources='in_line')
+
+net = Network("500px", "500px", cdn_resources="in_line")  # cdn_resources='in_line')
 
 nodes = []
 for r in relation_data:
@@ -63,7 +65,7 @@ for node in nodes:
 for r in relation_data:
     net.add_edge(r[0].text, r[2].text, value=1, title=r[1])
 
-net.save_graph('nx.html')
+net.save_graph("nx.html")
 
 
 # After your network is created
@@ -79,4 +81,3 @@ for node in net.nodes:
 print("Edges:")
 for edge in net.edges:
     print(edge)
-    
