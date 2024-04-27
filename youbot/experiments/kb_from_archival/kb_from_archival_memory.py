@@ -10,6 +10,9 @@ from tqdm import tqdm
 from youbot.store import Store
 from spacy.tokens import Doc
 
+from spacy.lang.en import English
+
+
 
 
 # 0. Create documents as transcription logs of converstaions
@@ -68,40 +71,34 @@ else:
         pickle.dump(kb_entities, f)        
     
 
-from transformers import T5ForConditionalGeneration, T5Tokenizer
-model = T5ForConditionalGeneration.from_pretrained('t5-base')
-tokenizer = T5Tokenizer.from_pretrained('t5-base')
-
 
 Doc.set_extension('summary', default=None)
 Doc.set_extension('entity_label', default=None)
 Doc.set_extension('entity_name', default=None)
 
-def summarize_text(text):
-    inputs = tokenizer.encode('summarize: ' + text, return_tensors='pt', max_length=512, truncation=True)
-    outputs = model.generate(inputs, max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
-    return tokenizer.decode(outputs[0])
-
-def summarization_component(doc):
-    doc._.summary = summarize_text(doc.text)
-    return doc
-
-    
-
 summarize_nlp = spacy.load('en_core_web_md')
-summarize_nlp.add_pipe(summarization_component, last=True)
+# for more options on llm see https://spacy.io/api/large-language-models#config
+summarize_nlp.add_pipe('llm_summarization', last=True)
 
 
 final_docs = []
+
 for kb in tqdm(kb_entities.values()):
-    words = sum([f.split() for f in kb.facts], [])
-    doc = Doc(summarize_nlp.vocab, words=words)
-    doc._.entity_name = kb.name
-    doc._.entity_label = kb.label
-    final_doc = summarize_nlp(doc)
+    if len(kb.facts) == 1:
+        final_docs.append(summarize_nlp(kb.facts.pop()))
+        continue
+    else:
+        words = sum([f.split() for f in kb.facts], [])
+        doc = Doc(summarize_nlp.vocab, words=words)
+        doc._.entity_name = kb.name
+        doc._.entity_label = kb.label
+        final_docs.append(summarize_nlp(doc))
+
 
 
 with open('/tmp/checkpoint3.pkl', 'wb') as f:
     pickle.dump(final_docs, f)
-print('foo')
+
+    
+# add relational data, and if two entities are in a conversation, add the relation
     
