@@ -43,7 +43,7 @@ target-version = ['py310', 'py311']
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.26.0"
-black = "^24.3.0"
+black = {extras = ["jupyter"], version = "^24.4.2"}
 autoflake = "^2.3.0"
 pyright = "^1.1.350"
 pytest = "^8.1.1"
