@@ -1,15 +1,17 @@
 from typing import Optional
 from uuid import uuid4
 from youbot.clients.memgpt_client import PERSONA, MemGPTClient
-from youbot.store import Store
-from youbot.persistence.youbot_user import YoubotUser
+from youbot.store import Store, YoubotUser
 
 
-def onboard_user(email: str, human_name: str, human_description: str, discord_member_id: Optional[str], phone: Optional[str]) -> None:
+def onboard_user(phone: str, human_name: str, human_description: str, discord_member_id: Optional[str]) -> None:
     store = Store()
-    existing_user = store.get_user_by_email(email)
-    if existing_user:
-        raise ValueError(f"User with email {email} already exists")
+    try: 
+        existing_user = store.get_youbot_user_by_phone(phone)
+        if existing_user:
+            raise ValueError(f"User with email {phone} already exists")
+    except KeyError:
+        pass # expteded
 
     memgpt_user_id = uuid4()
     MemGPTClient.create_user(memgpt_user_id)
@@ -20,23 +22,23 @@ def onboard_user(email: str, human_name: str, human_description: str, discord_me
     agent_state = MemGPTClient.create_agent(user_id=memgpt_user_id, human_name=human_name, preset_name="youbot", persona_name="youbot")
 
     youbot_user = YoubotUser(
-        id=memgpt_user_id,
+        name=human_name,
         memgpt_user_id=memgpt_user_id,
-        email=email,
         discord_member_id=discord_member_id,
         phone=phone,
         human_description=human_description,
         memgpt_agent_id=agent_state.id,
-    )
+    ) # type: ignore
 
     store.create_youbot_user(youbot_user)
 
 
 if __name__ == "__main__":
-    onboard_user(
-        email="tombedor@gmail.com",
-        discord_member_id="424672110288437250",
-        human_description=" Name: Tom Bedor. Software Engineer. Capable of editing code. Dogs Elroy and Rocky. Fiance Justina.",
-        human_name="tombedor",
-        phone="7634398856",
-    )
+    # onboard_user(
+    #     phone="+17634398856",
+    #     discord_member_id="424672110288437250",
+    #     human_description=" Name: Tom Bedor. Software Engineer. Capable of editing code. Dogs Elroy and Rocky. Fiance Justina.",
+    #     human_name="tombedor",
+    # )
+
+    pass
