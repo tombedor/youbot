@@ -6,12 +6,12 @@ from youbot.store import Store, YoubotUser
 
 def onboard_user(phone: str, human_name: str, human_description: str, discord_member_id: Optional[str]) -> None:
     store = Store()
-    try: 
+    try:
         existing_user = store.get_youbot_user_by_phone(phone)
         if existing_user:
             raise ValueError(f"User with email {phone} already exists")
     except KeyError:
-        pass # expteded
+        pass  # expteded
 
     memgpt_user_id = uuid4()
     MemGPTClient.create_user(memgpt_user_id)
@@ -28,7 +28,7 @@ def onboard_user(phone: str, human_name: str, human_description: str, discord_me
         phone=phone,
         human_description=human_description,
         memgpt_agent_id=agent_state.id,
-    ) # type: ignore
+    )  # type: ignore
 
     store.create_youbot_user(youbot_user)
 

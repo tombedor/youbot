@@ -9,6 +9,7 @@ import spacy.cli
 from youbot import STORAGE_DIR, log_to_stdout
 from youbot.experiments.q_and_a_dataset_generation import retrieve_archival_memories
 import outlines.models
+
 outlines.models.transformers
 
 log_to_stdout()
