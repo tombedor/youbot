@@ -3297,6 +3297,28 @@ doc = ["myst-parser", "sphinx", "sphinx-book-theme"]
 test = ["coverage", "pytest", "pytest-cov"]
 
 [[package]]
+name = "llama-cpp-python"
+version = "0.2.68"
+description = "Python bindings for the llama.cpp library"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "llama_cpp_python-0.2.68.tar.gz", hash = "sha256:737f2136c5f6fa1b0451f600c91ae2abe066edc7515937ca56efa4a648fdc71e"},
+]
+
+[package.dependencies]
+diskcache = ">=5.6.1"
+jinja2 = ">=2.11.3"
+numpy = ">=1.20.0"
+typing-extensions = ">=4.5.0"
+
+[package.extras]
+all = ["llama_cpp_python[dev,server,test]"]
+dev = ["black (>=23.3.0)", "httpx (>=0.24.1)", "mkdocs (>=1.4.3)", "mkdocs-material (>=9.1.18)", "mkdocstrings[python] (>=0.22.0)", "pytest (>=7.4.0)", "twine (>=4.0.2)"]
+server = ["PyYAML (>=5.1)", "fastapi (>=0.100.0)", "pydantic-settings (>=2.0.1)", "sse-starlette (>=1.6.1)", "starlette-context (>=0.3.6,<0.4)", "uvicorn (>=0.22.0)"]
+test = ["httpx (>=0.24.1)", "pytest (>=7.4.0)", "scipy (>=1.10)"]
+
+[[package]]
 name = "llama-hub"
 version = "0.0.71"
 description = "A library of community-driven data loaders for LLMs. Use with LlamaIndex and/or LangChain. "
@@ -9137,4 +9159,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "9b857c31d67c9e23cc0b265dd4575e3fbf697fa9c08907c0ae198e83ad9d7dc1"
+content-hash = "883180dfa5a6938faa202931532c85d63a2ab04cab71a1116edf2c62ab6aaeaf"
