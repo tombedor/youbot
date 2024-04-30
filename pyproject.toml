@@ -84,6 +84,7 @@ ipywidgets = "^8.1.2"
 jupyter = "^1.0.0"
 safetensors = "^0.4.3"
 outlines = "^0.0.40"
+torch = "^2.3.0"
 
 
 [build-system]
