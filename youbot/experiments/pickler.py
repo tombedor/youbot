@@ -8,7 +8,7 @@ def pickled_cache(func):
         function_name = func.__name__
 
         # Check if a pickle file exists for the function
-        pickle_file = f"{function_name}.pickle"
+        pickle_file = f"{function_name}.pkl"
         if os.path.exists(pickle_file):
             # Load and return the DataFrame from the pickle file
             with open(pickle_file, "rb") as file:
