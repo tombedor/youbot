@@ -1,8 +1,10 @@
+from pandas import DataFrame
 from youbot.store import Store
 
 
 docs = Store().get_archival_messages()  # [:MESSAGES_COUNT]
 
-with open("data.txt", "w") as f:
-    for doc in docs:
-        f.write(doc + "$$$")
+df = DataFrame(docs)
+
+with open('msgs.pkl', 'wb') as f:
+    df.to_pickle(f)
