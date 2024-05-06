@@ -6,3 +6,5 @@
 **/storage/
 logs/
 scratch/
+*pkl
+*log
