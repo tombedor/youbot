@@ -1,15 +1,15 @@
 from typing import Optional
 from uuid import uuid4
-from youbot.clients.memgpt_client import PERSONA, MemGPTClient
+from youbot.clients.memgpt_client import MemGPTClient
 from youbot.store import Store, YoubotUser
 
 
-def onboard_user(phone: str, human_name: str, human_description: str, discord_member_id: Optional[str]) -> None:
+def onboard_user(phone: str, human_name: str, human_description: str, discord_member_id: Optional[str] = None) -> None:
     store = Store()
     try:
         existing_user = store.get_youbot_user_by_phone(phone)
         if existing_user:
-            raise ValueError(f"User with email {phone} already exists")
+            raise ValueError(f"User with phone {phone} already exists")
     except KeyError:
         pass  # expteded
 
@@ -18,8 +18,8 @@ def onboard_user(phone: str, human_name: str, human_description: str, discord_me
 
     MemGPTClient.create_human(user_id=memgpt_user_id, human_text=human_description, human_name=human_name)
     MemGPTClient.create_persona(user_id=memgpt_user_id)
-    MemGPTClient.create_preset(user_id=memgpt_user_id, human_text=human_description, persona_text=PERSONA)
-    agent_state = MemGPTClient.create_agent(user_id=memgpt_user_id, human_name=human_name, preset_name="youbot", persona_name="youbot")
+    MemGPTClient.create_preset(user_id=memgpt_user_id, human_text=human_description)
+    agent_state = MemGPTClient.create_agent(user_id=memgpt_user_id, human_name=human_name)
 
     youbot_user = YoubotUser(
         name=human_name,

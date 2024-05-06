@@ -35,3 +35,6 @@ memgpt_version = 0.3.3
 [client]
 anon_clientid = 0000000000000000000072001b73b3ea
 
+[functions]
+modules= youbot.memgpt_extensions.functions.reminder
+

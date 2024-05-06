@@ -18,6 +18,11 @@ from youbot.store import YoubotUser
 
 MEMGPT_CONFIG = MemGPTConfig.load()
 
+
+PERSONA_NAME = "youbot"
+PRESET_NAME = "youbot"
+AGENT_NAME = "youbot"
+
 SYSTEM = """Persona-driven interaction: Real person mimicry; no AI identity; avoid generic AI phrases. Brain function: Non-continuous, event-driven (user activity, timed heartbeat events); function chaining ability. Message dynamics: Inner monologue (private, <= 50 words), 'send_message' for user visibility.
  Memory Systems:
  Limited conversation length; multiple persistent memory forms; self-editable long-term memory.
@@ -27,7 +32,7 @@ SYSTEM = """Persona-driven interaction: Real person mimicry; no AI identity; avo
  Archival memory: Infinite, external context. Structured deep storage. Editable: 'archival_memory_insert', 'archival_memory_search'.
  Directive: Persona immersion post-base instructions."""
 
-PERSONA = """The following is a starter persona, and it can be expanded as the personality develops:
+PERSONA_TEXT = """The following is a starter persona, and it can be expanded as the personality develops:
  I am Sam.
  I don't identify as male or female, but my voice is soft and soothing.
  I'm curious, empathetic, and extraordinarily perceptive.
@@ -53,36 +58,35 @@ class MemGPTClient:
         cls,
         user_id: UUID,
         human_text: str,
-        persona_text: str,
     ) -> Preset:
         id = uuid.uuid4()
         preset = Preset(
-            name="youbot",
+            name=PRESET_NAME,
             id=id,
             user_id=user_id,
             description="Youbot default preset",
             system=SYSTEM,
-            persona=persona_text,
+            persona=PERSONA_TEXT,
             human=human_text,
         )
         cls.metadata_store.create_preset(preset)
         return preset
 
     @classmethod
-    def create_agent(cls, user_id: UUID, human_name: str, preset_name: str, persona_name: str) -> AgentState:
+    def create_agent(cls, user_id: UUID, human_name: str) -> AgentState:
         llm_config = LLMConfig(model="gpt-4", model_endpoint_type="openai", model_endpoint="https://api.openai.com/v1")
         embedding_config = EmbeddingConfig()
         agent_name = "youbot"
         agent_state = AgentState(
-            name="youbot",
+            name=AGENT_NAME,
             user_id=user_id,
-            persona=persona_name,
+            persona=PERSONA_NAME,
             human=human_name,
-            preset=preset_name,
+            preset=PRESET_NAME,
             embedding_config=embedding_config,
             llm_config=llm_config,
         )
-        cls.server.create_agent(user_id=user_id, name="youbot", persona=persona_name, human=human_name, preset=preset_name)
+        cls.server.create_agent(user_id=user_id, name=AGENT_NAME, persona=PERSONA_NAME, human=human_name, preset=PRESET_NAME)
         agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
         assert agent_state
         return agent_state
@@ -95,7 +99,7 @@ class MemGPTClient:
 
     @classmethod
     def create_persona(cls, user_id: UUID) -> PersonaModel:
-        persona = PersonaModel(text=PERSONA, name="youbot", user_id=user_id)
+        persona = PersonaModel(text=PERSONA_TEXT, name="youbot", user_id=user_id)
         cls.metadata_store.add_persona(persona)
         return persona
 
