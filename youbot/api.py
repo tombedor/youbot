@@ -2,10 +2,9 @@ import logging
 import os
 from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
-from youbot.clients.memgpt_client import MemGPTClient
 from youbot.store import Store
 from youbot.clients.twilio_client import test_recipient, send_message, account_sid
-from youbot.workers.celery_worker import response_to_sms
+from youbot.workers.worker import response_to_sms
 
 
 app = Flask(__name__)
