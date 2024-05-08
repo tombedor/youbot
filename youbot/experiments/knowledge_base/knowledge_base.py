@@ -5,10 +5,9 @@ from spacy.kb import InMemoryLookupKB
 import spacy.kb.kb_in_memory
 import spacy.cli
 
-from youbot import STORAGE_DIR, log_to_stdout
+from youbot import STORAGE_DIR
 from youbot.experiments.q_and_a_dataset_generation import retrieve_archival_memories
 
-log_to_stdout()
 
 model_name = "en_core_web_lg"
 kb_path = os.path.join(STORAGE_DIR, "knowledge_base")

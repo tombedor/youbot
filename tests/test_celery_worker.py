@@ -6,7 +6,7 @@ def test_celery():
     # Start up a worker (in LOCAL mode)
     with start_worker(app, perform_ping_check=False):
         # Create and dispatch the task
-        task = add.delay(4, 4)
+        task = add.delay(4, 4) # type: ignore
 
         # Now let's "work" the task and make sure it executes successfully
         task.get()

@@ -5785,8 +5785,8 @@ server = ["fastapi (>=0.104.1,<0.105.0)", "uvicorn (>=0.24.0.post1,<0.25.0)", "w
 [package.source]
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
-reference = "3ca7f41623e94e50ae08f0ab034f45d7bc5e7274"
-resolved_reference = "3ca7f41623e94e50ae08f0ab034f45d7bc5e7274"
+reference = "c96711a094827ac1980147a1dd4c2306e6c0e189"
+resolved_reference = "c96711a094827ac1980147a1dd4c2306e6c0e189"
 
 [[package]]
 name = "pymupdf"
@@ -8974,4 +8974,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "6a3c53017994fbfcfcd0b4be86ef76ca2e2da9c023d21e0c6a35d94a7793d436"
+content-hash = "da66814e450d590db9198978ab38536402ffa4abe15d1a1d0c54705a54af4edf"
