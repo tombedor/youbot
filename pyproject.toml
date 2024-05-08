@@ -9,7 +9,7 @@ readme = "README.md"
 python = ">=3.11,<3.12"
 pgvector = "^0.2.4"
 psycopg2-binary = "^2.9.9"
-pymemgpt = {extras = ["postgres"], git = 'https://github.com/tombedor/MemGPT.git', rev='c96711a094827ac1980147a1dd4c2306e6c0e189'}
+pymemgpt = {extras = ["postgres"], git = 'https://github.com/tombedor/MemGPT.git', rev='f5124017279c3549f7bca6fdbd9b07463477907c'}
 markdown = "^3.5.1"
 sqlalchemy = "^2.0.29"
 discord = "^2.3.2"
@@ -18,6 +18,7 @@ flask = "^3.0.2"
 twilio = "^9.0.3"
 gunicorn = "^21.2.0"
 fastapi = "^0.110.2"
+pyyaml = "^6.0.1"
 
 [tool.pyright]
 include = [

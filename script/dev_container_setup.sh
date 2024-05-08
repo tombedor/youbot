@@ -28,7 +28,7 @@ sudo apt-get -y install redis-server
 sudo service redis-server start
 
 ####### install dependencies #######
-poetry config virtualenvs.in-project true
+poetry config virtualenvs.create false
 poetry install
 
 sudo -u root sudo -u postgres psql -c "CREATE USER youbot WITH PASSWORD 'youbot';"

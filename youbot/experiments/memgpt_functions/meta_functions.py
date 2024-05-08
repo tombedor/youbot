@@ -16,7 +16,7 @@
 #         str: The result of the function creation attempt.
 #     """
 #     """
-    
+
 #     # setup
 #     if not os.path.exists(FUNCTIONS_DIR):
 #         os.makedirs(FUNCTIONS_DIR)

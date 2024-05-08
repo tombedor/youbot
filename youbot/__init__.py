@@ -7,7 +7,3 @@ STORAGE_DIR = os.path.join(ROOT_DIR, "storage")
 
 with open(os.path.join(ROOT_DIR, "config", "agents.yaml"), "r") as file:
     AGENTS_CONFIG = yaml.safe_load(file.read())
-
-# required env vars
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-DATABASE_URL = os.environ["DATABASE_URL"]

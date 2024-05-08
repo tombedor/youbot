@@ -18,7 +18,6 @@ def hello_world():
 
 
 def send_message(message, receipient_phone):
-    # TODO: log
     message = client.messages.create(body=message, to=receipient_phone, from_=sender_number)
 
 

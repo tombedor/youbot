@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 import json
+import os
 import re
 from typing import List, Optional
 from uuid import UUID
@@ -11,7 +12,6 @@ from memgpt.agent_store.db import get_db_model
 from memgpt.agent_store.storage import TableType, RECALL_TABLE_NAME, ARCHIVAL_TABLE_NAME
 
 
-from youbot import DATABASE_URL
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 Base = declarative_base()
@@ -56,6 +56,16 @@ class SmsWebhookLog(SQLModel, table=True):
     info: str = Field(..., description="The information from the webhook")
 
 
+class AgentReminder(SQLModel, table=True):
+    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
+    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    youbot_user_id: int = Field(..., description="Youbot user whose assistant is being reminded")
+    state: str = Field("pending", description="The state of the reminder")
+    reminder_time_utc: datetime = Field(..., description="Time to remind the user")
+    reminder_message: str = Field(..., description="Message to remind the agent with")
+
+
 @dataclass
 class RecallMessage:
     user_id: UUID
@@ -66,13 +76,14 @@ class RecallMessage:
 
 class Store:
     def __init__(self) -> None:
-        self.engine = create_engine(DATABASE_URL, poolclass=NullPool)
+        self.engine = create_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
         Base.metadata.create_all(
             self.engine,
             tables=[
                 Signup.__table__,
                 YoubotUser.__table__,
                 SmsWebhookLog.__table__,
+                AgentReminder.__table__,
             ],
         )
         self.session_maker = sessionmaker(bind=self.engine)
@@ -95,10 +106,40 @@ class Store:
             else:
                 raise KeyError(f"User with phone {phone} not found")
 
+    def get_youbot_user_by_agent_id(self, agent_id: UUID) -> YoubotUser:
+        with self.session_maker() as session:
+            user = session.query(YoubotUser).filter_by(memgpt_agent_id=agent_id).first()
+            if user:
+                return user
+            else:
+                raise KeyError(f"User with agent id {agent_id} not found")
+
+    def create_agent_reminder(self, youbot_user_id: int, reminder_time_utc: datetime, reminder_message: str) -> None:
+        with self.session_maker() as session:
+            reminder = AgentReminder(youbot_user_id=youbot_user_id, reminder_time_utc=reminder_time_utc, reminder_message=reminder_message)  # type: ignore
+            session.add(reminder)
+            session.commit()
+
     def create_sms_webhook_log(self, source: str, msg: str) -> None:
         with self.session_maker() as session:
             webhook_log = SmsWebhookLog(source=source, info=msg)  # type: ignore
             session.add(webhook_log)
+            session.commit()
+
+    # all pending state reminders where the reminder time is in the past
+    def get_pending_reminders(self) -> List[AgentReminder]:
+        with self.session_maker() as session:
+            reminders = (
+                session.query(AgentReminder)
+                .filter(AgentReminder.state == "pending", AgentReminder.reminder_time_utc < datetime.now(UTC))
+                .all()
+            )
+        return reminders
+
+    def update_reminder_state(self, reminder_id: int, new_state: str) -> None:
+        with self.session_maker() as session:
+            reminder = session.query(AgentReminder).filter_by(id=reminder_id).first()
+            reminder.state = new_state
             session.commit()
 
     def get_youbot_user_by_discord(self, discord_member_id: str) -> YoubotUser:
@@ -108,6 +149,14 @@ class Store:
             return user
         else:
             raise KeyError(f"User with discord member id {discord_member_id} not found")
+
+    def get_youbot_user_by_id(self, user_id: int) -> YoubotUser:
+        with self.session_maker() as session:
+            user = session.query(YoubotUser).filter_by(id=user_id).first()
+        if user:
+            return user
+        else:
+            raise KeyError(f"User with id {user_id} not found")
 
     def get_archival_messages(self, limit=None) -> List[str]:
         with self.session_maker() as session:
