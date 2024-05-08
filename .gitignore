@@ -8,3 +8,4 @@ logs/
 scratch/
 *pkl
 *log
+dump.rdb

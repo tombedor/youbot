@@ -9,7 +9,7 @@ readme = "README.md"
 python = ">=3.11,<3.12"
 pgvector = "^0.2.4"
 psycopg2-binary = "^2.9.9"
-pymemgpt = {extras = ["postgres"], git = 'https://github.com/tombedor/MemGPT.git', branch='main'}
+pymemgpt = {extras = ["postgres"], git = 'https://github.com/tombedor/MemGPT.git', rev='3ca7f41623e94e50ae08f0ab034f45d7bc5e7274'}
 markdown = "^3.5.1"
 sqlalchemy = "^2.0.29"
 discord = "^2.3.2"
