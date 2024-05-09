@@ -160,6 +160,11 @@ class MemGPTClient:
         try:
             reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
         except StopIteration:
-            raise Exception(f"no reply found in response list: {response_list}")
+            if any("function_call" in r for r in response_list):
+                function_call = next(r.get("function_call") for r in response_list if r.get("function_call"))
+                function_result = next(r.get("function_return") for r in response_list if r.get("function_return"))
+                reply = f"The agent took an action: {function_call} with result: {function_result}"
+            else:
+                raise Exception(f"no assistant reply or function call found in response list: {response_list}")
         assert isinstance(reply, str)
         return reply
