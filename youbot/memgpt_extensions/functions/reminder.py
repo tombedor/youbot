@@ -41,7 +41,7 @@ def enqueue_reminder(self, year: int, month: int, day: int, hour: int, minute: i
 
     store = Store()
 
-    agent_id = self.state.id
+    agent_id = self.agent_state.id
     youbot_user = store.get_youbot_user_by_agent_id(agent_id)
 
     store.create_agent_reminder(youbot_user.id, reminder_time, message)
