@@ -27,7 +27,6 @@ for msg in messages:
         conversation_message_collections.append(current_convo_messages)
         current_convo_messages = []
     current_convo_messages.append(msg)
-    last_message_time = msg.time
 
 
 conversations = []
