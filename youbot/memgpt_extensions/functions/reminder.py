@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import pytz
 
@@ -12,7 +12,25 @@ VALID_TIMEZONES = [
     "US/Hawaii",
     "US/Mountain",
     "US/Pacific",
+    "UTC",
 ]
+
+
+def enqueue_reminder_by_time_difference_from_now(self, hours: int, minutes: int, message: str) -> str:
+    """Enqueues a reminder for the given time difference from now, with the given message.
+
+        hours (int): number of hours from now to enqueue reminder
+        minutes (int): number of minutes from now to enqueue reminder
+        message (str): The message
+
+    Returns:
+        str: Result of the reminder enqueue attempt
+    """
+    current_time = datetime.now(pytz.utc)
+    reminder_time = current_time + timedelta(hours=hours, minutes=minutes)
+    return enqueue_reminder(
+        self, reminder_time.year, reminder_time.month, reminder_time.day, reminder_time.hour, reminder_time.minute, "UTC", message
+    )
 
 
 def enqueue_reminder(self, year: int, month: int, day: int, hour: int, minute: int, timezone_name: str, message: str) -> str:

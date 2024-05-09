@@ -8,9 +8,10 @@ from youbot.store import Store, YoubotUser
 
 app = Celery("youbot", broker=os.environ["REDIS_URL"], backend=os.environ["REDIS_URL"])
 app.conf.update(
-    task_serializer='pickle',
-    accept_content=['pickle'],  # Specify other content types here as well if needed
+    task_serializer="pickle",
+    accept_content=["pickle"],  # Specify other content types here as well if needed
 )
+
 
 @app.on_after_configure.connect  # type: ignore
 def setup_periodic_tasks(sender, **kwargs):
