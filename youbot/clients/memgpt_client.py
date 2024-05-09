@@ -157,6 +157,9 @@ class MemGPTClient:
         local_client.server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
         local_client.server.save_agents()
         response_list = local_client.interface.to_list()
-        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
+        try:
+            reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
+        except StopIteration:
+            raise Exception(f"no reply found in response list: {response_list}")
         assert isinstance(reply, str)
         return reply

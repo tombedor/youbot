@@ -10,12 +10,15 @@ app = Celery("youbot", broker=os.environ["REDIS_URL"], backend=os.environ["REDIS
 app.conf.update(
     task_serializer="pickle",
     accept_content=["pickle"],  # Specify other content types here as well if needed
+    task_default_retry_delay=30,  # in seconds
+    task_max_retries=3,
+    task_ignore_result=True,
 )
 
 
 @app.on_after_configure.connect  # type: ignore
 def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(10.0, process_pending_reminders.s(), name="add every 10")
+    sender.add_periodic_task(30.0, process_pending_reminders.s(), name="Reminder check every 30 seconds")
 
 
 @app.task
