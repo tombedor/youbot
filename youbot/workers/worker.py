@@ -36,9 +36,14 @@ def process_pending_reminders():
         Store().update_reminder_state(reminder.id, "complete")
 
 
+# covers both sms and whatsapp
 @app.task
-def response_to_sms(youbot_user: YoubotUser, sender_number: str, received_msg: str):
-    message = f"[the following was sent via SMS, keep responses brief]: {received_msg}"
+def response_to_twilio_message(youbot_user: YoubotUser, sender_number: str, received_msg: str):
+    if sender_number.startswith("whatsapp:"):
+        channel = "WhatsApp"
+    else:
+        channel = "SMS"
+    message = f"[the following was sent via {channel}, keep responses brief]: {received_msg}"
     response = MemGPTClient.user_message(youbot_user=youbot_user, msg=message)
     send_message(message=response, receipient_phone=sender_number)
 

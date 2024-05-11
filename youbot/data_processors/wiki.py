@@ -123,20 +123,20 @@
 
 #     query = f"""
 #     I have a private wikipedia with {len(pages)} pages.
-    
+
 #     I have a fact, and I wish to determine whether it contains information about any topics that are not already covered in the wikipedia.
-    
+
 #     The fact is: {fact}
-    
+
 #     The existing pages are: {[p.relative_path for p in pages]}
-    
+
 #     Some examples of new pages that could be created are: other people, places, or events that are not already covered in the wikipedia.
-    
+
 #     Response with a json object with two keys:
 #     path: the path of the new page. It should match the format of the other paths. It MUST be a markdown file.
 #     content: the initial content of the new page, in markdown format.
-    
-    
+
+
 #     If no new page should be created, please respond with an empty json object.
 #     """
 
@@ -180,7 +180,7 @@
 #         + """Your response should be in JSON format, here is an example of a valid response:
 #     [
 #         {"page": "/path/to/page", "score": 0.5, "reason": "The reason that the page is relevant'."},
-        
+
 #     ]
 #     """
 #     )
@@ -204,13 +204,13 @@
 #     query = (
 #         f"""
 #     I have a private wikipedia. One such page is {wiki_page.get_title()}.
-    
+
 #     I have a fact that I wish to incorporate into the page. If the fact is already in the page, no changes should be made.
-    
+
 #     The fact is: {fact}
-    
+
 #     Your output should be the new content of the page, in markdown format.
-    
+
 #     """
 #         + current_page_content_fragment
 #     )
@@ -226,23 +226,23 @@
 #     logging.info(f"Handling proposed edit for page {wiki_page.get_title()}")
 #     query = f"""
 #     I have a private wikipedia with a page called {wiki_page.get_title()}.
-    
+
 #     An author has proposed an edit. Your job is to consider whether the edit is appropriate, and to make any necessary changes.
-    
+
 #     When editing, you should ensure that the page is easy to read and understand. Irrelevant information should be removed.
-    
+
 #     You should also consider whether the proposed edit adds information that would be better included in a sibling page or child page.
-    
+
 #     The sibling pages are: {[p.get_title() for p in wiki_page.get_sibling_pages()]}
-    
+
 #     The child pages are: {[p.get_title() for p in wiki_page.get_child_pages()]}
-    
+
 #     The ORIGINAL CONTENT IS:
 #     {wiki_page.get_content()}
-    
-#     The PROPOSED CONTENT: 
+
+#     The PROPOSED CONTENT:
 #     {proposed_content}
-    
+
 #     Your response should be the content of the new page, in Markdown format.
 #     """
 #     response = query_engine.query(query)
@@ -263,21 +263,21 @@
 
 #     query = f"""
 #     I have a private wikipedia with a page called: {wiki_page.get_title()}. I wish to edit and organize the page.
-    
+
 #     The page should be organized and edited, such that it is easy to read and understand.
-    
-#     Irrelevant information should be removed. 
-    
+
+#     Irrelevant information should be removed.
+
 #     The style should be similar to Wikipedia.
-    
+
 #     The page should begin with an introduction that describes what kind of information is contained within the page.
-    
+
 #     The page's sibling pages are: {sibling_pages}. Content in {wiki_page.get_title()} should not repeat information that would better fit in sibling pages.
-    
+
 #     This is the page's content:
-    
+
 #     f{current_content}
-    
+
 #     Your response should be the content of the new page, in Markdown format.
 #     """
 

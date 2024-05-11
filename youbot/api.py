@@ -4,7 +4,7 @@ from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
 from youbot.store import Store
 from youbot.clients.twilio_client import test_recipient, send_message, account_sid
-from youbot.workers.worker import response_to_sms
+from youbot.workers.worker import response_to_twilio_message
 
 
 app = Flask(__name__)
@@ -68,6 +68,7 @@ def hello_sms() -> Response:
     return Response("message sent", status=200, mimetype="text/plain")
 
 
+# sms and whatsapp
 @app.route("/receive_sms", methods=["POST"])
 def sms_receive() -> Response:
     if validate_request(request):
@@ -76,13 +77,18 @@ def sms_receive() -> Response:
         sender_number = request.form.get("From")
         assert sender_number
 
+        if sender_number.startswith("whatsapp:"):
+            user_lookup_number = sender_number.replace("whatsapp:", "")
+        else:
+            user_lookup_number = sender_number
+
         try:
-            youbot_user = Store().get_youbot_user_by_phone(phone=sender_number)
+            youbot_user = Store().get_youbot_user_by_phone(phone=user_lookup_number)
         except KeyError:
-            logging.warning(f"no user found with phone number {sender_number}")
+            logging.warning(f"no user found with phone number {user_lookup_number}")
             return Response({"message": "no user found"}, status=403, mimetype="application/json")
 
-        response_to_sms.delay(youbot_user=youbot_user, sender_number=sender_number, received_msg=received_msg)  # type: ignore
+        response_to_twilio_message.delay(youbot_user=youbot_user, sender_number=sender_number, received_msg=received_msg)  # type: ignore
 
         Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
         return Response({}, status=200, mimetype="application/json")
