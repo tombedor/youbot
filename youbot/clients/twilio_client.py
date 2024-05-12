@@ -16,7 +16,12 @@ def hello_world():
 
 
 def send_message(message, receipient_phone):
-    message = client.messages.create(body=message, to=receipient_phone, from_=sender_number)
+    if receipient_phone.startswith("whatsapp:"):
+        full_sender_number = 'whatsapp:' + sender_number
+    else:
+        full_sender_number = sender_number
+    
+    message = client.messages.create(body=message, to=receipient_phone, from_=full_sender_number)
 
 
 if __name__ == "__main__":
