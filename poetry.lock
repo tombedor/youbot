@@ -2714,8 +2714,8 @@ typer = {version = "^0.9.0", extras = ["all"]}
 [package.source]
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
-reference = "471d11d4de59dbafd0261b93334b627b526e33c7"
-resolved_reference = "471d11d4de59dbafd0261b93334b627b526e33c7"
+reference = "c9fc8744d2ee3eacc2cc619c179065ff9b1ddaa0"
+resolved_reference = "c9fc8744d2ee3eacc2cc619c179065ff9b1ddaa0"
 
 [[package]]
 name = "pyparsing"
@@ -3892,4 +3892,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "298bdde8d70f375e5e5887225be93db07e60a548b28bfd5be7488c91db2258e5"
+content-hash = "36072898dbb2f934acf5d7f4aba54131151345085c0051925745441b1d8005ed"
