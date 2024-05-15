@@ -18,7 +18,7 @@ app.conf.update(
 
 @app.on_after_configure.connect  # type: ignore
 def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(60.0, process_pending_reminders.s(), name="Reminder check every 60 seconds")
+    sender.add_periodic_task(60.0, process_pending_reminders.s(), name="Reminder check every 60 seconds") # type: ignore
 
 
 @app.task
