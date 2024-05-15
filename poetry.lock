@@ -2697,8 +2697,8 @@ httpx = "^0.25.2"
 llama-index = "^0.10.6"
 llama-index-embeddings-openai = "^0.1.1"
 numpy = "^1.26.2"
-pg8000 = {version = "^1.30.3", optional = true}
-pgvector = {version = "^0.2.3", optional = true}
+pg8000 = "^1.30.3"
+pgvector = "^0.2.3"
 pydantic = "^2.5.2"
 python-box = "^7.1.1"
 pytz = "^2023.3.post1"
@@ -2709,18 +2709,13 @@ sqlalchemy = "^2.0.25"
 sqlalchemy-json = "^0.7.0"
 sqlmodel = "^0.0.16"
 tiktoken = "^0.5.1"
-tqdm = "^4.66.1"
 typer = {version = "^0.9.0", extras = ["all"]}
-
-[package.extras]
-dev = ["autoflake (>=2.3.0,<3.0.0)", "black[jupyter] (>=24.2.0,<25.0.0)", "pre-commit (>=3.5.0,<4.0.0)", "pyright (>=1.1.347,<2.0.0)", "pytest (>=7.4.4,<8.0.0)"]
-postgres = ["pg8000 (>=1.30.3,<2.0.0)", "pgvector (>=0.2.3,<0.3.0)"]
 
 [package.source]
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
-reference = "37691024696eb65620670be25846926007326456"
-resolved_reference = "37691024696eb65620670be25846926007326456"
+reference = "471d11d4de59dbafd0261b93334b627b526e33c7"
+resolved_reference = "471d11d4de59dbafd0261b93334b627b526e33c7"
 
 [[package]]
 name = "pyparsing"
@@ -3897,4 +3892,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "b05ae020c662d35087403b98bfb6e0dc03a78a5ac252ecedaa52a97e5a883334"
+content-hash = "298bdde8d70f375e5e5887225be93db07e60a548b28bfd5be7488c91db2258e5"

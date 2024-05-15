@@ -131,7 +131,7 @@ class Store:
         with self.session_maker() as session:
             reminders = (
                 session.query(AgentReminder)
-                .filter(AgentReminder.state == "pending", AgentReminder.reminder_time_utc < datetime.now(UTC))
+                .filter(AgentReminder.state == "pending", AgentReminder.reminder_time_utc < datetime.now(UTC)) # type: ignore
                 .all()
             )
         return reminders
@@ -139,6 +139,7 @@ class Store:
     def update_reminder_state(self, reminder_id: int, new_state: str) -> None:
         with self.session_maker() as session:
             reminder = session.query(AgentReminder).filter_by(id=reminder_id).first()
+            assert reminder
             reminder.state = new_state
             session.commit()
 

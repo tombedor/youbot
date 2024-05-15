@@ -12,7 +12,7 @@ from memgpt.server.server import SyncServer
 from memgpt.data_types import User, Preset, AgentState, LLMConfig, EmbeddingConfig
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
 from memgpt.server.rest_api.interface import QueuingInterface
-from memgpt.client.client import LocalClient
+from memgpt.client.client import Client
 
 from youbot.store import YoubotUser
 
@@ -44,10 +44,8 @@ PERSONA_TEXT = """The following is a starter persona, and it can be expanded as 
 
 
 class MemGPTClient:
-    metadata_store = MetadataStore(MEMGPT_CONFIG)
+    metadata_store = MetadataStore()
     DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
-
-    session_maker = metadata_store.session_maker  # note this is a function
 
     server = SyncServer(default_interface=QueuingInterface(debug=True))
 
@@ -65,8 +63,6 @@ class MemGPTClient:
             id=id,
             user_id=user_id,
             description="Youbot default preset",
-            system=SYSTEM,
-            persona=PERSONA_TEXT,
             human=human_text,
         )
         cls.metadata_store.create_preset(preset)
@@ -80,13 +76,11 @@ class MemGPTClient:
         agent_state = AgentState(
             name=AGENT_NAME,
             user_id=user_id,
-            persona=PERSONA_NAME,
             human=human_name,
-            preset=PRESET_NAME,
             embedding_config=embedding_config,
             llm_config=llm_config,
         )
-        cls.server.create_agent(user_id=user_id, name=AGENT_NAME, persona=PERSONA_NAME, human=human_name, preset=PRESET_NAME)
+        cls.server.create_agent(user_id=user_id, name=AGENT_NAME, human=human_name, preset=PRESET_NAME)
         agent_state = cls.metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
         assert agent_state
         return agent_state
@@ -151,7 +145,7 @@ class MemGPTClient:
     def _user_message(cls, agent_id: UUID, user_id: UUID, msg: str) -> str:
         # hack to get around a typing bug in memgpt
         if user_id not in cls.clients:
-            cls.clients[user_id] = LocalClient(auto_save=True, user_id=str(user_id), debug=True)
+            cls.clients[user_id] = Client(auto_save=True, user_id=str(user_id), debug=True)
         local_client = cls.clients[user_id]
         local_client.interface.clear()
         local_client.server.user_message(user_id=user_id, agent_id=agent_id, message=msg)

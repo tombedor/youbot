@@ -73,25 +73,3 @@ def remove_function(self, function_name: str) -> str:
 
     return self.remove_function(function_name)
 
-
-def load_preset_functions(self) -> str:
-    """Adds any preset functions that are not currently loaded to the agent state.
-
-    Returns:
-        str: description of result.
-    """
-
-    from memgpt.presets.utils import load_all_presets
-
-    preset = self.agent_state.preset
-    preset_functions = set(load_all_presets()[preset]["functions"])
-    agent_functions = set(self.functions_python.keys())
-
-    functions_to_add = preset_functions - agent_functions
-    for f in functions_to_add:
-        self.add_function(f)
-
-    if len(functions_to_add) == 0:
-        return "No functions to add"
-    else:
-        return f"Added functions {functions_to_add} to agent state"
