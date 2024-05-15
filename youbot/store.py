@@ -8,16 +8,13 @@ from attr import dataclass
 from pydantic import field_validator
 from sqlalchemy import NullPool, create_engine
 from sqlmodel import SQLModel, Field
-from memgpt.agent_store.db import get_db_model
-from memgpt.agent_store.storage import TableType, RECALL_TABLE_NAME, ARCHIVAL_TABLE_NAME
+from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
 
 
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 Base = declarative_base()
 
-MEMGPT_RECALL_TABLE = get_db_model(RECALL_TABLE_NAME, TableType.RECALL_MEMORY).__table__  # type: ignore
-MEMGPT_ARCHIVAL_TABLE = get_db_model(ARCHIVAL_TABLE_NAME, TableType.ARCHIVAL_MEMORY).__table__  # type: ignore
 
 
 # raw signup table from web
@@ -161,13 +158,13 @@ class Store:
 
     def get_archival_messages(self, limit=None) -> List[str]:
         with self.session_maker() as session:
-            raw_messages = session.query(MEMGPT_ARCHIVAL_TABLE).limit(limit).all()
+            raw_messages = session.query(ArchivalMemoryModel).limit(limit).all()
         return [msg.text for msg in raw_messages]
 
     def get_memgpt_recall(self, limit=None) -> List[RecallMessage]:
         with self.session_maker() as session:
             # raw messages ordered by created_at
-            raw_messages = session.query(MEMGPT_RECALL_TABLE).order_by(MEMGPT_RECALL_TABLE.c.created_at).limit(limit).all()
+            raw_messages = session.query(RecallMemoryModel).order_by(RecallMemoryModel.c.created_at).limit(limit).all()
 
         skipped = 0
         cleaned_messages = []
