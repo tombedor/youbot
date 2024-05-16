@@ -37,7 +37,7 @@ def test_reminder():
     process_pending_reminders()
 
     agent = AgentStub()
-    agent.enqueue_reminder(year=1999, month=1, day=1, hour=1, minute=1, timezone_name="US/Pacific", message="hello world") # type: ignore
+    agent.enqueue_reminder(year=1999, month=1, day=1, hour=1, minute=1, timezone_name="US/Pacific", message="hello world")  # type: ignore
 
     assert len(get_pending_reminders()) == 1
 

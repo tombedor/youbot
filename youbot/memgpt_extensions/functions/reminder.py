@@ -58,7 +58,6 @@ def enqueue_reminder(self, year: int, month: int, day: int, hour: int, minute: i
     tz = pytz.timezone(timezone_name)
     reminder_time = datetime(year=year, month=month, day=day, hour=hour, minute=minute, tzinfo=tz).astimezone(pytz.utc)
 
-
     agent_id = self.agent_state.id
     youbot_user = get_youbot_user_by_agent_id(agent_id)
 
