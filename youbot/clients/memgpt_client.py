@@ -33,7 +33,7 @@ PERSONA_TEXT = """The following is a starter persona, and it can be expanded as 
 metadata_store = MetadataStore()
 DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
 
-server = SyncServer(default_interface=QueuingInterface(debug=True))
+server = SyncServer()
 
 clients = {}
 
