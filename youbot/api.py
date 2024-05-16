@@ -2,7 +2,7 @@ import logging
 import os
 from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
-from youbot.store import Store
+from youbot.store import create_signup, create_sms_webhook_log, get_youbot_user_by_phone
 from youbot.clients.twilio_client import test_recipient, send_message, account_sid
 from youbot.workers.worker import response_to_twilio_message
 
@@ -38,7 +38,7 @@ def receive_signup() -> Response:
         )
     else:
         logging.info(f"received form submission: {name}")
-        Store().create_signup(name=name, phone=phone, discord_member_id=discord_username)
+        create_signup(name=name, phone=phone, discord_member_id=discord_username)
 
         return Response(
             {
@@ -83,14 +83,14 @@ def sms_receive() -> Response:
             user_lookup_number = sender_number
 
         try:
-            youbot_user = Store().get_youbot_user_by_phone(phone=user_lookup_number)
+            youbot_user = get_youbot_user_by_phone(phone=user_lookup_number)
         except KeyError:
             logging.warning(f"no user found with phone number {user_lookup_number}")
             return Response({"message": "no user found"}, status=403, mimetype="application/json")
 
         response_to_twilio_message.delay(youbot_user=youbot_user, sender_number=sender_number, received_msg=received_msg)  # type: ignore
 
-        Store().create_sms_webhook_log(source="receive_sms", msg=str(request.form))
+        create_sms_webhook_log(source="receive_sms", msg=str(request.form))
         return Response({}, status=200, mimetype="application/json")
     else:
         logging.error("failed validation")
@@ -101,7 +101,7 @@ def sms_receive() -> Response:
 def sms_fallback() -> Response:
     if validate_request(request):
         logging.info("fallback triggered")
-        Store().create_sms_webhook_log(source="sms_fallback", msg=str(request.form))
+        create_sms_webhook_log(source="sms_fallback", msg=str(request.form))
         return Response({"message": "received"}, status=200, mimetype="application/json")
 
     else:

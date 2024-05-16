@@ -1,8 +1,8 @@
 from pandas import DataFrame
-from youbot.store import Store
+from youbot.store import get_archival_messages
 
 
-docs = Store().get_archival_messages()  # [:MESSAGES_COUNT]
+docs = get_archival_messages()  # [:MESSAGES_COUNT]
 
 df = DataFrame(docs)
 

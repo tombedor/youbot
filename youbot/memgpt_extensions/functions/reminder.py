@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
-import time
 import pytz
 
-from youbot.store import Store
+from youbot.store import create_agent_reminder, get_youbot_user_by_agent_id
 
 VALID_TIMEZONES = [
     "US/Alaska",
@@ -59,10 +58,9 @@ def enqueue_reminder(self, year: int, month: int, day: int, hour: int, minute: i
     tz = pytz.timezone(timezone_name)
     reminder_time = datetime(year=year, month=month, day=day, hour=hour, minute=minute, tzinfo=tz).astimezone(pytz.utc)
 
-    store = Store()
 
     agent_id = self.agent_state.id
-    youbot_user = store.get_youbot_user_by_agent_id(agent_id)
+    youbot_user = get_youbot_user_by_agent_id(agent_id)
 
-    store.create_agent_reminder(youbot_user.id, reminder_time, message)
+    create_agent_reminder(youbot_user.id, reminder_time, message)
     return "Reminder enqueued."

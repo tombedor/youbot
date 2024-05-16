@@ -1,7 +1,5 @@
-import uuid
-from youbot.clients.memgpt_client import MemGPTClient
 from youbot.memgpt_extensions.functions.reminder import enqueue_reminder
-from youbot.store import Store
+from youbot.store import get_pending_reminders
 from youbot.workers.worker import add, app, process_pending_reminders
 from tests import test_user
 from celery.contrib.testing.worker import start_worker
@@ -16,9 +14,6 @@ class AgentStub:
     state = AgentStateStub()
 
     pass
-
-
-agent = MemGPTClient()
 
 
 setattr(AgentStub, "enqueue_reminder", enqueue_reminder)
@@ -44,8 +39,7 @@ def test_reminder():
     agent = AgentStub()
     agent.enqueue_reminder(year=1999, month=1, day=1, hour=1, minute=1, timezone_name="US/Pacific", message="hello world") # type: ignore
 
-    store = Store()
-    assert len(store.get_pending_reminders()) == 1
+    assert len(get_pending_reminders()) == 1
 
     process_pending_reminders()
 

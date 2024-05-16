@@ -69,140 +69,140 @@ class RecallMessage:
     content: str
     role: str
     time: datetime
+    
+ENGINE = create_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
+Base.metadata.create_all(
+    ENGINE,
+    tables=[
+        Signup.__table__,
+        YoubotUser.__table__,
+        SmsWebhookLog.__table__,
+        AgentReminder.__table__,
+    ],
+)
+SESSION_MAKER = sessionmaker(bind=ENGINE)
 
 
-class Store:
-    def __init__(self) -> None:
-        self.engine = create_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
-        Base.metadata.create_all(
-            self.engine,
-            tables=[
-                Signup.__table__,
-                YoubotUser.__table__,
-                SmsWebhookLog.__table__,
-                AgentReminder.__table__,
-            ],
+
+
+def create_signup(name: str, phone: str, discord_member_id: Optional[str]) -> None:
+    with SESSION_MAKER() as session:
+        session.add(Signup(name=name, phone=phone, discord_member_id=discord_member_id))  # type: ignore
+        session.commit()
+
+def create_youbot_user(user: YoubotUser) -> None:
+    with SESSION_MAKER() as session:
+        session.add(user)
+        session.commit()
+
+def get_youbot_user_by_phone(phone: str) -> YoubotUser:
+    with SESSION_MAKER() as session:
+        user = session.query(YoubotUser).filter_by(phone=phone).first()
+        if user:
+            return user
+        else:
+            raise KeyError(f"User with phone {phone} not found")
+
+def get_youbot_user_by_agent_id(agent_id: UUID) -> YoubotUser:
+    with SESSION_MAKER() as session:
+        user = session.query(YoubotUser).filter_by(memgpt_agent_id=agent_id).first()
+        if user:
+            return user
+        else:
+            raise KeyError(f"User with agent id {agent_id} not found")
+
+def create_agent_reminder(youbot_user_id: int, reminder_time_utc: datetime, reminder_message: str) -> None:
+    with SESSION_MAKER() as session:
+        reminder = AgentReminder(youbot_user_id=youbot_user_id, reminder_time_utc=reminder_time_utc, reminder_message=reminder_message)  # type: ignore
+        session.add(reminder)
+        session.commit()
+
+def create_sms_webhook_log(source: str, msg: str) -> None:
+    with SESSION_MAKER() as session:
+        webhook_log = SmsWebhookLog(source=source, info=msg)  # type: ignore
+        session.add(webhook_log)
+        session.commit()
+
+# all pending state reminders where the reminder time is in the past
+def get_pending_reminders() -> List[AgentReminder]:
+    with SESSION_MAKER() as session:
+        reminders = (
+            session.query(AgentReminder)
+            .filter(AgentReminder.state == "pending", AgentReminder.reminder_time_utc < datetime.now(UTC)) # type: ignore
+            .all()
         )
-        self.session_maker = sessionmaker(bind=self.engine)
+    return reminders
 
-    def create_signup(self, name: str, phone: str, discord_member_id: Optional[str]) -> None:
-        with self.session_maker() as session:
-            session.add(Signup(name=name, phone=phone, discord_member_id=discord_member_id))  # type: ignore
-            session.commit()
+def update_reminder_state(reminder_id: int, new_state: str) -> None:
+    with SESSION_MAKER() as session:
+        reminder = session.query(AgentReminder).filter_by(id=reminder_id).first()
+        assert reminder
+        reminder.state = new_state
+        session.commit()
 
-    def create_youbot_user(self, user: YoubotUser) -> None:
-        with self.session_maker() as session:
-            session.add(user)
-            session.commit()
+def get_youbot_user_by_discord(discord_member_id: str) -> YoubotUser:
+    with SESSION_MAKER() as session:
+        user = session.query(YoubotUser).filter_by(discord_member_id=discord_member_id).first()
+    if user:
+        return user
+    else:
+        raise KeyError(f"User with discord member id {discord_member_id} not found")
 
-    def get_youbot_user_by_phone(self, phone: str) -> YoubotUser:
-        with self.session_maker() as session:
-            user = session.query(YoubotUser).filter_by(phone=phone).first()
-            if user:
-                return user
-            else:
-                raise KeyError(f"User with phone {phone} not found")
+def get_youbot_user_by_id(user_id: int) -> YoubotUser:
+    with SESSION_MAKER() as session:
+        user = session.query(YoubotUser).filter_by(id=user_id).first()
+    if user:
+        return user
+    else:
+        raise KeyError(f"User with id {user_id} not found")
 
-    def get_youbot_user_by_agent_id(self, agent_id: UUID) -> YoubotUser:
-        with self.session_maker() as session:
-            user = session.query(YoubotUser).filter_by(memgpt_agent_id=agent_id).first()
-            if user:
-                return user
-            else:
-                raise KeyError(f"User with agent id {agent_id} not found")
+def get_archival_messages(limit=None) -> List[str]:
+    with SESSION_MAKER() as session:
+        raw_messages = session.query(ArchivalMemoryModel).limit(limit).all()
+    return [msg.text for msg in raw_messages] # type: ignore
 
-    def create_agent_reminder(self, youbot_user_id: int, reminder_time_utc: datetime, reminder_message: str) -> None:
-        with self.session_maker() as session:
-            reminder = AgentReminder(youbot_user_id=youbot_user_id, reminder_time_utc=reminder_time_utc, reminder_message=reminder_message)  # type: ignore
-            session.add(reminder)
-            session.commit()
+def get_memgpt_recall(limit=None) -> List[RecallMessage]:
+    with SESSION_MAKER() as session:
+        # raw messages ordered by created_at
+        raw_messages = session.query(RecallMemoryModel).order_by(RecallMemoryModel.c.created_at).limit(limit).all()
 
-    def create_sms_webhook_log(self, source: str, msg: str) -> None:
-        with self.session_maker() as session:
-            webhook_log = SmsWebhookLog(source=source, info=msg)  # type: ignore
-            session.add(webhook_log)
-            session.commit()
+    skipped = 0
+    cleaned_messages = []
+    for msg in raw_messages:
+        text = msg.text
 
-    # all pending state reminders where the reminder time is in the past
-    def get_pending_reminders(self) -> List[AgentReminder]:
-        with self.session_maker() as session:
-            reminders = (
-                session.query(AgentReminder)
-                .filter(AgentReminder.state == "pending", AgentReminder.reminder_time_utc < datetime.now(UTC)) # type: ignore
-                .all()
-            )
-        return reminders
+        if not msg.text: # type: ignore
+            continue
 
-    def update_reminder_state(self, reminder_id: int, new_state: str) -> None:
-        with self.session_maker() as session:
-            reminder = session.query(AgentReminder).filter_by(id=reminder_id).first()
-            assert reminder
-            reminder.state = new_state
-            session.commit()
+        bad_strings = [
+            '"type": "heartbeat"',
+            '"status": "OK"',
+            "Bootup sequence complete",
+            '"type": "login"',
+            "You are MemGPT, the latest version of Limnal Corporation",
+            "This is an automated system message hidden from the user",
+            "This is placeholder text",
+            "have been hidden from view due to conversation memory constraints",
+        ]
+        if any(bad_string in text for bad_string in bad_strings):
+            skipped += 1
+            continue
 
-    def get_youbot_user_by_discord(self, discord_member_id: str) -> YoubotUser:
-        with self.session_maker() as session:
-            user = session.query(YoubotUser).filter_by(discord_member_id=discord_member_id).first()
-        if user:
-            return user
+        if msg.role in ["system", "tool"] or '{"type": "login",' in msg.text:
+            role = "system"
+        elif msg.role == "user": # type: ignore
+            role = "user"
+        elif msg.role == "assistant": # type: ignore
+            role = "assistant"
         else:
-            raise KeyError(f"User with discord member id {discord_member_id} not found")
+            raise ValueError(f"Unknown role: {msg.role}")
+        text = msg.text
 
-    def get_youbot_user_by_id(self, user_id: int) -> YoubotUser:
-        with self.session_maker() as session:
-            user = session.query(YoubotUser).filter_by(id=user_id).first()
-        if user:
-            return user
-        else:
-            raise KeyError(f"User with id {user_id} not found")
-
-    def get_archival_messages(self, limit=None) -> List[str]:
-        with self.session_maker() as session:
-            raw_messages = session.query(ArchivalMemoryModel).limit(limit).all()
-        return [msg.text for msg in raw_messages]
-
-    def get_memgpt_recall(self, limit=None) -> List[RecallMessage]:
-        with self.session_maker() as session:
-            # raw messages ordered by created_at
-            raw_messages = session.query(RecallMemoryModel).order_by(RecallMemoryModel.c.created_at).limit(limit).all()
-
-        skipped = 0
-        cleaned_messages = []
-        for msg in raw_messages:
+        # check if text is actually a json object
+        try:
+            text = json.loads(text)["message"] # type: ignore
+        except json.JSONDecodeError:
             text = msg.text
 
-            if not msg.text:
-                continue
-
-            bad_strings = [
-                '"type": "heartbeat"',
-                '"status": "OK"',
-                "Bootup sequence complete",
-                '"type": "login"',
-                "You are MemGPT, the latest version of Limnal Corporation",
-                "This is an automated system message hidden from the user",
-                "This is placeholder text",
-                "have been hidden from view due to conversation memory constraints",
-            ]
-            if any(bad_string in text for bad_string in bad_strings):
-                skipped += 1
-                continue
-
-            if msg.role in ["system", "tool"] or '{"type": "login",' in msg.text:
-                role = "system"
-            elif msg.role == "user":
-                role = "user"
-            elif msg.role == "assistant":
-                role = "assistant"
-            else:
-                raise ValueError(f"Unknown role: {msg.role}")
-            text = msg.text
-
-            # check if text is actually a json object
-            try:
-                text = json.loads(text)["message"]
-            except json.JSONDecodeError:
-                text = msg.text
-
-            cleaned_messages.append(RecallMessage(role=role, content=text, user_id=msg.user_id, time=msg.created_at))
-        return cleaned_messages
+        cleaned_messages.append(RecallMessage(role=role, content=text, user_id=msg.user_id, time=msg.created_at)) # type: ignore
+    return cleaned_messages

@@ -1,7 +1,7 @@
 import os
 
 from youbot.onboard_user import onboard_user
-from youbot.store import Store
+from youbot.store import get_youbot_user_by_phone
 
 # see: https://www.twilio.com/docs/iam/test-credentials#test-sms-messages
 
@@ -20,4 +20,4 @@ except ValueError:
     # expected
 
 
-test_user = Store().get_youbot_user_by_phone(TEST_RECIPIENT)
+test_user = get_youbot_user_by_phone(TEST_RECIPIENT)
