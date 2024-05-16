@@ -72,4 +72,3 @@ def remove_function(self, function_name: str) -> str:
     """
 
     return self.remove_function(function_name)
-

@@ -15,7 +15,7 @@
 
 
 # for user_id, agent_id in AGENT_IDS.items():
-#     client = MemGPT(user_id=user_id, auto_save=True, debug=True)
+#     client = MemGPT(user_id=user_id, debug=True)
 #     metadata_store = MetadataStore(MEMGPT_CONFIG)
 #     agent_state = metadata_store.get_agent(agent_id=agent_id, user_id=uuid.UUID(user_id))
 #     assert agent_state

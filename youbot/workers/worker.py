@@ -2,7 +2,7 @@ import logging
 import os
 from celery import Celery
 
-from youbot.clients.memgpt_client import user_message
+from youbot.clients.memgpt_client import get_agent, user_message
 from youbot.clients.twilio_client import send_message
 from youbot.store import YoubotUser, get_pending_reminders, get_youbot_user_by_id, update_reminder_state
 
@@ -18,7 +18,7 @@ app.conf.update(
 
 @app.on_after_configure.connect  # type: ignore
 def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(60.0, process_pending_reminders.s(), name="Reminder check every 60 seconds") # type: ignore
+    sender.add_periodic_task(60.0, process_pending_reminders.s(), name="Reminder check every 60 seconds")  # type: ignore
 
 
 @app.task
@@ -34,6 +34,12 @@ def process_pending_reminders():
         send_message(message=response, receipient_phone=youbot_user.phone)
         reminder.state = "sent"
         update_reminder_state(reminder.id, "complete")
+
+
+@app.task
+def evaluate_system_context(youbot_user: YoubotUser):
+    agent = get_agent(youbot_user)
+    logging.info(agent.get_system_message_text())
 
 
 # covers both sms and whatsapp

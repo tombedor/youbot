@@ -1,9 +1,6 @@
-import logging
 from uuid import UUID
 import uuid
 
-from youbot import AGENTS_CONFIG
-from memgpt.agent import Agent
 from memgpt.metadata import MetadataStore
 from memgpt.config import MemGPTConfig
 from memgpt.server.server import SyncServer
@@ -11,6 +8,7 @@ from memgpt.data_types import User, Preset, AgentState, LLMConfig, EmbeddingConf
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
 from memgpt.server.rest_api.interface import QueuingInterface
 from memgpt.client.client import Client
+from memgpt.agent import Agent
 
 from youbot.store import YoubotUser
 
@@ -39,6 +37,7 @@ server = SyncServer(default_interface=QueuingInterface(debug=True))
 
 clients = {}
 
+
 def create_preset(
     user_id: UUID,
     human_text: str,
@@ -53,6 +52,7 @@ def create_preset(
     )
     metadata_store.create_preset(preset)
     return preset
+
 
 def create_agent(user_id: UUID, human_name: str) -> AgentState:
     llm_config = LLMConfig(model="gpt-4", model_endpoint_type="openai", model_endpoint="https://api.openai.com/v1")
@@ -70,47 +70,39 @@ def create_agent(user_id: UUID, human_name: str) -> AgentState:
     assert agent_state
     return agent_state
 
+
 def create_human(user_id: UUID, human_text: str, human_name: str) -> HumanModel:
     human = HumanModel(name=human_name, user_id=user_id, text=human_text)
     metadata_store.add_human(human)
     return human
+
 
 def create_persona(user_id: UUID) -> PersonaModel:
     persona = PersonaModel(text=PERSONA_TEXT, name="youbot", user_id=user_id)
     metadata_store.add_persona(persona)
     return persona
 
+
 def create_user(user_id: UUID) -> User:
     user = User(user_id)
     metadata_store.create_user(user)
     return user
 
-def agent_exists(agent_name: str, user_id: UUID) -> bool:
-    agents = server.list_agents(user_id=user_id)["agents"]
-    return any(agent["name"] == agent_name for agent in agents)
-
-def get_or_create_agent(agent_name: str, user_id: UUID = DEFAULT_MEMGPT_USER_ID) -> Agent:
-    if not agent_exists(user_id=user_id, agent_name=agent_name):
-        if agent_name not in AGENTS_CONFIG:
-            agent_key = "youbot"
-            logging.warning(f"defaulting to {agent_key} agent profile")
-        else:
-            agent_key = agent_name
-        init_state = {"name": agent_name, **AGENTS_CONFIG[agent_key]}
-        agent_state = client.create_agent(**init_state)  # type: ignore
-    else:
-        agent_state = metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
-        if agent_state is None:
-            raise ValueError(f"Agent state for {agent_name} not found.")
-    return Agent(agent_state=agent_state, interface=server.default_interface)
 
 def user_message(youbot_user: YoubotUser, msg: str) -> str:
     return _user_message(agent_id=youbot_user.memgpt_agent_id, user_id=youbot_user.memgpt_user_id, msg=msg)
 
+
+def get_agent(youbot_user: YoubotUser) -> Agent:
+    return server._load_agent(
+        user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, interface=QueuingInterface(debug=True)
+    )
+
+
 def _user_message(agent_id: UUID, user_id: UUID, msg: str) -> str:
     # hack to get around a typing bug in memgpt
     if user_id not in clients:
-        clients[user_id] = Client(auto_save=True, user_id=str(user_id), debug=True)
+        clients[user_id] = Client(user_id=str(user_id), debug=True)
     local_client = clients[user_id]
     local_client.interface.clear()
     local_client.server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
