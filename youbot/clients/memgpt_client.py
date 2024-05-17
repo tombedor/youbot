@@ -1,3 +1,4 @@
+import json
 from uuid import UUID
 import uuid
 
@@ -6,8 +7,6 @@ from memgpt.config import MemGPTConfig
 from memgpt.server.server import SyncServer
 from memgpt.data_types import User, Preset, AgentState, LLMConfig, EmbeddingConfig
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
-from memgpt.server.rest_api.interface import QueuingInterface
-from memgpt.client.client import Client
 from memgpt.agent import Agent
 
 from youbot.store import YoubotUser
@@ -94,28 +93,19 @@ def user_message(youbot_user: YoubotUser, msg: str) -> str:
 
 
 def get_agent(youbot_user: YoubotUser) -> Agent:
-    return server._load_agent(
-        user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, interface=QueuingInterface(debug=True)
-    )
+    return server._load_agent(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id)
 
 
 def _user_message(agent_id: UUID, user_id: UUID, msg: str) -> str:
-    # hack to get around a typing bug in memgpt
-    if user_id not in clients:
-        clients[user_id] = Client(user_id=str(user_id), debug=True)
-    local_client = clients[user_id]
-    local_client.interface.clear()
-    local_client.server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
-    local_client.server.save_agents()
-    response_list = local_client.interface.to_list()
-    try:
-        reply = next(r.get("assistant_message") for r in response_list if r.get("assistant_message"))  # type: ignore
-    except StopIteration:
-        if any("function_call" in r for r in response_list):
-            function_call = next(r.get("function_call") for r in response_list if r.get("function_call"))
-            function_result = next(r.get("function_return") for r in response_list if r.get("function_return"))
-            reply = f"The agent took an action: {function_call} with result: {function_result}"
-        else:
-            raise Exception(f"no assistant reply or function call found in response list: {response_list}")
-    assert isinstance(reply, str)
-    return reply
+
+    response_list = server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
+
+    for i in range(len(response_list) - 1, -1, -1):
+        response = response_list[i]
+        if not response.tool_calls:
+            continue
+
+        for call in response.tool_calls:
+            if call.function["name"] == "send_message":
+                return json.loads(call.function["arguments"])["message"]
+    raise Exception("No response found")
