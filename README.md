@@ -7,12 +7,12 @@ An AI personal assistant with long term memory.
 ### Clients
 - [x] command line client
 - [x] Discord client
-- [ ] SMS client
-- [ ] WhatsApp client
+- [x] SMS client
+- [x] WhatsApp client
 - [ ] Discord voice client
 
 ### User onboarding
-- [ ] Signup page
+- [x] Signup page
 - [ ] Onboarding flow
 - [ ] logo / design for pages
 - [ ] Updated onboarding, smooth initial conversation to capture initial information about user. Agent should take more initiative in learning about the user, without being spammy
@@ -23,7 +23,7 @@ An AI personal assistant with long term memory.
 
 ### Toolsets
 - [ ] Google calendar
-- [ ] Generic reminders
+- [x] Generic reminders
 - [ ] RSS / feed summarizing
 - [ ] Command line refinement (consume from stderr?)
 
