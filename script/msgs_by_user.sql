@@ -1,0 +1,1 @@
+select y.name, date(m.created_at), count(*) from youbotuser y join memgpt_recall_memory_agent m on y.memgpt_user_id = m.user_id group by 1, 2 order by 2 desc,1;
