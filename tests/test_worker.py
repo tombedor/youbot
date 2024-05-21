@@ -43,4 +43,4 @@ def test_reminder():
 
     process_pending_reminders()
 
-    assert len(store.get_pending_reminders()) == 0
+    assert len(get_pending_reminders()) == 0

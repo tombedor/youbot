@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
 import json
+import logging
 import os
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 from attr import dataclass
 from pydantic import field_validator
@@ -164,54 +165,43 @@ def get_youbot_user_by_id(user_id: int) -> YoubotUser:
         raise KeyError(f"User with id {user_id} not found")
 
 
-def get_archival_messages(limit=None) -> List[str]:
+def get_archival_messages(limit=None) -> List[ArchivalMemoryModel]:
     with SESSION_MAKER() as session:
         raw_messages = session.query(ArchivalMemoryModel).limit(limit).all()
-    return [msg.text for msg in raw_messages]  # type: ignore
+    return raw_messages
 
 
-def get_memgpt_recall(limit=None) -> List[RecallMessage]:
+def readable_message(msg) -> Optional[str]:
+    if msg.role == "user":
+        msg_text_d = json.loads(msg.text)
+        if msg_text_d.get("type") in ["login", "heartbeat"]:
+            return None
+        else:
+            return msg_text_d["message"]
+
+    elif msg.role == "tool":
+        return None
+    elif msg.role == "assistant":
+        if msg.tool_calls:
+            for tool_call in msg.tool_calls:
+                if tool_call.function["name"] == "send_message":
+                    try:
+                        return json.loads(tool_call.function["arguments"], strict=False)["message"]
+                    except json.JSONDecodeError:
+                        logging.warning("Could not decode JSON, returning raw response.")
+                        return tool_call.function["arguments"]
+        elif "system alert" in msg.text:
+            pass
+        else:
+            logging.warning(f"Unexpected assistant message: {msg}")
+            pass
+
+
+def get_memgpt_recall(limit=None) -> List[Dict]:
     with SESSION_MAKER() as session:
         # raw messages ordered by created_at
-        raw_messages = session.query(RecallMemoryModel).order_by(RecallMemoryModel.c.created_at).limit(limit).all()
+        raw_messages = session.query(RecallMemoryModel).order_by(RecallMemoryModel.created_at).limit(limit).all()
 
-    skipped = 0
-    cleaned_messages = []
-    for msg in raw_messages:
-        text = msg.text
-
-        if not msg.text:  # type: ignore
-            continue
-
-        bad_strings = [
-            '"type": "heartbeat"',
-            '"status": "OK"',
-            "Bootup sequence complete",
-            '"type": "login"',
-            "You are MemGPT, the latest version of Limnal Corporation",
-            "This is an automated system message hidden from the user",
-            "This is placeholder text",
-            "have been hidden from view due to conversation memory constraints",
-        ]
-        if any(bad_string in text for bad_string in bad_strings):
-            skipped += 1
-            continue
-
-        if msg.role in ["system", "tool"] or '{"type": "login",' in msg.text:
-            role = "system"
-        elif msg.role == "user":  # type: ignore
-            role = "user"
-        elif msg.role == "assistant":  # type: ignore
-            role = "assistant"
-        else:
-            raise ValueError(f"Unknown role: {msg.role}")
-        text = msg.text
-
-        # check if text is actually a json object
-        try:
-            text = json.loads(text)["message"]  # type: ignore
-        except json.JSONDecodeError:
-            text = msg.text
-
-        cleaned_messages.append(RecallMessage(role=role, content=text, user_id=msg.user_id, time=msg.created_at))  # type: ignore
-    return cleaned_messages
+    return [
+        {"role": m.role, "time": m.created_at, "content": m.readable_message()} for m in raw_messages if not m.is_system_status_message()
+    ]
