@@ -1,6 +1,5 @@
 import logging
 import os
-import yaml
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
