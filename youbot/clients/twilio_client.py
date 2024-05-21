@@ -1,3 +1,4 @@
+import logging
 import os
 from twilio.rest import Client
 
@@ -12,7 +13,7 @@ def hello_world():
     test_recipient = os.environ.get("TEST_PHONE_NUMBER")
     assert test_recipient
     message = client.messages.create(body="Hello, World!", to=test_recipient, from_=sender_number)
-    print(message.sid)
+    logging.info(message.sid)
 
 
 def send_message(message, receipient_phone):

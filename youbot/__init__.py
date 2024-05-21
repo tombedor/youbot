@@ -1,9 +1,14 @@
+import logging
 import os
 import yaml
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STORAGE_DIR = os.path.join(ROOT_DIR, "storage")
+CACHE_DIR = os.path.join(ROOT_DIR, ".cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
 
-with open(os.path.join(ROOT_DIR, "config", "agents.yaml"), "r") as file:
-    AGENTS_CONFIG = yaml.safe_load(file.read())
+
+if os.environ.get("IS_DEVELOPMENT"):
+    # direct logs to stdout
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
+    logging.getLogger().handlers = [logging.StreamHandler()]

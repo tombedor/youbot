@@ -1,3 +1,4 @@
+.cache/
 .env
 .secrets/
 .github/
@@ -10,3 +11,4 @@ scratch/
 *log
 dump.rdb
 db.dump
+
