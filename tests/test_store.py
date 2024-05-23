@@ -1,12 +1,11 @@
 from datetime import UTC, datetime
 import uuid
 
-from youbot.store import YoubotUser
-
 
 import pytest
 from pydantic import ValidationError
-from youbot.store import YoubotUser  # make sure to import your model correctly
+
+from youbot.data_models import YoubotUser
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ set -e
 docker build -f ./Dockerfile.simple -t youbot_db .
 
 # Define the expected database URL
-expected_database_url="postgresql://localhost:8888/youbot?user=youbot&password=password"
+expected_database_url="postgresql://mempgt:password@localhost:8888/memgpt"
 
 # Check if DATABASE_URL matches the expected value
 if [[ "$DATABASE_URL" != "$expected_database_url" ]]; then

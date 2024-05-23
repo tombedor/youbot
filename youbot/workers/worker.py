@@ -2,9 +2,12 @@ import logging
 import os
 from celery import Celery
 
-from youbot.clients.memgpt_client import get_agent, user_message
+from youbot.data_models import YoubotUser
 from youbot.clients.twilio_client import send_message
-from youbot.store import YoubotUser, get_pending_reminders, get_youbot_user_by_id, update_reminder_state
+from youbot.memory import refresh_context_if_needed
+from youbot.messenger import user_message
+from youbot.store import get_pending_reminders, get_youbot_user_by_id, update_reminder_state
+
 
 app = Celery("youbot", broker=os.environ["REDIS_URL"], backend=os.environ["REDIS_URL"])
 app.conf.update(
@@ -22,6 +25,11 @@ def setup_periodic_tasks(sender, **kwargs):
 
 
 @app.task
+def refresh_context_async(youbot_user: YoubotUser):
+    refresh_context_if_needed.delay(youbot_user)  # type: ignore
+
+
+@app.task
 def process_pending_reminders():
     due_reminders = get_pending_reminders()
 
@@ -34,12 +42,7 @@ def process_pending_reminders():
         send_message(message=response, receipient_phone=youbot_user.phone)
         reminder.state = "sent"
         update_reminder_state(reminder.id, "complete")
-
-
-@app.task
-def evaluate_system_context(youbot_user: YoubotUser):
-    agent = get_agent(youbot_user)
-    logging.info(agent.get_system_message_text())
+        refresh_context_async.delay(youbot_user)  # type: ignore
 
 
 # covers both sms and whatsapp
@@ -52,8 +55,4 @@ def response_to_twilio_message(youbot_user: YoubotUser, sender_number: str, rece
     message = f"[the following was sent via {channel}, keep responses brief]: {received_msg}"
     response = user_message(youbot_user=youbot_user, msg=message)
     send_message(message=response, receipient_phone=sender_number)
-
-
-@app.task
-def add(x, y):
-    return x + y
+    refresh_context_async.delay(youbot_user)  # type: ignore

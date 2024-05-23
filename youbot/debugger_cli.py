@@ -1,15 +1,11 @@
-import sys
-
 import questionary
 
 from youbot.memory import refresh_context_if_needed
-from youbot.messenger import user_message
 from youbot.store import get_youbot_user_by_id
 from colorama import Fore, Style, init
 from rich.console import Console
 
-
-MAX_RETRIES = 3
+from youbot.workers.worker import user_message
 
 
 if __name__ == "__main__":
@@ -24,8 +20,7 @@ if __name__ == "__main__":
             print("Exiting...")
             exit()
 
-        with console.status("[bold cyan]Thinking...") as _status:
-            agent_response = user_message(youbot_user, user_input)
+        agent_response = user_message(youbot_user, user_input)
 
         fstr = f"{Fore.YELLOW}{Style.BRIGHT}🤖 {Fore.YELLOW}{{msg}}{Style.RESET_ALL}"
         print(fstr.format(msg=agent_response))
