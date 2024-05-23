@@ -6,15 +6,23 @@ import re
 from typing import Dict, List, Optional
 from uuid import UUID
 from attr import dataclass
+import numpy as np
 from pydantic import field_validator
 from sqlalchemy import NullPool, create_engine
+from sqlalchemy.orm import mapped_column
 from sqlmodel import SQLModel, Field
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
-
+from pgvector.sqlalchemy import Vector
+from llama_index.embeddings.openai import OpenAIEmbedding
+from memgpt.config import MemGPTConfig
 
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+from youbot.clients.llm_client import get_embedding
+
 Base = declarative_base()
+
+MAX_EMBEDDING_DIM = 4096  # maximum supported embeding size - do NOT change or else DBs will need to be reset
 
 
 # raw signup table from web
@@ -63,12 +71,17 @@ class AgentReminder(SQLModel, table=True):
     reminder_message: str = Field(..., description="Message to remind the agent with")
 
 
-@dataclass
-class RecallMessage:
-    user_id: UUID
-    content: str
-    role: str
-    time: datetime
+class MemroyEntity(SQLModel, table=True):
+    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
+    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    youbot_user_id: int = Field(..., description="Youbot user whose assistant is being reminded")
+    entity_name: str = Field(..., description="The name of the entity")
+    entity_label: str = Field(..., description="The label of the entity")
+    text: str = Field(..., description="The text of the entity")
+    embedding = mapped_column(Vector(MAX_EMBEDDING_DIM))
+    embedding_dim: int = Field(..., description="The dimension of the embedding")
+    embedding_model: str = Field(..., description="The model used to generate the embedding")
 
 
 ENGINE = create_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
@@ -205,3 +218,27 @@ def get_memgpt_recall(limit=None) -> List[Dict]:
     return [
         {"role": m.role, "time": m.created_at, "content": m.readable_message()} for m in raw_messages if not m.is_system_status_message()
     ]
+
+
+def insert_memory_entity(youbot_user_id: int, entity_name: str, entity_label: str, text: str) -> None:
+    embedding = OpenAIEmbedding(
+        api_base=MemGPTConfig.embedding_endpoint,  # type: ignore
+        api_key=os.environ["OPENAI_API_KEY"],
+    )
+
+    embedding = get_embedding(text)
+    embedding_dim = len(embedding)
+    embedding_model = MemGPTConfig.embedding_model_name
+
+    with SESSION_MAKER() as session:
+        memory_entity = MemroyEntity(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label, text=text, embedding=embedding, embedding_dim=embedding_dim, embedding_model=embedding_model)  # type: ignore
+        session.add(memory_entity)
+        session.commit()
+
+
+def query_memory_entities(youbot_user_id: int, query_text: str) -> List[MemroyEntity]:
+    query_vec = get_embedding(query_text)
+    ...
+    with SESSION_MAKER() as session:
+        memory_entities = session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_label=entity_label).all()
+    return memory_entities

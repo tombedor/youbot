@@ -5,9 +5,11 @@ from time import sleep
 from typing import List, Union
 from llama_index.embeddings.openai import OpenAIEmbedding
 
+import numpy as np
 from openai import OpenAI
 
 from youbot import cache
+from youbot.store import MAX_EMBEDDING_DIM
 
 GPT_SLEEP_SECONDS = 0.4
 
@@ -60,5 +62,8 @@ def _query_llm_json(prompt: str, model: str, temperature: float) -> Union[dict, 
 
 
 @cache.cache(ttl=CACHE_LENGTH_SECONDS)
-def get_embedding(info: str) -> List[float]:
-    return _embeddings.get_text_embedding(info)
+def get_embedding(text: str) -> List[float]:
+    embedding = _embeddings.get_text_embedding(text)
+    embedding = np.array(embedding)
+    embedding = np.pad(embedding, (0, MAX_EMBEDDING_DIM - len(embedding)), "constant").to_list()  # type: ignore
+    return embedding
