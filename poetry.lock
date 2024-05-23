@@ -3185,6 +3185,20 @@ files = [
 six = ">=1.5"
 
 [[package]]
+name = "python-redis-cache"
+version = "3.2.0"
+description = "Basic Redis caching for functions"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "python_redis_cache-3.2.0-py3-none-any.whl", hash = "sha256:18604db5ca43515eb07dd57829e9340354d1710109277b4c186a4b179013e3ad"},
+    {file = "python_redis_cache-3.2.0.tar.gz", hash = "sha256:1faafb9549419577ab851bef8700af1684c61abbc9a913984eca18943fc1d003"},
+]
+
+[package.dependencies]
+redis = "*"
+
+[[package]]
 name = "pytz"
 version = "2023.4"
 description = "World timezone definitions, modern and historical"
@@ -4544,4 +4558,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "af11567f9b863a0e539c2a78d9d3aac1feea43f1c8b5d6323668d4902b97d041"
+content-hash = "e54d3c92fc3adaad4d894253d258db4f853dea536d40e020e7a50850c640abb0"

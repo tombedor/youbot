@@ -1,5 +1,10 @@
 ROOT_USER="postgresql://postgres:password@localhost:8888/"
 
+if [ "$IS_DEVELOPMENT" = false ]; then
+    echo "This script is only for development"
+    exit 1
+fi
+
 
 psql $ROOT_USER -c "DROP DATABASE IF EXISTS memgpt;"
 psql $ROOT_USER -c "DROP ROLE IF EXISTS mempgt;"
