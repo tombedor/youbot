@@ -9,7 +9,7 @@ readme = "README.md"
 python = ">=3.11,<3.12"
 pgvector = "^0.2.4"
 psycopg2-binary = "^2.9.9"
-pymemgpt = {git = 'https://github.com/tombedor/MemGPT.git', rev='483d4eefb95dfc80431d15d03a2f7fa14352f922'}
+pymemgpt = {git = 'https://github.com/tombedor/MemGPT.git', rev='bc7d1694a17d33347fc8329d821af336d6c29471'}
 sqlalchemy = "^2.0.29"
 discord = "^2.3.2"
 celery = {extras = ["redis"], version = "^5.4.0"}
@@ -18,7 +18,7 @@ twilio = "^9.0.3"
 gunicorn = "^21.2.0"
 pyyaml = "^6.0.1"
 questionary = "^2.0.1"
-colorama = "^0.4.6"
+requests = "^2.32.2"
 
 [tool.pyright]
 include = [
@@ -42,6 +42,7 @@ line-length = 140
 target-version = ['py310', 'py311']
 
 [tool.poetry.group.dev.dependencies]
+colorama = "^0.4.6"
 ipykernel = "^6.26.0"
 black = {extras = ["jupyter"], version = "^24.4.2"}
 autoflake = "^2.3.0"

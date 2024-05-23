@@ -1,39 +1,19 @@
 [defaults]
 preset = memgpt_chat
-persona = sam_pov
 human = tombedor
 
 [model]
-model = gpt-4
-model_endpoint = https://api.openai.com/v1
+model = gpt-4o
 model_endpoint_type = openai
-context_window = 8192
+model_endpoint = https://api.openai.com/v1
+model_context_window = 8192
 
 [embedding]
 embedding_endpoint_type = openai
 embedding_endpoint = https://api.openai.com/v1
-embedding_model = text-embedding-ada-002
+embedding_model_name = text-embedding-ada-002
 embedding_dim = 1536
 embedding_chunk_size = 300
-
-[archival_storage]
-type = postgres
-uri = $DATABASE_URL
-# hard coded to read from DATABASE_URL
-
-[recall_storage]
-type = postgres
-# hard coded to read from DATABASE_URL
-
-[metadata_storage]
-type = postgres
-# hard coded to read from DATABASE_URL
-
-[version]
-memgpt_version = 0.3.3
-
-[client]
-anon_clientid = 0000000000000000000072001b73b3ea
 
 [functions]
 modules= youbot.memgpt_extensions.functions.reminder
