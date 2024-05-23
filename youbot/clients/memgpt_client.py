@@ -3,15 +3,12 @@ from uuid import UUID
 import uuid
 
 from memgpt.metadata import MetadataStore
-from memgpt.config import MemGPTConfig
 from memgpt.server.server import SyncServer
-from memgpt.data_types import User, Preset, AgentState, LLMConfig, EmbeddingConfig
+from memgpt.data_types import User, Preset, AgentState
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
 from memgpt.agent import Agent
 
 from youbot.store import YoubotUser
-
-MEMGPT_CONFIG = MemGPTConfig.load()
 
 
 PERSONA_NAME = "youbot"
@@ -30,7 +27,6 @@ PERSONA_TEXT = """The following is a starter persona, and it can be expanded as 
 
 
 metadata_store = MetadataStore()
-DEFAULT_MEMGPT_USER_ID = UUID(MemGPTConfig.anon_clientid)
 
 server = SyncServer()
 
@@ -54,15 +50,11 @@ def create_preset(
 
 
 def create_agent(user_id: UUID, human_name: str) -> AgentState:
-    llm_config = LLMConfig(model="gpt-4", model_endpoint_type="openai", model_endpoint="https://api.openai.com/v1")
-    embedding_config = EmbeddingConfig()
     agent_name = "youbot"
     agent_state = AgentState(
         name=AGENT_NAME,
         user_id=user_id,
         human=human_name,
-        embedding_config=embedding_config,
-        llm_config=llm_config,
     )
     server.create_agent(user_id=user_id, name=AGENT_NAME, human=human_name, preset=PRESET_NAME)
     agent_state = metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
