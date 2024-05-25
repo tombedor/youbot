@@ -71,23 +71,23 @@ summary:
         return None
 
     def determine_attributes(self):
-        attrs_to_facts = {}
+        # attrs_to_facts = {}
 
-        for fact in tqdm(self.facts, f"determine facts which apply to entity {self.entity_name}"):
-            attrs = determine_relevant_attributes_for_entity(
-                self.entity_name, self.entity_label.name, fact, self.llm_short_editable_attributes()
-            )
-            for attr in attrs:
-                attrs_to_facts[attr] = attrs_to_facts.get(attr, set())
-                attrs_to_facts[attr].add(fact)
+        # for fact in tqdm(self.facts, f"determine facts which apply to entity {self.entity_name}"):
+        #     attrs = determine_relevant_attributes_for_entity(
+        #         self.entity_name, self.entity_label.name, fact, self.llm_short_editable_attributes()
+        #     )
+        #     for attr in attrs:
+        #         attrs_to_facts[attr] = attrs_to_facts.get(attr, set())
+        #         attrs_to_facts[attr].add(fact)
 
-        for attr, facts in attrs_to_facts.items():
-            logging.info("Found %s facts relevant to attribute %s", len(facts), attr)
-            facts_list = list(facts)
-            facts_list.sort()
-            value = determine_attribute_value_for_entity(self.entity_name, self.entity_label.name, attr, tuple(facts_list))
-            if value:
-                setattr(self, attr, value)
+        # for attr, facts in attrs_to_facts.items():
+        #     logging.info("Found %s facts relevant to attribute %s", len(facts), attr)
+        #     facts_list = list(facts)
+        #     facts_list.sort()
+        #     value = determine_attribute_value_for_entity(self.entity_name, self.entity_label.name, attr, tuple(facts_list))
+        #     if value:
+        #         setattr(self, attr, value)
 
         if self.summary_prompt():
             self.summary = summarize_known_information(entity_name=self.entity_name, entity_type=self.entity_label.name, summary_prompt=self.summary_prompt(), facts=tuple(self.facts))  # type: ignore

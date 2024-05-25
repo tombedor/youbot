@@ -1,12 +1,10 @@
 import logging
 import os
-import pickle
 import pandas as pd
 from pandas import DataFrame
 import spacy
 from tqdm import tqdm
-from youbot import CACHE_DIR
-from youbot.clients.llm_client import EMBEDDING_SIZE, get_embedding, query_llm
+from youbot.clients.llm_client import query_llm
 from youbot.knowledge_base.entity import (
     EntityLabel,
     Person,
@@ -14,7 +12,7 @@ from youbot.knowledge_base.entity import (
     PrimaryUser,
     calculate_label_for_entity_name,
 )
-from youbot.store import YoubotUser, get_archival_messages, get_youbot_user_by_id
+from youbot.store import YoubotUser, get_archival_messages, get_youbot_user_by_id, upsert_memory_entity
 
 MODELS = ["gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "gpt-4o"]
 
@@ -48,19 +46,12 @@ VALID_RELATIONSHIPS = {
 }
 
 
-from spacy.kb import InMemoryLookupKB
-
-
 NLP = spacy.load("en_core_web_md")
 
 
-class KnowledgeBase(InMemoryLookupKB):
+class KnowledgeBase:
     def __init__(self, youbot_user: YoubotUser):
-        super().__init__(NLP.vocab, EMBEDDING_SIZE)
         self.youbot_user = youbot_user
-
-        self.kb_filename = os.path.join(CACHE_DIR, "spacy_kb")
-        self.kb = InMemoryLookupKB(NLP.vocab, EMBEDDING_SIZE)
 
     def process_entities(self) -> None:
         entity_name_to_facts = {}
@@ -97,22 +88,25 @@ class KnowledgeBase(InMemoryLookupKB):
 
         for entity in tqdm(entities, "processing entities"):
             entity.determine_attributes()
+            upsert_memory_entity(
+                youbot_user_id=self.youbot_user.id, entity_name=entity.entity_name, entity_label=entity.label, text=entity.description()
+            )
             logging.debug("Processed entity %s: %s", entity.entity_name, entity.__dict__)
 
-        filename = os.path.join(CACHE_DIR, "knowledge_base_entities.pkl")
-        with open(filename, "wb") as f:
-            pickle.dump(entities, f)
+        # filename = os.path.join(CACHE_DIR, "knowledge_base_entities.pkl")
+        # with open(filename, "wb") as f:
+        # pickle.dump(entities, f)
 
-        for entity in entities:
-            logging.info("Processed entity %s", entity.entity_name)
-            self.kb.add_entity(entity=entity.entity_name, freq=len(entity.facts), entity_vector=get_embedding(entity.description()))
+        # for entity in entities:
+        # logging.info("Processed entity %s", entity.entity_name)
+        # self.kb.add_entity(entity=entity.entity_name, freq=len(entity.facts), entity_vector=get_embedding(entity.description()))
 
-        self.kb.to_disk(self.kb_filename)
+        # self.kb.to_disk(self.kb_filename)
 
     def process_relationships(self, final_entity_labels, initial_entity_labels_df) -> DataFrame:
-        pkl_path = os.path.join(self.cache_dir, "final_entity_relationships.pkl")
-        if os.path.exists(pkl_path):
-            return pd.read_pickle(pkl_path)
+        # pkl_path = os.path.join(self.cache_dir, "final_entity_relationships.pkl")
+        # if os.path.exists(pkl_path):
+        # return pd.read_pickle(pkl_path)
 
         ### Ask LLM for relationship labels
         # group entities by fact

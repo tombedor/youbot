@@ -8,7 +8,7 @@ from uuid import UUID
 from attr import dataclass
 import numpy as np
 from pydantic import field_validator
-from sqlalchemy import NullPool, create_engine
+from sqlalchemy import NullPool, UniqueConstraint, create_engine
 from sqlalchemy.orm import mapped_column
 from sqlmodel import SQLModel, Field
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
@@ -27,6 +27,7 @@ MAX_EMBEDDING_DIM = 4096  # maximum supported embeding size - do NOT change or e
 
 # raw signup table from web
 class Signup(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}
     id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
     created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -36,6 +37,7 @@ class Signup(SQLModel, table=True):
 
 
 class YoubotUser(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}
     id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
     created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -54,6 +56,7 @@ class YoubotUser(SQLModel, table=True):
 
 
 class SmsWebhookLog(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}
     id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
     created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -62,6 +65,7 @@ class SmsWebhookLog(SQLModel, table=True):
 
 
 class AgentReminder(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}
     id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
     created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -72,6 +76,7 @@ class AgentReminder(SQLModel, table=True):
 
 
 class MemroyEntity(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}
     id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
     created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -79,9 +84,10 @@ class MemroyEntity(SQLModel, table=True):
     entity_name: str = Field(..., description="The name of the entity")
     entity_label: str = Field(..., description="The label of the entity")
     text: str = Field(..., description="The text of the entity")
-    embedding = mapped_column(Vector(MAX_EMBEDDING_DIM))
-    embedding_dim: int = Field(..., description="The dimension of the embedding")
-    embedding_model: str = Field(..., description="The model used to generate the embedding")
+    UniqueConstraint("youbot_user_id", "entity_name", "entity_label")
+    # embedding = mapped_column(Vector(MAX_EMBEDDING_DIM))
+    # embedding_dim: int = Field(..., description="The dimension of the embedding")
+    # embedding_model: str = Field(..., description="The model used to generate the embedding")
 
 
 ENGINE = create_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
@@ -92,6 +98,7 @@ Base.metadata.create_all(
         YoubotUser.__table__,
         SmsWebhookLog.__table__,
         AgentReminder.__table__,
+        MemroyEntity.__table__,
     ],
 )
 SESSION_MAKER = sessionmaker(bind=ENGINE)
@@ -220,25 +227,35 @@ def get_memgpt_recall(limit=None) -> List[Dict]:
     ]
 
 
-def insert_memory_entity(youbot_user_id: int, entity_name: str, entity_label: str, text: str) -> None:
-    embedding = OpenAIEmbedding(
-        api_base=MemGPTConfig.embedding_endpoint,  # type: ignore
-        api_key=os.environ["OPENAI_API_KEY"],
-    )
+def upsert_memory_entity(youbot_user_id: int, entity_name: str, entity_label: str, text: str) -> None:
+    # embedding = OpenAIEmbedding(
+    # api_base=MemGPTConfig.embedding_endpoint,  # type: ignore
+    # api_key=os.environ["OPENAI_API_KEY"],
+    # )
 
-    embedding = get_embedding(text)
-    embedding_dim = len(embedding)
-    embedding_model = MemGPTConfig.embedding_model_name
+    # embedding = get_embedding(text)
+    # embedding_dim = len(embedding)
+    # embedding_model = MemGPTConfig.embedding_model_name
 
+    # if exists, update
     with SESSION_MAKER() as session:
-        memory_entity = MemroyEntity(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label, text=text, embedding=embedding, embedding_dim=embedding_dim, embedding_model=embedding_model)  # type: ignore
-        session.add(memory_entity)
-        session.commit()
+        memory_entity = (
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).first()
+        )
+        if memory_entity:
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).update(
+                {"text": text}
+            )
+            session.commit()
+            return
+        else:
+            memory_entity = MemroyEntity(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
+            session.add(memory_entity)
+            session.commit()
 
 
-def query_memory_entities(youbot_user_id: int, query_text: str) -> List[MemroyEntity]:
-    query_vec = get_embedding(query_text)
-    ...
-    with SESSION_MAKER() as session:
-        memory_entities = session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_label=entity_label).all()
-    return memory_entities
+# def query_memory_entities(youbot_user_id: int, query_text: str) -> List[MemroyEntity]:
+#     query_vec = get_embedding(query_text)
+#     with SESSION_MAKER() as session:
+#         memory_entities = session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_label=entity_label).all()
+#     return memory_entities
