@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from time import sleep
-from typing import List, Union
+from typing import List, Optional, Union
 from llama_index.embeddings.openai import OpenAIEmbedding
 
 import numpy as np
@@ -24,16 +24,21 @@ _embeddings = OpenAIEmbedding(api_base="https://api.openai.com/v1", api_key=os.e
 MAX_JSON_PARSE_TRIES = 3
 
 
-def query_llm(prompt):
-    return _query_llm(prompt=prompt, model=MODEL, temperature=TEMPERATURE)
+def query_llm(prompt: str, system: Optional[str] = None):
+    return _query_llm(prompt=prompt, system=system, model=MODEL, temperature=TEMPERATURE)
 
 
 @cache.cache(ttl=CACHE_LENGTH_SECONDS)
-def _query_llm(prompt: str, model: str, temperature: float) -> str:
+def _query_llm(prompt: str, system: Optional[str], model: str, temperature: float) -> str:
     logging.info("llm query: %s...", prompt[0:20])
     if model.startswith("gpt"):
         sleep(GPT_SLEEP_SECONDS)
-    response = OpenAI().chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}], temperature=temperature)
+
+    if system:
+        msgs = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
+    else:
+        msgs = [{"role": "user", "content": prompt}]
+    response = OpenAI().chat.completions.create(model=model, messages=msgs, temperature=temperature)  # type: ignore
 
     first_choice = response.choices[0].message.content
     assert first_choice

@@ -5,20 +5,13 @@ import os
 import re
 from typing import Dict, List, Optional
 from uuid import UUID
-from attr import dataclass
-import numpy as np
 from pydantic import field_validator
 from sqlalchemy import NullPool, UniqueConstraint, create_engine
-from sqlalchemy.orm import mapped_column
 from sqlmodel import SQLModel, Field
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
-from pgvector.sqlalchemy import Vector
-from llama_index.embeddings.openai import OpenAIEmbedding
-from memgpt.config import MemGPTConfig
 
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from youbot.clients.llm_client import get_embedding
 
 Base = declarative_base()
 
@@ -225,6 +218,15 @@ def get_memgpt_recall(limit=None) -> List[Dict]:
     return [
         {"role": m.role, "time": m.created_at, "content": m.readable_message()} for m in raw_messages if not m.is_system_status_message()
     ]
+
+
+def get_entity_name_text(youbot_user: YoubotUser, entity_name: str) -> Optional[str]:
+    with SESSION_MAKER() as session:
+        memory_entity = session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user.id, entity_name=entity_name).first()
+    if memory_entity:
+        return memory_entity.text
+    else:
+        return None
 
 
 def upsert_memory_entity(youbot_user_id: int, entity_name: str, entity_label: str, text: str) -> None:

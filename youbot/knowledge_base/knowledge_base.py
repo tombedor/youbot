@@ -89,7 +89,10 @@ class KnowledgeBase:
         for entity in tqdm(entities, "processing entities"):
             entity.determine_attributes()
             upsert_memory_entity(
-                youbot_user_id=self.youbot_user.id, entity_name=entity.entity_name, entity_label=entity.label, text=entity.description()
+                youbot_user_id=self.youbot_user.id,
+                entity_name=entity.entity_name,
+                entity_label=entity.entity_label.name,
+                text=entity.description(),
             )
             logging.debug("Processed entity %s: %s", entity.entity_name, entity.__dict__)
 
@@ -154,16 +157,16 @@ class KnowledgeBase:
                     response = query_llm(prompt)
                     assert response
 
-                    winning_label, score = self.get_winner_and_score(response, relationship_choices)
-                    row = {
-                        "entity_1": entity_1,
-                        "entity_2": entity_2,
-                        "relationship": winning_label,
-                        "score": score,
-                        "fact": fact,
-                        "llm_respnose": response,
-                    }
-                    relation_rows.append(row)
+                    # winning_label, score = self.get_winner_and_score(response, relationship_choices)
+                    # row = {
+                    #     "entity_1": entity_1,
+                    #     "entity_2": entity_2,
+                    #     "relationship": winning_label,
+                    #     "score": score,
+                    #     "fact": fact,
+                    #     "llm_respnose": response,
+                    # }
+                    # relation_rows.append(row)
 
         llm_relation_df = pd.DataFrame(relation_rows)
 
@@ -192,8 +195,8 @@ class KnowledgeBase:
             .reset_index()
         )
 
-        with open(os.path.join(self.cache_dir, "final_entity_relationships.pkl"), "wb") as f:
-            pd.to_pickle(final_entity_relationships, f)
+        # with open(os.path.join(self.cache_dir, "final_entity_relationships.pkl"), "wb") as f:
+        # pd.to_pickle(final_entity_relationships, f)
 
         return final_entity_labels
 

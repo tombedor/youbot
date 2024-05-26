@@ -3065,8 +3065,8 @@ tiktoken = "^0.5.1"
 [package.source]
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
-reference = "bc7d1694a17d33347fc8329d821af336d6c29471"
-resolved_reference = "bc7d1694a17d33347fc8329d821af336d6c29471"
+reference = "25dc93e16d63ae1ad44187fa663da3ced37bd97d"
+resolved_reference = "25dc93e16d63ae1ad44187fa663da3ced37bd97d"
 
 [[package]]
 name = "pyparsing"
@@ -4558,4 +4558,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "e54d3c92fc3adaad4d894253d258db4f853dea536d40e020e7a50850c640abb0"
+content-hash = "4e6c64ebdfc23c6003a4237ddd240fbfc1dfbe13218820a61b3851eea9ac3399"

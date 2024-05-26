@@ -45,20 +45,18 @@ class Entity:
     summary: Optional[str] = None
 
     def description(self):
-        attribute_kvs = ""
-        for k in self.llm_short_editable_attributes():
-            v = getattr(self, k)
-            if not v:
-                val = "?"
-            else:
-                val = v
-            attribute_kvs += f"{k}: {val}\n"
+        # attribute_kvs = ""
+        # for k in self.llm_short_editable_attributes():
+        #     v = getattr(self, k)
+        #     if not v:
+        #         val = "?"
+        #     else:
+        #         val = v
+        #     attribute_kvs += f"{k}: {val}\n"
 
         return f"""
-The entity named {self.entity_name} is of type {self.entity_label.name} and has the following attributes: 
-{attribute_kvs}
+The entity named {self.entity_name} is of type {self.entity_label.name}. A summary:
 
-summary:
 {self.summary}
 """
 
