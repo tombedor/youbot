@@ -23,5 +23,5 @@ if os.environ.get("IS_DEVELOPMENT"):
 redis_url = urlparse(os.environ["REDIS_URL"])
 assert redis_url.hostname
 assert redis_url.port
-client = StrictRedis(host=redis_url.hostname, port=redis_url.port, db=0, decode_responses=True)
-cache = RedisCache(redis_client=client)
+redis_client = StrictRedis(host=redis_url.hostname, port=redis_url.port, db=0, decode_responses=True)
+cache = RedisCache(redis_client=redis_client)

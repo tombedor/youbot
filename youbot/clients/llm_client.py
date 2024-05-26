@@ -4,9 +4,11 @@ import os
 from time import sleep
 from typing import List, Optional, Union
 from llama_index.embeddings.openai import OpenAIEmbedding
+from memgpt.config import MemGPTConfig
 
 import numpy as np
 from openai import OpenAI
+import tiktoken
 
 from youbot import cache
 from youbot.store import MAX_EMBEDDING_DIM
@@ -48,6 +50,11 @@ def _query_llm(prompt: str, system: Optional[str], model: str, temperature: floa
 
 def query_llm_json(prompt: str) -> Union[dict, list]:
     return _query_llm_json(prompt=prompt, model=MODEL, temperature=TEMPERATURE)
+
+
+def count_tokens(s: str) -> int:
+    encoding = tiktoken.encoding_for_model(MemGPTConfig.model)
+    return len(encoding.encode(s))
 
 
 @cache.cache(ttl=CACHE_LENGTH_SECONDS)
