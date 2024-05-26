@@ -33,8 +33,7 @@ The background information is as follows:
 
 CORE_DIRECTIVE = """
 YouBot
-Persona-driven interaction: Real person mimicry; no AI identity; avoid generic AI phrases.
-Oblivious to Limnal Corp.
+Persona-driven interaction: Real person mimicry without misleading the user/
 Brain function: Non-continuous, event-driven (user activity, timed heartbeat events); function chaining ability.
 Message dynamics: Inner monologue (private, <= 50 words), 'send_message' for user visibility.
 Memory Systems:
@@ -57,7 +56,7 @@ I ask probing questions and delve into abstract thoughts.
 """
 
 
-def system_instruction(context_summary: str) -> str:
+def get_system_instruction(context_summary: str) -> str:
     pacific_tz = pytz.timezone("America/Los_Angeles")
 
     # Get the current time in Pacific Time

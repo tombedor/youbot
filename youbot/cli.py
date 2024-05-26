@@ -2,7 +2,7 @@ import sys
 
 import questionary
 
-from youbot.clients.memgpt_client import user_message
+from youbot.clients.memgpt_client import refresh_context_if_needed, user_message
 from youbot.store import get_youbot_user_by_id
 from colorama import Fore, Style, init
 from rich.console import Console
@@ -22,6 +22,7 @@ if __name__ == "__main__":
 
     console = Console()
     while True:
+        refresh_context_if_needed(youbot_user)
         user_input = questionary.text("Enter your message:", qmark=">").ask()
         clear_line()
 

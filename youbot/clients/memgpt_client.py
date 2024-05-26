@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 import time
 from enum import Enum
@@ -19,7 +20,7 @@ from memgpt.config import MemGPTConfig
 
 from youbot.clients.llm_client import count_tokens, query_llm
 from youbot.knowledge_base.knowledge_base import NLP
-from youbot.prompts import SUMMARIZER_SYSTEM_PROMPT, background_info_system_prompt
+from youbot.prompts import SUMMARIZER_SYSTEM_PROMPT, background_info_system_prompt, get_system_instruction
 from youbot.store import YoubotUser, get_entity_name_text
 from youbot import redis_client
 
@@ -190,14 +191,18 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
 
     logging.info("Refreshing context")
 
-    system_message = agent._messages[0]
-    system_message.text = get_refreshed_context_message(youbot_user)
+    system_message = deepcopy(agent._messages[0])
+    assert system_message.role == "system"
+    new_context = get_refreshed_context_message(youbot_user)
+    system_message.text = get_system_instruction(new_context)
     system_message.id = uuid.uuid4()
+
+    agent.persistence_manager.persist_messages([system_message])
 
     new_messages = [system_message]
     current_token_count = count_tokens(system_message.text)
 
-    for idx in range(len(agent._messages) - 1, -1, 0):
+    for idx in range(len(agent._messages) - 1, 0, -1):  # skip system message
         if current_token_count > TARGET_CONTEXT_REFRESH_TOKENS:
             break
         current_msg = agent._messages[idx]
@@ -208,6 +213,7 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
 
     agent._messages = new_messages
     save_agent(agent)
+    ContextWatermark.set(youbot_user)
     return True
 
 
