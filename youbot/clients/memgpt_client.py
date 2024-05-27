@@ -149,7 +149,8 @@ class ContextWatermark:
         if redis_response is None:
             return None
         else:
-            d = json.loads(redis_response.decode("utf-8"))  # type: ignore
+            assert type(redis_response) == str
+            d = json.loads(redis_response)  # type: ignore
             return WatermarkStatus(**d)
 
     @classmethod

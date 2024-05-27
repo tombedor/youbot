@@ -30,8 +30,8 @@ if __name__ == "__main__":
             print("Exiting...")
             exit()
 
-        with console.status("[bold cyan]Thinking...") as _status:
-            agent_response = user_message(youbot_user, user_input)
+        # with console.status("[bold cyan]Thinking...") as _status:
+        agent_response = user_message(youbot_user, user_input)
 
         fstr = f"{Fore.YELLOW}{Style.BRIGHT}🤖 {Fore.YELLOW}{{msg}}{Style.RESET_ALL}"
         print(fstr.format(msg=agent_response))
