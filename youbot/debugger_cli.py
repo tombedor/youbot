@@ -8,11 +8,6 @@ from colorama import Fore, Style, init
 from rich.console import Console
 
 
-def clear_line():
-    sys.stdout.write("\033[A\033[A")
-    sys.stdout.flush()
-
-
 MAX_RETRIES = 3
 
 
@@ -22,15 +17,14 @@ if __name__ == "__main__":
 
     console = Console()
     while True:
+        refresh_context_if_needed(youbot_user)
         user_input = questionary.text("Enter your message:", qmark=">").ask()
-        clear_line()
 
         if user_input.startswith("/exit") or user_input == "exit":
             print("Exiting...")
             exit()
 
-        with console.status("[bold cyan]Thinking...") as _status:
-            agent_response = user_message(youbot_user, user_input)
+        agent_response = user_message(youbot_user, user_input)
 
         fstr = f"{Fore.YELLOW}{Style.BRIGHT}🤖 {Fore.YELLOW}{{msg}}{Style.RESET_ALL}"
         print(fstr.format(msg=agent_response))
