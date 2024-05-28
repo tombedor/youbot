@@ -12,7 +12,6 @@ MAX_RETRIES = 3
 if __name__ == "__main__":
     init(autoreset=True)
     youbot_user = get_youbot_user_by_id(1)
-    # purge_send_message_calls(youbot_user)
 
     console = Console()
     while True:
