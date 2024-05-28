@@ -1,3 +1,4 @@
+from collections import deque
 from copy import deepcopy
 import time
 from hashlib import md5
@@ -17,7 +18,7 @@ from memgpt.config import MemGPTConfig
 
 from youbot.clients.llm_client import count_tokens, query_llm
 from youbot.knowledge_base.knowledge_base import NLP
-from youbot.prompts import SUMMARIZER_SYSTEM_PROMPT, background_info_system_prompt, get_system_instruction
+from youbot.prompts import DATETIME_FORMATTER, SUMMARIZER_SYSTEM_PROMPT, background_info_system_prompt, get_system_instruction
 from youbot.store import YoubotUser, get_entity_name_text
 from youbot import redis_client
 
@@ -113,11 +114,36 @@ def user_message(youbot_user: YoubotUser, msg: str) -> str:
     raise Exception("No response found")
 
 
-def get_refreshed_context_message(youbout_user: YoubotUser) -> str:
-    agent = get_agent(youbout_user)
-    readable_messages = "\n".join([m.readable_message() for m in agent._messages if m.readable_message()])  # type: ignore
+def formatted_readable_messages(youbot_user: YoubotUser) -> str:
+    agent = get_agent(youbot_user)
+    msg_strs = []
+    for message in agent._messages:
+        datetime_str = message.created_at.strftime(DATETIME_FORMATTER)
+        if message.role == "system":
+            msg_strs.append(f"SYSTEM ({datetime_str}): {message.text}")
+        elif message.role == "user":
+            msg_d = json.loads(message.text)
+            if "message" in msg_d:
+                msg = msg_d["message"]
+                msg_strs.append(f"{youbot_user.name.upper()} ({datetime_str}): {msg}")
+            elif "type" in msg_d and msg_d["type"] == "heartbeat":
+                continue
+            else:
+                raise ValueError(f"Unknown message format: {msg_d}")
+        elif message.role == "assistant":
+            if message.text:
+                msg_strs.append(f"YOUBOT ({datetime_str}): {message.text}")
+            elif message.tool_calls:
+                msg_strs.append(f"YOUBOT TOOL CALL ({datetime_str}): {message.tool_calls[0].function['name']}")
+            else:
+                raise ValueError(f"Expected either message text or tool call: {message}")
+        elif message.role == "tool":
+            msg_strs.append(f"TOOL ({datetime_str}): {message.text}")
+    return "\n".join(msg_strs)
 
-    summary = query_llm(prompt=readable_messages, system=SUMMARIZER_SYSTEM_PROMPT)
+
+def get_refreshed_context_message(youbot_user: YoubotUser) -> str:
+    summary = query_llm(prompt=formatted_readable_messages(youbot_user), system=SUMMARIZER_SYSTEM_PROMPT)
 
     entities = set()
     for e in NLP(summary).ents:
@@ -125,7 +151,7 @@ def get_refreshed_context_message(youbout_user: YoubotUser) -> str:
 
     background_info = []
     for e in entities:
-        entity_info = get_entity_name_text(youbot_user=youbout_user, entity_name=e[0])
+        entity_info = get_entity_name_text(youbot_user=youbot_user, entity_name=e[0])
         if entity_info:
             background_info.append(entity_info)
 
@@ -196,7 +222,7 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
         is_tokens_over_threshold = sum(token_counts) > TOKEN_REFRESH_THRESHOLD
 
         logging.info(
-            f"Message changed: {is_messages_changed}. elapsed seconds: {elapsed_seconds}. tokens over threshold: {is_tokens_over_threshold}"
+            f"Message changed: {is_messages_changed}. Elapsed seconds: {elapsed_seconds}. Tokens in context: {sum(token_counts)} out of limit {TOKEN_REFRESH_THRESHOLD}. Over threshold: {is_tokens_over_threshold}"
         )
 
         if not is_messages_changed and elapsed_seconds < INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE:
@@ -217,19 +243,19 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
 
     agent.persistence_manager.persist_messages([system_message])
 
-    new_messages = [system_message]
+    new_messages = deque()
     current_token_count = count_tokens(system_message.text)
 
     for idx in range(len(agent._messages) - 1, 0, -1):  # skip system message
-        if current_token_count > TARGET_CONTEXT_REFRESH_TOKENS:
+        # if we have a tool message, we must also include the assistant message that preceded as per openai
+        if current_token_count > TARGET_CONTEXT_REFRESH_TOKENS and new_messages[-1].role != "tool":
             break
         current_msg = agent._messages[idx]
-        if not current_msg.readable_message():
-            continue
-        new_messages.append(current_msg)
+        new_messages.appendleft(current_msg)
         current_token_count += token_counts[idx]
+    new_messages.appendleft(system_message)
 
-    agent._messages = new_messages
+    agent._messages = list(new_messages)
     save_agent(agent)
     ContextWatermark.set(youbot_user)
     return True

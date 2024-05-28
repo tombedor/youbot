@@ -194,20 +194,8 @@ def readable_message(msg) -> Optional[str]:
 
     elif msg.role == "tool":
         return None
-    elif msg.role == "assistant":
-        if msg.tool_calls:
-            for tool_call in msg.tool_calls:
-                if tool_call.function["name"] == "send_message":
-                    try:
-                        return json.loads(tool_call.function["arguments"], strict=False)["message"]
-                    except json.JSONDecodeError:
-                        logging.warning("Could not decode JSON, returning raw response.")
-                        return tool_call.function["arguments"]
-        elif "system alert" in msg.text:
-            pass
-        else:
-            logging.warning(f"Unexpected assistant message: {msg}")
-            pass
+    else:
+        raise ValueError(f"Unknown message role {msg.role}")
 
 
 def get_memgpt_recall(limit=None) -> List[Dict]:

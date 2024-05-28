@@ -32,7 +32,7 @@ def query_llm(prompt: str, system: Optional[str] = None):
 
 @cache.cache(ttl=CACHE_LENGTH_SECONDS)
 def _query_llm(prompt: str, system: Optional[str], model: str, temperature: float) -> str:
-    logging.info("llm query: %s...", prompt[0:20])
+    logging.info("llm query: %s...", prompt[0:50])
     if model.startswith("gpt"):
         sleep(GPT_SLEEP_SECONDS)
 
