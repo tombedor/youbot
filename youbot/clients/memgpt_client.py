@@ -1,7 +1,5 @@
 from copy import deepcopy
-from datetime import datetime
 import time
-from enum import Enum
 from hashlib import md5
 import json
 import logging
@@ -14,7 +12,6 @@ from memgpt.server.server import SyncServer
 from memgpt.data_types import User, Preset, AgentState
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
 from memgpt.agent import Agent, save_agent
-from regex import E
 from memgpt.config import MemGPTConfig
 
 
@@ -98,7 +95,22 @@ def create_user(user_id: UUID) -> User:
 
 
 def user_message(youbot_user: YoubotUser, msg: str) -> str:
-    return _user_message(agent_id=youbot_user.memgpt_agent_id, user_id=youbot_user.memgpt_user_id, msg=msg)
+    response_list = server.user_message(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, message=msg)
+
+    for i in range(len(response_list) - 1, -1, -1):
+        response = response_list[i]
+
+        if response.role == "assistant":
+            return response.text
+        elif response.tool_calls is not None:
+
+            for call in response.tool_calls:
+                if call.function["name"] == "send_message":
+                    try:
+                        return json.loads(call.function["arguments"], strict=False)["message"]
+                    except json.decoder.JSONDecodeError:
+                        logging.warn("Could not parse json, outputting raw response")
+    raise Exception("No response found")
 
 
 def get_refreshed_context_message(youbout_user: YoubotUser) -> str:
@@ -164,6 +176,29 @@ def messages_md5(youbot_user: YoubotUser) -> str:
     return md5(msgs_str.encode()).hexdigest()
 
 
+def purge_send_message_calls(youbot_user: YoubotUser):
+    agent = get_agent(youbot_user)
+
+    agent_messages = []
+    new_messages = []
+    for m in agent._messages:
+        if not m.tool_calls:
+            agent_messages.append(m)
+        else:
+            call = m.tool_calls[0]
+            if call.function["name"] == "send_message":
+                refactored_message = deepcopy(m)
+                refactored_message.text = json.loads(call.function["arguments"])["message"]  # type: ignore
+                refactored_message.id = uuid.uuid4()
+                refactored_message.tool_calls = None
+                new_messages.append(refactored_message)
+                agent_messages.append(refactored_message)
+
+    agent.persistence_manager.persist_messages(new_messages)
+    agent._messages = agent_messages
+    save_agent(agent)
+
+
 def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
     """Calculates if context needs to be refreshed, and refreshes it if needed
 
@@ -179,16 +214,21 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
     new_message_hash = messages_md5(youbot_user)
 
     if watermark is not None:
+        is_messages_changed = new_message_hash != watermark.message_hash
         elapsed_seconds = int(time.time()) - watermark.epoch_seconds
+        is_tokens_over_threshold = sum(token_counts) > TOKEN_REFRESH_THRESHOLD
 
-        if new_message_hash != watermark.message_hash:
-            if sum(token_counts) < TOKEN_REFRESH_THRESHOLD and elapsed_seconds < INVALIDATION_SECONDS_AFTER_NEW_MESSAGE:
-                logging.info("Messages changed, but token count below threshold and elapsed time below threshold. No refresh needed")
-                return False
-        else:
-            if elapsed_seconds < INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE:
-                logging.info("No new messages no refresh needed")
-                return False
+        logging.info(
+            f"Message changed: {is_messages_changed}. elapsed seconds: {elapsed_seconds}. tokens over threshold: {is_tokens_over_threshold}"
+        )
+
+        if not is_messages_changed and elapsed_seconds < INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE:
+            logging.info("No new messages and elapsed time below threshold. No refresh needed")
+            return False
+
+        if is_messages_changed and elapsed_seconds < INVALIDATION_SECONDS_AFTER_NEW_MESSAGE and not is_tokens_over_threshold:
+            logging.info("Messages changed, but elapsed time below threshold and token count below threshold. No refresh needed")
+            return False
 
     logging.info("Refreshing context")
 
@@ -220,21 +260,3 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
 
 def get_agent(youbot_user: YoubotUser) -> Agent:
     return server._load_agent(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id)
-
-
-def _user_message(agent_id: UUID, user_id: UUID, msg: str) -> str:
-
-    response_list = server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
-
-    for i in range(len(response_list) - 1, -1, -1):
-        response = response_list[i]
-        if not response.tool_calls:
-            continue
-
-        for call in response.tool_calls:
-            if call.function["name"] == "send_message":
-                try:
-                    return json.loads(call.function["arguments"], strict=False)["message"]
-                except json.decoder.JSONDecodeError:
-                    logging.warn("Could not parse json, outputting raw response")
-    raise Exception("No response found")

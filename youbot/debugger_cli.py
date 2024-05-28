@@ -1,8 +1,6 @@
-import sys
-
 import questionary
 
-from youbot.clients.memgpt_client import refresh_context_if_needed, user_message
+from youbot.clients.memgpt_client import purge_send_message_calls, refresh_context_if_needed, user_message
 from youbot.store import get_youbot_user_by_id
 from colorama import Fore, Style, init
 from rich.console import Console
@@ -14,6 +12,7 @@ MAX_RETRIES = 3
 if __name__ == "__main__":
     init(autoreset=True)
     youbot_user = get_youbot_user_by_id(1)
+    # purge_send_message_calls(youbot_user)
 
     console = Console()
     while True:
