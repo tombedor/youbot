@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 from pandas import DataFrame
 import spacy
+from spacy.tokens.doc import Doc
 from tqdm import tqdm
 from youbot.data_models import YoubotUser
 from youbot.clients.llm_client import query_llm
@@ -16,7 +17,19 @@ from youbot.store import get_archival_messages, get_youbot_user_by_id, upsert_me
 
 MODELS = ["gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "gpt-4o"]
 
-NLP = spacy.load("en_core_web_md")
+
+class NLP:
+    """Wrapping in a class prevent unnecessary loading of the model."""
+    pipeline = None
+
+    @classmethod
+    def process(cls, text: str) -> Doc:
+        if cls.pipeline is None:
+            cls.pipeline = spacy.load("en_core_web_md")
+        return cls.pipeline(text)
+
+    def __init__(self):
+        self.nlp = None
 
 
 ENTITY_LABEL_CONFIDENCE_THRESHOLD = 0.7
@@ -54,7 +67,7 @@ class KnowledgeBase:
         entity_name_to_facts = {}
         entity_name_to_initial_label = {}
         for archival_msg in tqdm(get_archival_messages(), "processing messages"):
-            enriched_doc = NLP(archival_msg.text)  # type: ignore
+            enriched_doc = NLP.process(archival_msg.text)  # type: ignore
             for ent in enriched_doc.ents:
                 entity_name_to_initial_label.setdefault(ent.text, set()).add(ent.label_)
                 entity_name_to_facts.setdefault(ent.text, set()).add(archival_msg.text)

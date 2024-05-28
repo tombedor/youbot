@@ -1,6 +1,6 @@
 from youbot.memgpt_extensions.functions.reminder import enqueue_reminder
 from youbot.store import get_pending_reminders
-from youbot.workers.worker import add, app, process_pending_reminders
+from youbot.workers.worker import app, process_pending_reminders
 from tests import test_user
 from celery.contrib.testing.worker import start_worker
 

@@ -55,7 +55,7 @@ def get_refreshed_context_message(youbot_user: YoubotUser) -> str:
     summary = query_llm(prompt=formatted_readable_messages(youbot_user), system=SUMMARIZER_SYSTEM_PROMPT)
 
     entities = set()
-    for e in NLP(summary).ents:
+    for e in NLP.process(summary).ents:
         entities.add((e.text, e.label_))
 
     background_info = []
