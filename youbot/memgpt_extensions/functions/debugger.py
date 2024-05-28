@@ -1,4 +1,3 @@
-# from memgpt.functions.functions import load_all_function_sets
 # pylint: disable=forgotten-debug-statement
 def debugger(self):
     """Triggers a debugger breakpoint"""

@@ -9,12 +9,11 @@ import uuid
 from attr import dataclass
 
 from youbot.clients.llm_client import count_tokens, query_llm
-from youbot.clients.memgpt_client import get_agent
+from youbot.clients.memgpt_client import get_agent, set_messages
 from youbot.knowledge_base.knowledge_base import NLP
 from youbot.prompts import DATETIME_FORMATTER, SUMMARIZER_SYSTEM_PROMPT, background_info_system_prompt, get_system_instruction
 from youbot.store import YoubotUser, get_entity_name_text
 from youbot import redis_client
-from memgpt.agent import save_agent
 
 INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE = 60 * 60 * 24
 INVALIDATION_SECONDS_AFTER_NEW_MESSAGE = 60 * 15
@@ -164,7 +163,6 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
         current_token_count += token_counts[idx]
     new_messages.appendleft(system_message)
 
-    agent._messages = list(new_messages)
-    save_agent(agent)
+    set_messages(youbot_user, list(new_messages))
     ContextWatermark.set(youbot_user)
     return True

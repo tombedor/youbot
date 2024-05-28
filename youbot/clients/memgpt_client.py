@@ -6,7 +6,7 @@ from memgpt.metadata import MetadataStore
 from memgpt.server.server import SyncServer
 from memgpt.data_types import User, Preset, AgentState, Message
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
-from memgpt.agent import Agent
+from memgpt.agent import Agent, save_agent as memgpt_save_agent
 
 from youbot.data_models import YoubotUser
 
@@ -83,3 +83,9 @@ def get_agent(youbot_user: YoubotUser) -> Agent:
 
 def memgpt_user_message(youbot_user: YoubotUser, msg: str) -> List[Message]:
     return server.user_message(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, message=msg)
+
+
+def set_messages(youbot_user: YoubotUser, messages: List[Message]) -> None:
+    agent = get_agent(youbot_user)
+    agent._messages = messages
+    memgpt_save_agent(agent)
