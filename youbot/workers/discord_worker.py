@@ -4,8 +4,8 @@ import discord
 import os
 
 
-from youbot.clients.memgpt_client import user_message
 from youbot.store import get_youbot_user_by_discord
+from youbot.workers.worker import user_message
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 AGENT_NAME = "youbot"

@@ -1,17 +1,16 @@
-import json
+from typing import List
 from uuid import UUID
 import uuid
 
 from memgpt.metadata import MetadataStore
 from memgpt.server.server import SyncServer
-from memgpt.data_types import User, Preset, AgentState
+from memgpt.data_types import User, Preset, AgentState, Message
 from memgpt.models.pydantic_models import HumanModel, PersonaModel
 from memgpt.agent import Agent
 
-from youbot.store import YoubotUser
+from youbot.data_models import YoubotUser
 
 
-PERSONA_NAME = "youbot"
 PRESET_NAME = "youbot"
 AGENT_NAME = "youbot"
 
@@ -29,8 +28,6 @@ PERSONA_TEXT = """The following is a starter persona, and it can be expanded as 
 metadata_store = MetadataStore()
 
 server = SyncServer()
-
-clients = {}
 
 
 def create_preset(
@@ -80,24 +77,9 @@ def create_user(user_id: UUID) -> User:
     return user
 
 
-def user_message(youbot_user: YoubotUser, msg: str) -> str:
-    return _user_message(agent_id=youbot_user.memgpt_agent_id, user_id=youbot_user.memgpt_user_id, msg=msg)
-
-
 def get_agent(youbot_user: YoubotUser) -> Agent:
     return server._load_agent(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id)
 
 
-def _user_message(agent_id: UUID, user_id: UUID, msg: str) -> str:
-
-    response_list = server.user_message(user_id=user_id, agent_id=agent_id, message=msg)
-
-    for i in range(len(response_list) - 1, -1, -1):
-        response = response_list[i]
-        if not response.tool_calls:
-            continue
-
-        for call in response.tool_calls:
-            if call.function["name"] == "send_message":
-                return json.loads(call.function["arguments"])["message"]
-    raise Exception("No response found")
+def memgpt_user_message(youbot_user: YoubotUser, msg: str) -> List[Message]:
+    return server.user_message(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, message=msg)

@@ -1,7 +1,8 @@
 from typing import Optional
 from uuid import uuid4
+from youbot.data_models import YoubotUser
 from youbot.clients.memgpt_client import create_agent, create_human, create_persona, create_preset, create_user
-from youbot.store import YoubotUser, create_youbot_user, get_youbot_user_by_phone
+from youbot.store import create_youbot_user, get_youbot_user_by_phone
 
 
 def onboard_user(phone: str, human_name: str, human_description: str, discord_member_id: Optional[str] = None) -> None:

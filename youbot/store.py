@@ -1,74 +1,19 @@
 from datetime import UTC, datetime
 import json
-import logging
 import os
-import re
 from typing import Dict, List, Optional
 from uuid import UUID
-from attr import dataclass
-from pydantic import field_validator
 from sqlalchemy import NullPool, create_engine
-from sqlmodel import SQLModel, Field
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
-
 
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+from youbot.data_models import AgentReminder, MemroyEntity, Signup, SmsWebhookLog, YoubotUser
+
+
 Base = declarative_base()
 
-
-# raw signup table from web
-class Signup(SQLModel, table=True):
-    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
-    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    name: str = Field(..., description="The name of the user")
-    discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
-    phone: Optional[str] = Field(None, description="The phone number for the user")
-
-
-class YoubotUser(SQLModel, table=True):
-    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
-    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    name: str = Field(..., description="The name of the user")
-    memgpt_user_id: UUID = Field(..., description="The unique identifier for the user in the memgpt system")
-    memgpt_agent_id: UUID = Field(..., description="The unique identifier for the user's agent in the memgpt system")
-    discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
-    phone: str = Field(str, description="The phone number for the user")
-    human_description: str = Field(..., description="Text description of th user to be provided to the MemGPT agent")
-
-    @field_validator("phone")
-    def phone_is_e164(cls, phone: str) -> str:
-        if not bool(re.match(r"^\+\d{1,15}$", phone)):
-            raise ValueError("Invalid phone number format")
-        return phone
-
-
-class SmsWebhookLog(SQLModel, table=True):
-    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
-    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    source: str = Field(..., description="Where the webhook came from")
-    info: str = Field(..., description="The information from the webhook")
-
-
-class AgentReminder(SQLModel, table=True):
-    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
-    created_at: datetime = Field(default=datetime.now(UTC), nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    youbot_user_id: int = Field(..., description="Youbot user whose assistant is being reminded")
-    state: str = Field("pending", description="The state of the reminder")
-    reminder_time_utc: datetime = Field(..., description="Time to remind the user")
-    reminder_message: str = Field(..., description="Message to remind the agent with")
-
-
-@dataclass
-class RecallMessage:
-    user_id: UUID
-    content: str
-    role: str
-    time: datetime
+MAX_EMBEDDING_DIM = 4096  # maximum supported embeding size - do NOT change or else DBs will need to be reset
 
 
 ENGINE = create_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
@@ -79,6 +24,7 @@ Base.metadata.create_all(
         YoubotUser.__table__,
         SmsWebhookLog.__table__,
         AgentReminder.__table__,
+        MemroyEntity.__table__,
     ],
 )
 SESSION_MAKER = sessionmaker(bind=ENGINE)
@@ -181,20 +127,8 @@ def readable_message(msg) -> Optional[str]:
 
     elif msg.role == "tool":
         return None
-    elif msg.role == "assistant":
-        if msg.tool_calls:
-            for tool_call in msg.tool_calls:
-                if tool_call.function["name"] == "send_message":
-                    try:
-                        return json.loads(tool_call.function["arguments"], strict=False)["message"]
-                    except json.JSONDecodeError:
-                        logging.warning("Could not decode JSON, returning raw response.")
-                        return tool_call.function["arguments"]
-        elif "system alert" in msg.text:
-            pass
-        else:
-            logging.warning(f"Unexpected assistant message: {msg}")
-            pass
+    else:
+        raise ValueError(f"Unknown message role {msg.role}")
 
 
 def get_memgpt_recall(limit=None) -> List[Dict]:
@@ -205,3 +139,30 @@ def get_memgpt_recall(limit=None) -> List[Dict]:
     return [
         {"role": m.role, "time": m.created_at, "content": m.readable_message()} for m in raw_messages if not m.is_system_status_message()
     ]
+
+
+def get_entity_name_text(youbot_user: YoubotUser, entity_name: str) -> Optional[str]:
+    with SESSION_MAKER() as session:
+        memory_entity = session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user.id, entity_name=entity_name).first()
+    if memory_entity:
+        return memory_entity.text
+    else:
+        return None
+
+
+def upsert_memory_entity(youbot_user_id: int, entity_name: str, entity_label: str, text: str) -> None:
+    # if exists, update
+    with SESSION_MAKER() as session:
+        memory_entity = (
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).first()
+        )
+        if memory_entity:
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).update(
+                {"text": text}
+            )
+            session.commit()
+            return
+        else:
+            memory_entity = MemroyEntity(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
+            session.add(memory_entity)
+            session.commit()
