@@ -20,7 +20,6 @@ assert redis_url.port
 redis_client = StrictRedis(host=redis_url.hostname, port=redis_url.port, db=0, decode_responses=True)
 cache = RedisCache(redis_client=redis_client)
 
-if os.environ.get("IS_DEVELOPMENT", False):
-    # direct logs to stdout
-    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-    logging.getLogger().handlers = [logging.StreamHandler()]
+# direct logs to stdout
+logging.basicConfig(level=logging.INFO, format="[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
+logging.getLogger().handlers.append(logging.StreamHandler())

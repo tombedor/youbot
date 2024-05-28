@@ -20,6 +20,7 @@ MODELS = ["gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "gpt-4o"]
 
 class NLP:
     """Wrapping in a class prevent unnecessary loading of the model."""
+
     pipeline = None
 
     @classmethod
