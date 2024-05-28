@@ -1,5 +1,4 @@
 import logging
-import os
 import pandas as pd
 from pandas import DataFrame
 import spacy
@@ -45,9 +44,6 @@ VALID_RELATIONSHIPS = {
     ("EVENT", "TIME"): ["OCCURRED_AT"],
     ("EVENT", "DATE"): ["OCCURED_ON"],
 }
-
-
-NLP = spacy.load("en_core_web_md")
 
 
 class KnowledgeBase:

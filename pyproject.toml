@@ -21,6 +21,7 @@ questionary = "^2.0.1"
 requests = "^2.32.2"
 python-redis-cache = "^3.2.0"
 tiktoken = "^0.7.0"
+spacy = "^3.7.4"
 
 [tool.pyright]
 include = [
