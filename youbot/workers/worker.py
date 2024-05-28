@@ -2,7 +2,7 @@ import logging
 import os
 from celery import Celery
 
-from youbot.clients.memgpt_client import user_message
+from youbot.clients.memgpt_client import get_agent, user_message
 from youbot.clients.twilio_client import send_message
 from youbot.store import YoubotUser, get_pending_reminders, get_youbot_user_by_id, update_reminder_state
 
@@ -38,7 +38,8 @@ def process_pending_reminders():
 
 @app.task
 def evaluate_system_context(youbot_user: YoubotUser):
-    logging.info(youbot_user.agent.get_system_message_text())
+    agent = get_agent(youbot_user)
+    logging.info(agent.get_system_message_text())
 
 
 # covers both sms and whatsapp

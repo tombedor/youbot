@@ -19,7 +19,7 @@ from youbot.clients.llm_client import count_tokens, query_llm
 from youbot.knowledge_base.knowledge_base import NLP
 from youbot.prompts import SUMMARIZER_SYSTEM_PROMPT, background_info_system_prompt, get_system_instruction
 from youbot.store import YoubotUser, get_entity_name_text
-from youbot import MEMGPT_SERVER, redis_client
+from youbot import redis_client
 
 INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE = 60 * 60 * 24
 INVALIDATION_SECONDS_AFTER_NEW_MESSAGE = 60 * 15
@@ -43,6 +43,8 @@ PERSONA_TEXT = """The following is a starter persona, and it can be expanded as 
 
 
 metadata_store = MetadataStore()
+
+server = SyncServer()
 
 
 def create_preset(
@@ -68,7 +70,7 @@ def create_agent(user_id: UUID, human_name: str) -> AgentState:
         user_id=user_id,
         human=human_name,
     )
-    MEMGPT_SERVER.create_agent(user_id=user_id, name=AGENT_NAME, human=human_name, preset=PRESET_NAME)
+    server.create_agent(user_id=user_id, name=AGENT_NAME, human=human_name, preset=PRESET_NAME)
     agent_state = metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
     assert agent_state
     return agent_state
@@ -93,7 +95,7 @@ def create_user(user_id: UUID) -> User:
 
 
 def user_message(youbot_user: YoubotUser, msg: str) -> str:
-    response_list = MEMGPT_SERVER.user_message(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, message=msg)
+    response_list = server.user_message(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, message=msg)
 
     for i in range(len(response_list) - 1, -1, -1):
         response = response_list[i]
@@ -112,7 +114,8 @@ def user_message(youbot_user: YoubotUser, msg: str) -> str:
 
 
 def get_refreshed_context_message(youbout_user: YoubotUser) -> str:
-    readable_messages = "\n".join([m.readable_message() for m in youbout_user.agent._messages if m.readable_message()])  # type: ignore
+    agent = get_agent(youbout_user)
+    readable_messages = "\n".join([m.readable_message() for m in agent._messages if m.readable_message()])  # type: ignore
 
     summary = query_llm(prompt=readable_messages, system=SUMMARIZER_SYSTEM_PROMPT)
 
@@ -168,8 +171,32 @@ class ContextWatermark:
 
 
 def messages_md5(youbot_user: YoubotUser) -> str:
-    msgs_str = "_".join([str(msg) for msg in youbot_user.agent.messages])
+    agent = get_agent(youbot_user)
+    msgs_str = "_".join([str(msg) for msg in agent.messages])
     return md5(msgs_str.encode()).hexdigest()
+
+
+def purge_send_message_calls(youbot_user: YoubotUser):
+    agent = get_agent(youbot_user)
+
+    agent_messages = []
+    new_messages = []
+    for m in agent._messages:
+        if not m.tool_calls:
+            agent_messages.append(m)
+        else:
+            call = m.tool_calls[0]
+            if call.function["name"] == "send_message":
+                refactored_message = deepcopy(m)
+                refactored_message.text = json.loads(call.function["arguments"])["message"]  # type: ignore
+                refactored_message.id = uuid.uuid4()
+                refactored_message.tool_calls = None
+                new_messages.append(refactored_message)
+                agent_messages.append(refactored_message)
+
+    agent.persistence_manager.persist_messages(new_messages)
+    agent._messages = agent_messages
+    save_agent(agent)
 
 
 def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
@@ -182,7 +209,8 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
         bool: Whether or not context was refreshed
     """
     watermark = ContextWatermark.get(youbot_user)
-    token_counts = [count_tokens(str(msg)) for msg in youbot_user.agent.messages]
+    agent = get_agent(youbot_user)
+    token_counts = [count_tokens(str(msg)) for msg in agent.messages]
     new_message_hash = messages_md5(youbot_user)
 
     if watermark is not None:
@@ -204,27 +232,31 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
 
     logging.info("Refreshing context")
 
-    system_message = deepcopy(youbot_user.agent._messages[0])
+    system_message = deepcopy(agent._messages[0])
     assert system_message.role == "system"
     new_context = get_refreshed_context_message(youbot_user)
     system_message.text = get_system_instruction(new_context)
     system_message.id = uuid.uuid4()
 
-    youbot_user.agent.persistence_manager.persist_messages([system_message])
+    agent.persistence_manager.persist_messages([system_message])
 
     new_messages = [system_message]
     current_token_count = count_tokens(system_message.text)
 
-    for idx in range(len(youbot_user.agent._messages) - 1, 0, -1):  # skip system message
+    for idx in range(len(agent._messages) - 1, 0, -1):  # skip system message
         if current_token_count > TARGET_CONTEXT_REFRESH_TOKENS:
             break
-        current_msg = youbot_user.agent._messages[idx]
+        current_msg = agent._messages[idx]
         if not current_msg.readable_message():
             continue
         new_messages.append(current_msg)
         current_token_count += token_counts[idx]
 
-    youbot_user.agent._messages = new_messages
-    save_agent(youbot_user.agent)
+    agent._messages = new_messages
+    save_agent(agent)
     ContextWatermark.set(youbot_user)
     return True
+
+
+def get_agent(youbot_user: YoubotUser) -> Agent:
+    return server._load_agent(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id)
