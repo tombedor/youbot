@@ -1,5 +1,6 @@
 from collections import deque
 from copy import deepcopy
+import os
 import time
 from hashlib import md5
 import json
@@ -98,20 +99,27 @@ def create_user(user_id: UUID) -> User:
 def user_message(youbot_user: YoubotUser, msg: str) -> str:
     response_list = server.user_message(user_id=youbot_user.memgpt_user_id, agent_id=youbot_user.memgpt_agent_id, message=msg)
 
+    agent_response = None
+
     for i in range(len(response_list) - 1, -1, -1):
         response = response_list[i]
 
         if response.role == "assistant":
-            return response.text
+            agent_response = response.text
         elif response.tool_calls is not None:
 
             for call in response.tool_calls:
                 if call.function["name"] == "send_message":
                     try:
-                        return json.loads(call.function["arguments"], strict=False)["message"]
+                        agent_response = json.loads(call.function["arguments"], strict=False)["message"]
                     except json.decoder.JSONDecodeError:
                         logging.warn("Could not parse json, outputting raw response")
-    raise Exception("No response found")
+    if agent_response is None:
+        raise Exception("No response found")
+
+    if os.environ.get("IS_DEVELOPMENT", False):
+        refresh_context_if_needed.delay(youbot_user)  # type: ignore
+    return agent_response
 
 
 def formatted_readable_messages(youbot_user: YoubotUser) -> str:

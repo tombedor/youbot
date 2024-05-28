@@ -8,6 +8,7 @@ from memgpt.config import MemGPTConfig
 
 import numpy as np
 from openai import OpenAI
+import requests
 import tiktoken
 
 from youbot import cache
