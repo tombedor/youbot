@@ -8,9 +8,12 @@ from uuid import UUID
 from pydantic import field_validator
 from sqlalchemy import NullPool, UniqueConstraint, create_engine
 from sqlmodel import SQLModel, Field
+from memgpt.agent import Agent
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
 
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+from youbot import MEMGPT_SERVER
 
 
 Base = declarative_base()
@@ -40,6 +43,16 @@ class YoubotUser(SQLModel, table=True):
     discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
     phone: str = Field(str, description="The phone number for the user")
     human_description: str = Field(..., description="Text description of th user to be provided to the MemGPT agent")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._agent = None
+
+    @property
+    def agent(self) -> Agent:
+        if self._agent is None:
+            self._agent = MEMGPT_SERVER._load_agent(user_id=self.memgpt_user_id, agent_id=self.memgpt_agent_id)
+        return self._agent
 
     @field_validator("phone")
     def phone_is_e164(cls, phone: str) -> str:
