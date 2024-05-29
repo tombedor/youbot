@@ -6,9 +6,6 @@ from youbot.store import get_youbot_user_by_id
 from colorama import Fore, Style, init
 from rich.console import Console
 
-
-MAX_RETRIES = 3
-
 CLI_USER = get_youbot_user_by_id(1)
 
 

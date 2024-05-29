@@ -29,9 +29,6 @@ class NLP:
             cls.pipeline = spacy.load("en_core_web_md")
         return cls.pipeline(text)
 
-    def __init__(self):
-        self.nlp = None
-
 
 ENTITY_LABEL_CONFIDENCE_THRESHOLD = 0.7
 

@@ -9,9 +9,6 @@ from memgpt.agent import Agent, save_agent as memgpt_save_agent
 from youbot.data_models import YoubotUser
 
 
-PRESET_NAME = "youbot"
-AGENT_NAME = "youbot"
-
 PERSONA_TEXT = """The following is a starter persona, and it can be expanded as the personality develops:
  I am Sam.
  I don't identify as male or female, but my voice is soft and soothing.
