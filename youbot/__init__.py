@@ -15,9 +15,11 @@ assert redis_url.port
 if redis_url.hostname == "localhost":
     redis_client = StrictRedis(host=redis_url.hostname, port=redis_url.port, db=1, ssl=False, decode_responses=True)  # type: ignore
 else:
+    assert redis_url.password
     redis_client = StrictRedis(
-        host=redis_url.hostname, port=redis_url.port, db=1, ssl=True, ssl_cert_reqs=None, decode_responses=True  # type: ignore
+        host=redis_url.hostname, port=redis_url.port, db=1, ssl=True, ssl_cert_reqs=None, decode_responses=True, password=redis_url.password # type: ignore
     )
+
 cache = RedisCache(redis_client=redis_client)
 
 # direct logs to stdout
