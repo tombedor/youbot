@@ -26,7 +26,7 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @app.task
 def refresh_context_async(youbot_user: YoubotUser):
-    refresh_context_if_needed.delay(youbot_user)  # type: ignore
+    refresh_context_if_needed(youbot_user)
 
 
 @app.task
