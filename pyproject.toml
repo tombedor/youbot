@@ -9,7 +9,7 @@ readme = "README.md"
 python = ">=3.11,<3.12"
 pgvector = "^0.2.4"
 psycopg2-binary = "^2.9.9"
-pymemgpt = {git = 'https://github.com/tombedor/MemGPT.git', rev='adfc61d23feee95402b5e6ac763f0aebd74a8195'}
+pymemgpt = {git = 'https://github.com/tombedor/MemGPT.git', rev='1b7115418bcd5b2b180378dd57d486065da708d0'}
 sqlalchemy = "^2.0.29"
 discord = "^2.3.2"
 celery = {extras = ["redis"], version = "^5.4.0"}
