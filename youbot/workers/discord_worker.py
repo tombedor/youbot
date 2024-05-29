@@ -4,8 +4,9 @@ import discord
 import os
 
 
+from youbot.messenger import user_message
 from youbot.store import get_youbot_user_by_discord
-from youbot.workers.worker import user_message
+from youbot.workers.worker import refresh_context_async
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 AGENT_NAME = "youbot"
@@ -35,6 +36,7 @@ async def on_message(message) -> None:
     else:
         reply = user_message(youbot_user=youbot_user, msg=message.content)
         await message.channel.send(reply)
+        refresh_context_async.delay(youbot_user)  # type: ignore
 
 
 if __name__ == "__main__":
