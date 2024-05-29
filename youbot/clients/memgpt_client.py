@@ -1,11 +1,9 @@
 from typing import List
 from uuid import UUID
-import uuid
 
 from memgpt.metadata import MetadataStore
 from memgpt.server.server import SyncServer
-from memgpt.data_types import User, Preset, AgentState, Message
-from memgpt.models.pydantic_models import HumanModel, PersonaModel
+from memgpt.data_types import User, AgentState, Message
 from memgpt.agent import Agent, save_agent as memgpt_save_agent
 
 from youbot.data_models import YoubotUser
@@ -30,45 +28,15 @@ metadata_store = MetadataStore()
 server = SyncServer()
 
 
-def create_preset(
-    user_id: UUID,
-    human_text: str,
-) -> Preset:
-    id = uuid.uuid4()
-    preset = Preset(
-        name=PRESET_NAME,
-        id=id,
-        user_id=user_id,
-        description="Youbot default preset",
-        human=human_text,
-    )
-    metadata_store.create_preset(preset)
-    return preset
-
-
-def create_agent(user_id: UUID, human_name: str) -> AgentState:
+def create_agent(user_id: UUID) -> AgentState:
     agent_name = "youbot"
     agent_state = AgentState(
-        name=AGENT_NAME,
         user_id=user_id,
-        human=human_name,
     )
-    server.create_agent(user_id=user_id, name=AGENT_NAME, human=human_name, preset=PRESET_NAME)
+    metadata_store.create_agent(agent_state)
     agent_state = metadata_store.get_agent(agent_name=agent_name, user_id=user_id)
     assert agent_state
     return agent_state
-
-
-def create_human(user_id: UUID, human_text: str, human_name: str) -> HumanModel:
-    human = HumanModel(name=human_name, user_id=user_id, text=human_text)
-    metadata_store.add_human(human)
-    return human
-
-
-def create_persona(user_id: UUID) -> PersonaModel:
-    persona = PersonaModel(text=PERSONA_TEXT, name="youbot", user_id=user_id)
-    metadata_store.add_persona(persona)
-    return persona
 
 
 def create_user(user_id: UUID) -> User:

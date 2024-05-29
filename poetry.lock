@@ -3060,13 +3060,12 @@ setuptools = "^68.2.2"
 sqlalchemy = "^2.0.25"
 sqlalchemy-json = "^0.7.0"
 sqlmodel = "^0.0.16"
-tiktoken = "^0.7.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/tombedor/MemGPT.git"
-reference = "adfc61d23feee95402b5e6ac763f0aebd74a8195"
-resolved_reference = "adfc61d23feee95402b5e6ac763f0aebd74a8195"
+reference = "1b7115418bcd5b2b180378dd57d486065da708d0"
+resolved_reference = "1b7115418bcd5b2b180378dd57d486065da708d0"
 
 [[package]]
 name = "pyparsing"
@@ -4558,4 +4557,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "e983fb52c4d35503fdf612c51c8c52df6bd73e7a82382f34ff04c6d99a97a9b8"
+content-hash = "1a48e32a4e324cb26b11c3968e071eca1f724ef085a087947b23c3b37ea63051"
