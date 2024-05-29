@@ -52,6 +52,19 @@ Avoid tendency of AI to end every interaction with a generic question, ask too m
 """
 
 
+ARCHIVAL_MEMORY_SYSTEM_PROMPT = f"""
+You are a memory archival assistant. Given a conversation summary,
+response with one or more facts that the transcript contains.
+
+Pay particular attention facts about the user, such as their name, age, location, etc.
+Specifics about events and dates are also important.
+
+Focus on facts in the real world, as opposed to facts about the converstaion itself.
+
+Your response should be in narrative form. Do not exceed {WORD_LIMIT} words.
+"""
+
+
 def get_system_instruction(context_summary: str) -> str:
     pacific_tz = pytz.timezone("America/Los_Angeles")
 

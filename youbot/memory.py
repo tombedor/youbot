@@ -11,7 +11,13 @@ from attr import dataclass
 from youbot.clients.llm_client import count_tokens, query_llm
 from youbot.clients.memgpt_client import get_agent, set_messages
 from youbot.knowledge_base.knowledge_base import NLP
-from youbot.prompts import DATETIME_FORMATTER, SUMMARIZER_SYSTEM_PROMPT, background_info_system_prompt, get_system_instruction
+from youbot.prompts import (
+    ARCHIVAL_MEMORY_SYSTEM_PROMPT,
+    DATETIME_FORMATTER,
+    SUMMARIZER_SYSTEM_PROMPT,
+    background_info_system_prompt,
+    get_system_instruction,
+)
 from youbot.store import YoubotUser, get_entity_name_text
 from youbot import redis_client
 
@@ -110,38 +116,45 @@ def messages_md5(youbot_user: YoubotUser) -> str:
     return md5(msgs_str.encode()).hexdigest()
 
 
-def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
-    """Calculates if context needs to be refreshed, and refreshes it if needed
-
-    Args:
-        youbot_user (YoubotUser): Youbot user to examine.
-
-    Returns:
-        bool: Whether or not context was refreshed
-    """
+def is_context_refresh_needed(youbot_user: YoubotUser) -> bool:
     watermark = ContextWatermark.get(youbot_user)
     agent = get_agent(youbot_user)
     token_counts = [count_tokens(str(msg)) for msg in agent.messages]
     new_message_hash = messages_md5(youbot_user)
 
-    if watermark is not None:
-        is_messages_changed = new_message_hash != watermark.message_hash
-        elapsed_seconds = int(time.time()) - watermark.epoch_seconds
-        is_tokens_over_threshold = sum(token_counts) > TOKEN_REFRESH_THRESHOLD
+    if watermark is None:
+        return True
 
-        logging.info(
-            f"Message changed: {is_messages_changed}. Elapsed seconds: {elapsed_seconds}. Tokens in context: {sum(token_counts)} out of limit {TOKEN_REFRESH_THRESHOLD}. Over threshold: {is_tokens_over_threshold}"
-        )
+    is_messages_changed = new_message_hash != watermark.message_hash
+    elapsed_seconds = int(time.time()) - watermark.epoch_seconds
 
-        if not is_messages_changed and elapsed_seconds < INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE:
-            logging.info("No new messages and elapsed time below threshold. No refresh needed")
-            return False
+    logging.info(f"Token count {sum(token_counts)} out of limit {TOKEN_REFRESH_THRESHOLD}")
+    if sum(token_counts) > TOKEN_REFRESH_THRESHOLD:
+        logging.info("Token count over threshold")
+        return True
+    elif is_messages_changed and elapsed_seconds > INVALIDATION_SECONDS_AFTER_NEW_MESSAGE:
+        logging.info("Message changed, elapsed time over threshold")
+        return True
+    elif elapsed_seconds > INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE:
+        logging.info("Elapsed time over threshold")
+        return True
+    else:
+        return False
 
-        if is_messages_changed and elapsed_seconds < INVALIDATION_SECONDS_AFTER_NEW_MESSAGE and not is_tokens_over_threshold:
-            logging.info("Messages changed, but elapsed time below threshold and token count below threshold. No refresh needed")
-            return False
 
+def refresh_context(youbot_user: YoubotUser) -> None:
+    """Refreshes context, saving to archival memory and compressing the context window.
+
+    Args:
+        youbot_user (YoubotUser): Youbot user to examine.
+    """
     logging.info("Refreshing context")
+
+    agent = get_agent(youbot_user)
+    token_counts = [count_tokens(str(msg)) for msg in agent.messages]
+
+    archival_memory = query_llm(prompt=formatted_readable_messages(youbot_user), system=ARCHIVAL_MEMORY_SYSTEM_PROMPT)
+    agent.persistence_manager.archival_memory.insert(archival_memory)
 
     system_message = deepcopy(agent._messages[0])
     assert system_message.role == "system"
@@ -165,4 +178,3 @@ def refresh_context_if_needed(youbot_user: YoubotUser) -> bool:
 
     set_messages(youbot_user, list(new_messages))
     ContextWatermark.set(youbot_user)
-    return True

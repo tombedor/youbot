@@ -117,20 +117,6 @@ def get_archival_messages(limit=None) -> List[ArchivalMemoryModel]:
     return raw_messages
 
 
-def readable_message(msg) -> Optional[str]:
-    if msg.role == "user":
-        msg_text_d = json.loads(msg.text)
-        if msg_text_d.get("type") in ["login", "heartbeat"]:
-            return None
-        else:
-            return msg_text_d["message"]
-
-    elif msg.role == "tool":
-        return None
-    else:
-        raise ValueError(f"Unknown message role {msg.role}")
-
-
 def get_memgpt_recall(limit=None) -> List[Dict]:
     with SESSION_MAKER() as session:
         # raw messages ordered by created_at

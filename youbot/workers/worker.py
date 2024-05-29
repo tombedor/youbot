@@ -4,7 +4,7 @@ from celery import Celery
 
 from youbot.data_models import YoubotUser
 from youbot.clients.twilio_client import send_message
-from youbot.memory import refresh_context_if_needed
+from youbot.memory import is_context_refresh_needed, refresh_context
 from youbot.messenger import user_message
 from youbot.store import get_pending_reminders, get_youbot_user_by_id, update_reminder_state
 
@@ -26,7 +26,8 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @app.task
 def refresh_context_async(youbot_user: YoubotUser):
-    refresh_context_if_needed(youbot_user)
+    if is_context_refresh_needed(youbot_user):
+        refresh_context(youbot_user)
 
 
 @app.task

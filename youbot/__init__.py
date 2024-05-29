@@ -11,9 +11,13 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 redis_url = urlparse(os.environ["REDIS_URL"])
 assert redis_url.hostname
 assert redis_url.port
-redis_client = StrictRedis(
-    host=redis_url.hostname, port=redis_url.port, db=1, ssl=True, ssl_cert_reqs=None, decode_responses=True  # type: ignore
-)
+
+if redis_url.hostname == "localhost":
+    redis_client = StrictRedis(host=redis_url.hostname, port=redis_url.port, db=1, ssl=False, decode_responses=True)  # type: ignore
+else:
+    redis_client = StrictRedis(
+        host=redis_url.hostname, port=redis_url.port, db=1, ssl=True, ssl_cert_reqs=None, decode_responses=True  # type: ignore
+    )
 cache = RedisCache(redis_client=redis_client)
 
 # direct logs to stdout
