@@ -12,6 +12,7 @@ from youbot.clients.llm_client import query_llm, query_llm_json
 TRUST_LABELS = ["CARDINAL", "DATE", "TIME"]
 
 
+# maybe convert to: https://stackoverflow.com/questions/12680080/python-enums-with-attributes
 class EntityLabel(Enum):
     UNKNOWN = 0
     PRIMARY_USER = 1
@@ -101,6 +102,13 @@ class Event(Entity):
 
     def summary_prompt(self) -> Optional[str]:
         return "Summarize the event, including the date, location, and a brief description of the event."
+
+
+class MusicalGroup(Entity):
+    entity_label = EntityLabel.MUSICAL_GROUP
+
+    def summary_prompt(self) -> Optional[str]:
+        return "Summarize the musical group, including the members, genre, and notable songs. Discuss how the primary user feels about the group."
 
 
 class Project(Entity):

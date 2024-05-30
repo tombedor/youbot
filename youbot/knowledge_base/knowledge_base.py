@@ -13,6 +13,7 @@ from youbot.knowledge_base.entity import (
     EntityLabel,
     Event,
     Movie,
+    MusicalGroup,
     Person,
     Pet,
     PrimaryUser,
@@ -87,6 +88,8 @@ class KnowledgeBase:
             facts_list.sort()
             entity_label = calculate_label_for_entity_name(entity_name, tuple(facts_list), prior_label)
 
+            logging.info("Entity %s has label %s", entity_name, entity_label)
+
             if entity_label == EntityLabel.PERSON.name:
                 entity = Person(entity_name=entity_name, facts=facts)
                 entities.append(entity)
@@ -103,6 +106,8 @@ class KnowledgeBase:
                 entity = Project(entity_name=entity_name, facts=facts)
             elif entity_label == EntityLabel.MOVIE.name:
                 entity = Movie(entity_name=entity_name, facts=facts)
+            elif entity_label == EntityLabel.MUSICAL_GROUP.name:
+                entity = MusicalGroup(entity_name=entity_name, facts=facts)
             else:
                 logging.info("Skipping entity %s with label %s", entity_name, entity_label)
                 continue
@@ -257,4 +262,5 @@ if __name__ == "__main__":
         #     entity_label=entity.entity_label.name,
         #     text=entity.description(),
         # )
+        logging.info("entity %s: %s", entity.entity_name, entity.summary)
         logging.debug("Processed entity %s: %s", entity.entity_name, entity.__dict__)
