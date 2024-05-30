@@ -104,10 +104,13 @@ class KnowledgeBase:
                 entities.append(entity)
             elif entity_label == EntityLabel.PROJECT.name:
                 entity = Project(entity_name=entity_name, facts=facts)
+                entities.append(entity)
             elif entity_label == EntityLabel.MOVIE.name:
                 entity = Movie(entity_name=entity_name, facts=facts)
+                entities.append(entity)
             elif entity_label == EntityLabel.MUSICAL_GROUP.name:
                 entity = MusicalGroup(entity_name=entity_name, facts=facts)
+                entities.append(entity)
             else:
                 logging.info("Skipping entity %s with label %s", entity_name, entity_label)
                 continue
