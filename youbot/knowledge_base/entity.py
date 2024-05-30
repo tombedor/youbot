@@ -32,6 +32,7 @@ class EntityLabel(Enum):
     DATE = 15
     TIME = 16
     AI_ASSISTANT = 17
+    PROJECT = 18
 
 
 VALID_LABELS = [k for k in EntityLabel.__members__.keys() if k != "PRIMARY_USER"]
@@ -89,6 +90,31 @@ The entity named {self.entity_name} is of type {self.entity_label.name}. A summa
 
         if self.summary_prompt():
             self.summary = summarize_known_information(entity_name=self.entity_name, entity_type=self.entity_label.name, summary_prompt=self.summary_prompt(), facts=tuple(self.facts))  # type: ignore
+
+
+@dataclass
+class Event(Entity):
+    entity_label = EntityLabel.EVENT
+    name: Optional[str] = None
+    date: Optional[datetime] = None
+    location: Optional[str] = None
+
+    def summary_prompt(self) -> Optional[str]:
+        return "Summarize the event, including the date, location, and a brief description of the event."
+
+
+class Project(Entity):
+    entity_label = EntityLabel.PROJECT
+
+    def summary_prompt(self) -> Optional[str]:
+        return "Summarize the project, including the description, who is working on it, what the goal is, and current status."
+
+
+class Movie(Entity):
+    entity_label = EntityLabel.MOVIE
+
+    def summary_prompt(self) -> Optional[str]:
+        return "Briefly summarize the movie, including the plot, main characters, and any notable aspects. Also note how the primary user relates to the movie."
 
 
 @dataclass

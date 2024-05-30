@@ -1,4 +1,5 @@
 import logging
+import pickle
 from typing import List
 import pandas as pd
 from pandas import DataFrame
@@ -10,9 +11,12 @@ from youbot.clients.llm_client import query_llm
 from youbot.knowledge_base.entity import (
     Entity,
     EntityLabel,
+    Event,
+    Movie,
     Person,
     Pet,
     PrimaryUser,
+    Project,
     calculate_label_for_entity_name,
 )
 from youbot.store import get_archival_messages, get_youbot_user_by_id, upsert_memory_entity
@@ -92,6 +96,13 @@ class KnowledgeBase:
             elif entity_label == EntityLabel.PRIMARY_USER.name:
                 entity = PrimaryUser(entity_name=entity_name, facts=facts)
                 entities.append(entity)
+            elif entity_label == EntityLabel.EVENT.name:
+                entity = Event(entity_name=entity_name, facts=facts)
+                entities.append(entity)
+            elif entity_label == EntityLabel.PROJECT.name:
+                entity = Project(entity_name=entity_name, facts=facts)
+            elif entity_label == EntityLabel.MOVIE.name:
+                entity = Movie(entity_name=entity_name, facts=facts)
             else:
                 logging.info("Skipping entity %s with label %s", entity_name, entity_label)
                 continue
@@ -231,15 +242,19 @@ class KnowledgeBase:
 
 
 if __name__ == "__main__":
-    # direct logs to stdout
     youbot_user = get_youbot_user_by_id(1)
     kb = KnowledgeBase(youbot_user=youbot_user)
     entities = kb.process_entities()
+
+    # pickle results
+    with open("entities.pkl", "wb") as f:
+        pickle.dump(entities, f)
+
     for entity in entities:
-        upsert_memory_entity(
-            youbot_user=youbot_user,
-            entity_name=entity.entity_name,
-            entity_label=entity.entity_label.name,
-            text=entity.description(),
-        )
+        # upsert_memory_entity(
+        #     youbot_user=youbot_user,
+        #     entity_name=entity.entity_name,
+        #     entity_label=entity.entity_label.name,
+        #     text=entity.description(),
+        # )
         logging.debug("Processed entity %s: %s", entity.entity_name, entity.__dict__)
