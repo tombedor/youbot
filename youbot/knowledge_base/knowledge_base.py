@@ -1,4 +1,5 @@
 import logging
+from typing import List
 import pandas as pd
 from pandas import DataFrame
 import spacy
@@ -7,6 +8,7 @@ from tqdm import tqdm
 from youbot.data_models import YoubotUser
 from youbot.clients.llm_client import query_llm
 from youbot.knowledge_base.entity import (
+    Entity,
     EntityLabel,
     Person,
     Pet,
@@ -61,7 +63,7 @@ class KnowledgeBase:
     def __init__(self, youbot_user: YoubotUser):
         self.youbot_user = youbot_user
 
-    def process_entities(self) -> None:
+    def process_entities(self) -> List[Entity]:
         entity_name_to_facts = {}
         entity_name_to_initial_label = {}
         for archival_msg in tqdm(get_archival_messages(), "processing messages"):
@@ -96,13 +98,7 @@ class KnowledgeBase:
 
         for entity in tqdm(entities, "processing entities"):
             entity.determine_attributes()
-            upsert_memory_entity(
-                youbot_user_id=self.youbot_user.id,
-                entity_name=entity.entity_name,
-                entity_label=entity.entity_label.name,
-                text=entity.description(),
-            )
-            logging.debug("Processed entity %s: %s", entity.entity_name, entity.__dict__)
+        return entities
 
         # filename = os.path.join(CACHE_DIR, "knowledge_base_entities.pkl")
         # with open(filename, "wb") as f:
@@ -236,5 +232,14 @@ class KnowledgeBase:
 
 if __name__ == "__main__":
     # direct logs to stdout
-    kb = KnowledgeBase(youbot_user=get_youbot_user_by_id(1))
-    kb.process_entities()
+    youbot_user = get_youbot_user_by_id(1)
+    kb = KnowledgeBase(youbot_user=youbot_user)
+    entities = kb.process_entities()
+    for entity in entities:
+        upsert_memory_entity(
+            youbot_user=youbot_user,
+            entity_name=entity.entity_name,
+            entity_label=entity.entity_label.name,
+            text=entity.description(),
+        )
+        logging.debug("Processed entity %s: %s", entity.entity_name, entity.__dict__)

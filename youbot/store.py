@@ -136,14 +136,14 @@ def get_entity_name_text(youbot_user: YoubotUser, entity_name: str) -> Optional[
         return None
 
 
-def upsert_memory_entity(youbot_user_id: int, entity_name: str, entity_label: str, text: str) -> None:
+def upsert_memory_entity(youbot_user: YoubotUser, entity_name: str, entity_label: str, text: str) -> None:
     # if exists, update
     with SESSION_MAKER() as session:
         memory_entity = (
-            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).first()
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label).first()
         )
         if memory_entity:
-            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).update(
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label).update(
                 {"text": text}
             )
             session.commit()
