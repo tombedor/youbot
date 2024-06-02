@@ -107,21 +107,17 @@ def summarize_known_information(entity_name: str, entity_label: EntityLabel, fac
     return response
 
 
-def get_entity(name: str, facts: Set[str], label: EntityLabel) -> Entity:
-    summary = summarize_known_information(entity_name=name, entity_label=label, facts=facts)
-    return Entity(entity_name=name, entity_label=label, facts=facts, summary=summary)
-
-
 def run(youbot_user: YoubotUser, persist: bool = True) -> Generator[Entity, None, None]:
     archival_messages = get_archival_messages(youbot_user)
     for ent_facts in get_ents_facts(archival_messages):
         label = calculate_label_for_entity_name(ent_facts)
-        entity_summary = summarize_known_information(entity_name=ent_facts.entity_name, entity_label=label, facts=ent_facts.facts)
-        entity = Entity(entity_name=ent_facts.entity_name, facts=ent_facts.facts, entity_label=label, summary=entity_summary)
-        if persist:
-            upsert_memory_entity(
-                youbot_user=youbot_user, entity_name=entity.entity_name, entity_label=entity.entity_label.name, text=entity.summary
-            )
+        if label.summary_prompt is not None:
+            entity_summary = summarize_known_information(entity_name=ent_facts.entity_name, entity_label=label, facts=ent_facts.facts)
+            entity = Entity(entity_name=ent_facts.entity_name, facts=ent_facts.facts, entity_label=label, summary=entity_summary)
+            if persist:
+                upsert_memory_entity(
+                    youbot_user=youbot_user, entity_name=entity.entity_name, entity_label=entity.entity_label.name, text=entity.summary
+                )
             yield entity
 
 
