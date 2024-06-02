@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 from typing import Optional
 
-
-
-
 TRUST_LABELS = ["CARDINAL", "DATE", "TIME"]
 
 import enum
+
+
 class EntityLabel(enum.Enum):
 
     def __new__(cls, *args, **kwds):
@@ -14,6 +13,7 @@ class EntityLabel(enum.Enum):
         obj = object.__new__(cls)
         obj._value_ = value
         return obj
+
     def __init__(self, summary_prompt: Optional[str]):
         self.summary_prompt = summary_prompt
 
@@ -29,7 +29,9 @@ class EntityLabel(enum.Enum):
     BOOK = None
     MOVIE = "Briefly summarize the movie, including the plot, main characters, and any notable aspects. Also note how the primary user relates to the movie."
     TECHNICAL_CONCEPT = None
-    MUSICAL_GROUP = "Summarize the musical group, including the members, genre, and notable songs. Discuss how the primary user feels about the group."
+    MUSICAL_GROUP = (
+        "Summarize the musical group, including the members, genre, and notable songs. Discuss how the primary user feels about the group."
+    )
     EVENT = "Summarize the event, including the date, location, and a brief description of the event."
     # skippable
     CARDINAL = None
@@ -48,9 +50,3 @@ class Entity:
     entity_label: EntityLabel
     facts: set[str]
     summary: str
-
-
-
-
-
-

@@ -113,7 +113,7 @@ def get_youbot_user_by_id(user_id: int) -> YoubotUser:
 
 def get_archival_messages(youbot_user: YoubotUser, limit=None) -> List[ArchivalMemoryModel]:
     with SESSION_MAKER() as session:
-        raw_messages = session.query(ArchivalMemoryModel).filter_by(user_id= youbot_user.memgpt_user_id).limit(limit).all()
+        raw_messages = session.query(ArchivalMemoryModel).filter_by(user_id=youbot_user.memgpt_user_id).limit(limit).all()
     return raw_messages
 
 
