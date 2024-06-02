@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 import pickle
 from typing import Generator, List, Set
-import pandas as pd
-from pandas import DataFrame
 import spacy
 from spacy.tokens.doc import Doc
 from tqdm import tqdm
@@ -95,10 +93,7 @@ def calculate_label_for_entity_name(ent_facts: PrecursorEntFacts) -> EntityLabel
         for label, score in label_candidates_to_score.items():
             if score > winning_score:
                 winning_label = label
-        if ent_label in EntityLabel.__members__:
-            return EntityLabel[winning_label]  # type: ignore
-        else:
-            raise KeyError(f"Invalid label: {winning_label}")
+        return EntityLabel[winning_label]  # type: ignore
 
 
 def summarize_known_information(entity_name: str, entity_label: EntityLabel, facts: Set[str]) -> str:
@@ -132,7 +127,7 @@ def run(youbot_user: YoubotUser, persist: bool = True) -> Generator[Entity, None
 
 if __name__ == "__main__":
     youbot_user = get_youbot_user_by_id(1)
-    entities = run(youbot_user)
+    entities = list(run(youbot_user))
 
     # pickle results
     with open("entities.pkl", "wb") as f:

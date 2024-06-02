@@ -149,6 +149,6 @@ def upsert_memory_entity(youbot_user: YoubotUser, entity_name: str, entity_label
             session.commit()
             return
         else:
-            memory_entity = MemroyEntity(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
+            memory_entity = MemroyEntity(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
             session.add(memory_entity)
             session.commit()
