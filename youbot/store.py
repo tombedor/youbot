@@ -1,14 +1,13 @@
 from datetime import UTC, datetime
-import json
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 from sqlalchemy import NullPool, create_engine
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
 
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from youbot.data_models import AgentReminder, MemroyEntity, Signup, SmsWebhookLog, YoubotUser
+from youbot.data_models import AgentReminder, GoogleToken, MemroyEntity, Signup, SmsWebhookLog, YoubotUser
 
 
 Base = declarative_base()
@@ -25,6 +24,7 @@ Base.metadata.create_all(
         SmsWebhookLog.__table__,
         AgentReminder.__table__,
         MemroyEntity.__table__,
+        GoogleToken.__table__,
     ],
 )
 SESSION_MAKER = sessionmaker(bind=ENGINE)
@@ -152,3 +152,18 @@ def upsert_memory_entity(youbot_user: YoubotUser, entity_name: str, entity_label
             memory_entity = MemroyEntity(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
             session.add(memory_entity)
             session.commit()
+
+
+def get_encrypted_google_token(youbot_user: YoubotUser) -> Tuple[str, str]:
+    with SESSION_MAKER() as session:
+        token = session.query(GoogleToken).filter_by(youbot_user_id=youbot_user.id).first()
+    if token:
+        return token.access_token, token.refresh_token
+    else:
+        raise KeyError(f"Google token for user with id {youbot_user.id} not found")
+
+
+def store_encrypted_google_token(youbot_user: YoubotUser, encrypted_access_token: str, encrypted_refresh_token: str) -> None:
+    with SESSION_MAKER() as session:
+        session.add(GoogleToken(youbot_user_id=youbot_user.id, access_token=encrypted_access_token, refresh_token=encrypted_refresh_token))  # type: ignore
+        session.commit()
