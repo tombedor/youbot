@@ -1,26 +1,22 @@
+from dataclasses import dataclass
 import logging
 import pickle
-from typing import List
+from typing import Generator, List, Set
 import pandas as pd
 from pandas import DataFrame
 import spacy
 from spacy.tokens.doc import Doc
 from tqdm import tqdm
 from youbot.data_models import YoubotUser
-from youbot.clients.llm_client import query_llm
+from youbot.clients.llm_client import query_llm, query_llm_json
 from youbot.knowledge_base.entity import (
+    TRUST_LABELS,
+    VALID_LABELS,
     Entity,
     EntityLabel,
-    Event,
-    Movie,
-    MusicalGroup,
-    Person,
-    Pet,
-    PrimaryUser,
-    Project,
-    calculate_label_for_entity_name,
 )
 from youbot.store import get_archival_messages, get_youbot_user_by_id, upsert_memory_entity
+from memgpt.agent_store.storage import ArchivalMemoryModel
 
 MODELS = ["gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "gpt-4o"]
 
@@ -63,61 +59,117 @@ VALID_RELATIONSHIPS = {
     ("EVENT", "DATE"): ["OCCURED_ON"],
 }
 
+@dataclass
+class PrecursorEntFacts:
+    entity_name: str
+    facts: Set[str]
+    initial_labels: Set[str]
 
-class KnowledgeBase:
-    def __init__(self, youbot_user: YoubotUser):
-        self.youbot_user = youbot_user
 
-    def process_entities(self) -> List[Entity]:
-        entity_name_to_facts = {}
-        entity_name_to_initial_label = {}
-        for archival_msg in tqdm(get_archival_messages(), "processing messages"):
-            enriched_doc = NLP.process(archival_msg.text)  # type: ignore
-            for ent in enriched_doc.ents:
-                entity_name_to_initial_label.setdefault(ent.text, set()).add(ent.label_)
-                entity_name_to_facts.setdefault(ent.text, set()).add(archival_msg.text)
+def get_ents_facts(archival_messages: List[ArchivalMemoryModel]) -> Generator[PrecursorEntFacts, None, None]:
+    names_to_facts = {}
+    names_to_labels = {}
+    
+    for archival_msg in tqdm(archival_messages, "processing messages"):
+        enriched_doc = NLP.process(archival_msg.text)  # type: ignore
+        for ent in enriched_doc.ents:
+            names_to_facts.setdefault(ent.text, set()).add(archival_msg.text)
+            names_to_labels.setdefault(ent.text, set()).add(ent.label_)
+    for name in names_to_facts.keys():
+        yield PrecursorEntFacts(entity_name=name, facts=names_to_facts[name], initial_labels=names_to_labels[name])
+        
+@dataclass
+class FactEntities:
+    fact: str
+    entities: List[Entity]
+        
 
-        entities = []
-        for entity_name, facts in tqdm(entity_name_to_facts.items(), "determining entity labels"):
-            if len(entity_name_to_initial_label[entity_name]) == 1:
-                prior_label = list(entity_name_to_initial_label[entity_name])[0]
-            else:
-                prior_label = None
+def calculate_label_for_entity_name(ent_facts: PrecursorEntFacts) -> EntityLabel:
+    ent_label = None
+    
+    if len(ent_facts.initial_labels) == 1 and list(ent_facts.initial_labels)[0] in TRUST_LABELS:
+        label = list(ent_facts.initial_labels)[0]
+        return EntityLabel[label]
+    elif ent_facts.entity_name == "Tom":
+        return EntityLabel.PRIMARY_USER
+    elif ent_facts.entity_name == "Sam":
+        return EntityLabel.AI_ASSISTANT
+    else:
+        total_score = 0
+        label_candidates_to_score = {}
+        for fact in ent_facts.facts:
 
-            facts_list = list(facts)
-            facts_list.sort()
-            entity_label = calculate_label_for_entity_name(entity_name, tuple(facts_list), prior_label)
+            labels_str = ", ".join(VALID_LABELS)
 
-            logging.info("Entity %s has label %s", entity_name, entity_label)
+            prompt = f"""You are an entity resolution assistant. 
+                You must classify the entity with name = {ent_facts.entity_name}
+                
+                The valid choices are: {labels_str}
+                
+                
+                Use both your inherent knowledge, and this facts derived from chat logs:
+                {fact}
+                
+                Your response should be in JSON format, with the following keys:
+                LABEL: The label you choos. Must be from list of choices: {labels_str}
+                CONFIDENCE_SCORE: A value from 1-100, where 100 is more confident and 0 is least
+                REASONING: A short explanation of why you chose this label
+                """
+            response = query_llm_json(prompt)
+            confidence_score = response["CONFIDENCE_SCORE"]  # type: ignore
+            label = response["LABEL"]  # type: ignore
 
-            if entity_label == EntityLabel.PERSON.name:
-                entity = Person(entity_name=entity_name, facts=facts)
-                entities.append(entity)
-            elif entity_label == EntityLabel.PET.name:
-                entity = Pet(entity_name=entity_name, facts=facts)
-                entities.append(entity)
-            elif entity_label == EntityLabel.PRIMARY_USER.name:
-                entity = PrimaryUser(entity_name=entity_name, facts=facts)
-                entities.append(entity)
-            elif entity_label == EntityLabel.EVENT.name:
-                entity = Event(entity_name=entity_name, facts=facts)
-                entities.append(entity)
-            elif entity_label == EntityLabel.PROJECT.name:
-                entity = Project(entity_name=entity_name, facts=facts)
-                entities.append(entity)
-            elif entity_label == EntityLabel.MOVIE.name:
-                entity = Movie(entity_name=entity_name, facts=facts)
-                entities.append(entity)
-            elif entity_label == EntityLabel.MUSICAL_GROUP.name:
-                entity = MusicalGroup(entity_name=entity_name, facts=facts)
-                entities.append(entity)
-            else:
-                logging.info("Skipping entity %s with label %s", entity_name, entity_label)
-                continue
+            total_score += confidence_score
+            label_candidates_to_score[label] = label_candidates_to_score.get(label, 0) + confidence_score
 
-        for entity in tqdm(entities, "processing entities"):
-            entity.determine_attributes()
-        return entities
+        winning_score = float("-inf")
+        winning_label = None
+        for label, score in label_candidates_to_score.items():
+            if score > winning_score:
+                winning_label = label
+        if ent_label in EntityLabel.__members__:
+            return EntityLabel[winning_label] # type: ignore
+        else:
+            raise KeyError(f"Invalid label: {winning_label}")
+
+
+def summarize_known_information(entity_name: str, entity_label: EntityLabel, facts: Set[str]) -> str:
+    raw_facts_list = list(facts)
+    raw_facts_list.sort()
+    facts_list = [f"Entity name: {entity_name}. Entity Label: {entity_label.name}"]
+    summary_prompt = entity_label.summary_prompt
+    
+    
+    response = query_llm(prompt = "\n".join(facts_list), system= summary_prompt)
+    assert response
+    return response
+
+def get_entity(name: str, facts: Set[str], label: EntityLabel) -> Entity:
+    summary = summarize_known_information(entity_name=name, entity_label=label, facts=facts)
+    return Entity(entity_name=name, entity_label=label, facts=facts, summary=summary)
+    
+
+def run(youbot_user: YoubotUser, persist: bool = True) -> None
+    archival_messages = get_archival_messages(youbot_user)
+    
+    facts_to_entities = {}
+    entities = []
+    for ent_facts in get_ents_facts(archival_messages):
+        label = calculate_label_for_entity_name(ent_facts)
+        entity_summary = summarize_known_information(entity_name=ent_facts.entity_name, entity_label=label, facts=ent_facts.facts)
+        entity = Entity(entity_name=ent_facts.entity_name, facts=ent_facts.facts, entity_label=label, summary=entity_summary)
+        if persist:
+            upsert_memory_entity(youbot_user = youbot_user, entity_name=entity.entity_name, entity_label=entity.entity_label.name, text=entity.summary)
+        for fact in entity.facts:
+            facts_to_entities.setdefault(fact, []).append(entity)
+            entities.append(entity)
+            
+    for fact, entities in facts_to_entities.items():
+        # do relationship resolution
+        ...
+        
+        
+        
 
         # filename = os.path.join(CACHE_DIR, "knowledge_base_entities.pkl")
         # with open(filename, "wb") as f:
@@ -251,19 +303,8 @@ class KnowledgeBase:
 
 if __name__ == "__main__":
     youbot_user = get_youbot_user_by_id(1)
-    kb = KnowledgeBase(youbot_user=youbot_user)
-    entities = kb.process_entities()
+    entities = run(youbot_user)
 
     # pickle results
     with open("entities.pkl", "wb") as f:
         pickle.dump(entities, f)
-
-    for entity in entities:
-        # upsert_memory_entity(
-        #     youbot_user=youbot_user,
-        #     entity_name=entity.entity_name,
-        #     entity_label=entity.entity_label.name,
-        #     text=entity.description(),
-        # )
-        logging.info("entity %s: %s", entity.entity_name, entity.summary)
-        logging.debug("Processed entity %s: %s", entity.entity_name, entity.__dict__)
