@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import logging
 import pickle
 from typing import Generator, List, Set
 import spacy
@@ -41,7 +42,7 @@ def get_ents_facts(archival_messages: List[ArchivalMemoryModel]) -> Generator[Pr
     names_to_facts = {}
     names_to_labels = {}
 
-    for archival_msg in tqdm(archival_messages, "processing messages"):
+    for archival_msg in archival_messages:
         enriched_doc = NLP.process(archival_msg.text)  # type: ignore
         for ent in enriched_doc.ents:
             names_to_facts.setdefault(ent.text, set()).add(archival_msg.text)
@@ -109,9 +110,12 @@ def summarize_known_information(entity_name: str, entity_label: EntityLabel, fac
 
 def run(youbot_user: YoubotUser, persist: bool = True) -> Generator[Entity, None, None]:
     archival_messages = get_archival_messages(youbot_user)
-    for ent_facts in get_ents_facts(archival_messages):
+    ent_facts_list = list(get_ents_facts(archival_messages))
+    for ent_facts in tqdm(ent_facts_list):
         label = calculate_label_for_entity_name(ent_facts)
+        logging.debug(f"Label for {ent_facts.entity_name} is {label.name}")
         if label.summary_prompt is not None:
+            logging.debug("calculating entity summary")
             entity_summary = summarize_known_information(entity_name=ent_facts.entity_name, entity_label=label, facts=ent_facts.facts)
             entity = Entity(entity_name=ent_facts.entity_name, facts=ent_facts.facts, entity_label=label, summary=entity_summary)
             if persist:

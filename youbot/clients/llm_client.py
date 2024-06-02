@@ -28,7 +28,7 @@ def query_llm(prompt: str, system: Optional[str] = None):
 
 @cache.cache(ttl=CACHE_LENGTH_SECONDS)
 def _query_llm(prompt: str, system: Optional[str], model: str, temperature: float) -> str:
-    logging.info("llm query: %s...", prompt[0:50])
+    logging.debug("llm query: %s...", prompt[0:50])
     if model.startswith("gpt"):
         sleep(GPT_SLEEP_SECONDS)
 
@@ -55,7 +55,7 @@ def count_tokens(s: str) -> int:
 
 @cache.cache(ttl=CACHE_LENGTH_SECONDS)
 def _query_llm_json(prompt: str, model: str, temperature: float) -> Union[dict, list]:
-    logging.info("llm query: %s", prompt[0:200])
+    logging.debug("llm query: %s", prompt[0:200])
     if model.startswith("gpt"):
         sleep(GPT_SLEEP_SECONDS)
     response = OpenAI().chat.completions.create(
