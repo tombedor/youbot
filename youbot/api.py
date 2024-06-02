@@ -2,9 +2,14 @@ import logging
 import os
 from flask import Flask, Response, render_template, request
 from youbot import ROOT_DIR
-from youbot.store import create_signup, create_sms_webhook_log, get_youbot_user_by_phone
+from youbot.knowledge_base.google_calendar import create_flow, get_user_info, store_tokens
+from youbot.store import create_signup, create_sms_webhook_log, get_youbot_user_by_id, get_youbot_user_by_phone
 from youbot.clients.twilio_client import test_recipient, send_message, account_sid
 from youbot.workers.worker import response_to_twilio_message
+
+import os
+from flask import Flask, redirect, url_for, session, request
+from google.auth.exceptions import GoogleAuthError
 
 
 app = Flask(__name__)
@@ -117,3 +122,56 @@ def validate_request(request) -> bool:
         return False
     else:
         return True
+
+
+@app.route("/authorize")
+def authorize():
+    try:
+        # Create flow instance to manage OAuth 2.0 authorization.
+        flow = create_flow()
+        authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true")
+
+        session["state"] = state
+
+        return redirect(authorization_url)
+    except GoogleAuthError as error:
+        return f"Authorization error: {error}"
+    except Exception as e:
+        return f"Unexpected error: {e}"
+
+
+@app.route("/oauth2callback")
+def oauth2callback():
+    try:
+        state = session["state"]
+        flow = create_flow()
+        flow.state = state
+
+        # Use the authorization server's response to fetch the OAuth 2.0 tokens.
+        authorization_response = request.url
+        flow.fetch_token(authorization_response=authorization_response)
+
+        # Store credentials and extract tokens
+        credentials = flow.credentials
+
+        # Fetch user info
+        user_info = get_user_info(credentials)
+        if user_info:
+            google_user_id = user_info["sub"]
+            email = user_info["email"]
+
+            # Here you should map the Google user to your internal user ID
+            # For example: user_id = map_google_user_to_internal_user(google_user_id, email)
+            # Mocked internal user ID lookup for demonstration
+            user_id = 123  # Replace this with actual mapping logic
+
+            # Save the user info and credentials to the session or database
+            session["credentials"] = credentials_to_dict(credentials)  # todo: store instead
+            session["user_id"] = user_id
+            return redirect(url_for("profile"))
+        else:
+            return "Failed to fetch user information from Google."
+    except GoogleAuthError as error:
+        return f"Authorization error: {error}"
+    except Exception as e:
+        return f"Unexpected error: {e}"
