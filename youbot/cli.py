@@ -21,6 +21,9 @@ def main():
             print("Exiting...")
             exit()
 
+        if len(user_input) == 0:
+            continue
+
         with console.status("[bold cyan]Thinking...") as _status:
             agent_response = user_message(CLI_USER, user_input)
 

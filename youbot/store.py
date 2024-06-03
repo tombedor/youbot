@@ -1,13 +1,14 @@
 from datetime import UTC, datetime
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from uuid import UUID
 from sqlalchemy import NullPool, create_engine
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
 
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from youbot.data_models import AgentReminder, MemroyEntity, Signup, SmsWebhookLog, YoubotUser
+from youbot.clients.google_client import CalendarEvent
+from youbot.data_models import AgentReminder, CalendarEventDB, MemroyEntity, Signup, SmsWebhookLog, YoubotUser
 
 
 Base = declarative_base()
@@ -24,14 +25,15 @@ Base.metadata.create_all(
         SmsWebhookLog.__table__,
         AgentReminder.__table__,
         MemroyEntity.__table__,
+        CalendarEventDB.__table__,
     ],
 )
 SESSION_MAKER = sessionmaker(bind=ENGINE)
 
 
-def create_signup(name: str, phone: str, discord_member_id: Optional[str]) -> None:
+def create_signup(name: str, phone: str, discord_member_id: Optional[str], email: Optional[str]) -> None:
     with SESSION_MAKER() as session:
-        session.add(Signup(name=name, phone=phone, discord_member_id=discord_member_id))  # type: ignore
+        session.add(Signup(name=name, phone=phone, discord_member_id=discord_member_id, email=email))  # type: ignore
         session.commit()
 
 
@@ -39,6 +41,15 @@ def create_youbot_user(user: YoubotUser) -> None:
     with SESSION_MAKER() as session:
         session.add(user)
         session.commit()
+
+
+def get_youbot_user_by_email(email: str) -> YoubotUser:
+    with SESSION_MAKER() as session:
+        user = session.query(YoubotUser).filter_by(email=email).first()
+    if user:
+        return user
+    else:
+        raise KeyError(f"User with email {email} not found")
 
 
 def get_youbot_user_by_phone(phone: str) -> YoubotUser:
@@ -116,16 +127,6 @@ def get_archival_messages(youbot_user: YoubotUser, limit=None) -> List[ArchivalM
     return raw_messages
 
 
-def get_memgpt_recall(limit=None) -> List[Dict]:
-    with SESSION_MAKER() as session:
-        # raw messages ordered by created_at
-        raw_messages = session.query(RecallMemoryModel).order_by(RecallMemoryModel.created_at).limit(limit).all()
-
-    return [
-        {"role": m.role, "time": m.created_at, "content": m.readable_message()} for m in raw_messages if not m.is_system_status_message()
-    ]
-
-
 def get_entity_name_text(youbot_user: YoubotUser, entity_name: str) -> Optional[str]:
     with SESSION_MAKER() as session:
         memory_entity = session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user.id, entity_name=entity_name).first()
@@ -150,4 +151,61 @@ def upsert_memory_entity(youbot_user: YoubotUser, entity_name: str, entity_label
         else:
             memory_entity = MemroyEntity(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
             session.add(memory_entity)
+            session.commit()
+
+
+def fetch_persisted_calendar_events(youbot_user: YoubotUser) -> List[CalendarEvent]:
+    with SESSION_MAKER() as session:
+        events = session.query(CalendarEventDB).filter_by(youbot_user_id=youbot_user.id).all()
+    return [
+        CalendarEvent(
+            event_id=event.event_id,
+            summary=event.summary,
+            description=event.description,
+            start=event.start,
+            end=event.end,
+            location=event.location,
+            attendee_emails=event.attendee_emails.split(",") if event.attendee_emails else [],
+            recurrence=event.recurrence.split(",") if event.recurrence else [],
+            reminders=event.reminders,
+            visibility=event.visibility,
+        )
+        for event in events
+    ]
+
+
+def upsert_event_to_db(youbot_user: YoubotUser, event: CalendarEvent):
+    with SESSION_MAKER() as session:
+        persisted_event = session.query(CalendarEventDB).filter_by(event_id=event.event_id, youbot_user_id=youbot_user.id).first()
+        if persisted_event:
+            session.query(CalendarEventDB).filter_by(event_id=event.event_id, youbot_user_id=youbot_user.id).update(
+                {
+                    "summary": event.summary,
+                    "description": event.description,
+                    "start": event.start,
+                    "end": event.end,
+                    "location": event.location,
+                    "attendee_emails": ",".join(event.attendee_emails) if event.attendee_emails else "",
+                    "recurrence": ",".join(event.recurrence) if event.recurrence else "",
+                    "reminders": event.reminders,
+                    "visibility": event.visibility,
+                }
+            )
+            session.commit()
+            return
+        else:
+            persisted_event = CalendarEventDB(
+                youbot_user_id=youbot_user.id,
+                event_id=event.event_id,
+                summary=event.summary,
+                description=event.description,
+                start=event.start,
+                end=event.end,
+                location=event.location,
+                attendee_emails=event.attendee_emails,
+                recurrence=event.recurrence,
+                reminders=event.reminders,
+                visibility=event.visibility,
+            )  # type: ignore
+            session.add(persisted_event)
             session.commit()

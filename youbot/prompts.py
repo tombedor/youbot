@@ -15,6 +15,12 @@ Keep your summary less than {WORD_LIMIT} words, do NOT exceed this word limit.
 Only output the summary, do NOT include anything else in your output.
 """
 
+CALENDAR_SUMMARIZER_SYSTEM_PROMPT = f"""
+Provide a textual summary of the following data. The data was extracted from a calendar. 
+Your grammar should reflect whether the event is in the past or the future. If there are attendees, discuss who they are.
+If a location is mentioned, adjust your discussion of times to reflect the correct time zone.
+"""
+
 
 def background_info_system_prompt(background_info: str) -> str:
     return f"""

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime
 import re
 from typing import Optional
@@ -5,6 +6,12 @@ from uuid import UUID
 from pydantic import field_validator
 from sqlalchemy import UniqueConstraint
 from sqlmodel import SQLModel, Field
+
+
+@dataclass
+class Fact:
+    text: str
+    timestamp: datetime
 
 
 class Signup(SQLModel, table=True):
@@ -15,6 +22,7 @@ class Signup(SQLModel, table=True):
     name: str = Field(..., description="The name of the user")
     discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
     phone: Optional[str] = Field(None, description="The phone number for the user")
+    email: Optional[str] = Field(None, description="The email for the user")
 
 
 class YoubotUser(SQLModel, table=True):
@@ -27,6 +35,7 @@ class YoubotUser(SQLModel, table=True):
     memgpt_agent_id: UUID = Field(..., description="The unique identifier for the user's agent in the memgpt system")
     discord_member_id: Optional[str] = Field(None, description="The discord member id for the user")
     phone: str = Field(str, description="The phone number for the user")
+    email: str = Field(..., description="The email for the user")
     human_description: str = Field(..., description="Text description of th user to be provided to the MemGPT agent")
 
     @field_validator("phone")
@@ -69,3 +78,19 @@ class MemroyEntity(SQLModel, table=True):
     # embedding = mapped_column(Vector(MAX_EMBEDDING_DIM))
     # embedding_dim: int = Field(..., description="The dimension of the embedding")
     # embedding_model: str = Field(..., description="The model used to generate the embedding")
+
+
+class CalendarEventDB(SQLModel, table=True):
+    id: int = Field(..., description="The unique identifier for the user", primary_key=True, index=True)
+    youbot_user_id: int
+    event_id: str
+    summary: str
+    description: Optional[str]
+    start: datetime
+    end: datetime
+    location: Optional[str]
+    attendee_emails: str  # csv
+    recurrence: str  # csv
+    reminders: bool
+    visibility: str
+    UniqueConstraint("event_id", "youbot_user_id")

@@ -22,6 +22,8 @@ requests = "^2.32.2"
 python-redis-cache = "^3.2.0"
 tiktoken = "^0.7.0"
 spacy = "^3.7.4"
+cryptography = "^42.0.7"
+gcsa = "^2.3.0"
 
 [tool.pyright]
 include = [
@@ -55,6 +57,7 @@ fawltydeps = "^0.15.0"
 spacy-llm = "^0.7.2"
 rich = "^13.7.1"
 typer = ">=0.3.0,<0.10.0"
+python-dotenv = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]
