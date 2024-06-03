@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
-import json
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 from sqlalchemy import NullPool, create_engine
 from memgpt.agent_store.storage import RecallMemoryModel, ArchivalMemoryModel
@@ -111,9 +110,9 @@ def get_youbot_user_by_id(user_id: int) -> YoubotUser:
         raise KeyError(f"User with id {user_id} not found")
 
 
-def get_archival_messages(limit=None) -> List[ArchivalMemoryModel]:
+def get_archival_messages(youbot_user: YoubotUser, limit=None) -> List[ArchivalMemoryModel]:
     with SESSION_MAKER() as session:
-        raw_messages = session.query(ArchivalMemoryModel).limit(limit).all()
+        raw_messages = session.query(ArchivalMemoryModel).filter_by(user_id=youbot_user.memgpt_user_id).limit(limit).all()
     return raw_messages
 
 
@@ -136,19 +135,19 @@ def get_entity_name_text(youbot_user: YoubotUser, entity_name: str) -> Optional[
         return None
 
 
-def upsert_memory_entity(youbot_user_id: int, entity_name: str, entity_label: str, text: str) -> None:
+def upsert_memory_entity(youbot_user: YoubotUser, entity_name: str, entity_label: str, text: str) -> None:
     # if exists, update
     with SESSION_MAKER() as session:
         memory_entity = (
-            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).first()
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label).first()
         )
         if memory_entity:
-            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label).update(
+            session.query(MemroyEntity).filter_by(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label).update(
                 {"text": text}
             )
             session.commit()
             return
         else:
-            memory_entity = MemroyEntity(youbot_user_id=youbot_user_id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
+            memory_entity = MemroyEntity(youbot_user_id=youbot_user.id, entity_name=entity_name, entity_label=entity_label, text=text)  # type: ignore
             session.add(memory_entity)
             session.commit()

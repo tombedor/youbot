@@ -17,7 +17,6 @@ GPT_SLEEP_SECONDS = 0.4
 EMBEDDING_SIZE = 1536
 MODEL = "gpt-4o"
 TEMPERATURE = 0.0
-CACHE_LENGTH_SECONDS = 60 * 60 * 24 * 7
 
 _embeddings = OpenAIEmbedding(api_base="https://api.openai.com/v1", api_key=os.environ["OPENAI_API_KEY"])
 
@@ -26,9 +25,9 @@ def query_llm(prompt: str, system: Optional[str] = None):
     return _query_llm(prompt=prompt, system=system, model=MODEL, temperature=TEMPERATURE)
 
 
-@cache.cache(ttl=CACHE_LENGTH_SECONDS)
+@cache.cache()
 def _query_llm(prompt: str, system: Optional[str], model: str, temperature: float) -> str:
-    logging.info("llm query: %s...", prompt[0:50])
+    logging.debug("llm query: %s...", prompt[0:50])
     if model.startswith("gpt"):
         sleep(GPT_SLEEP_SECONDS)
 
@@ -53,9 +52,9 @@ def count_tokens(s: str) -> int:
     return len(encoding.encode(s))
 
 
-@cache.cache(ttl=CACHE_LENGTH_SECONDS)
+@cache.cache()
 def _query_llm_json(prompt: str, model: str, temperature: float) -> Union[dict, list]:
-    logging.info("llm query: %s", prompt[0:200])
+    logging.debug("llm query: %s", prompt[0:200])
     if model.startswith("gpt"):
         sleep(GPT_SLEEP_SECONDS)
     response = OpenAI().chat.completions.create(
@@ -69,7 +68,7 @@ def _query_llm_json(prompt: str, model: str, temperature: float) -> Union[dict, 
     return d
 
 
-@cache.cache(ttl=CACHE_LENGTH_SECONDS)
+@cache.cache()
 def get_embedding(text: str) -> List[float]:
     embedding = _embeddings.get_text_embedding(text)
     embedding = np.array(embedding)

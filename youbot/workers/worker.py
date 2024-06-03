@@ -4,9 +4,10 @@ from celery import Celery
 
 from youbot.data_models import YoubotUser
 from youbot.clients.twilio_client import send_message
+from youbot.knowledge_base.knowledge_base import PrecursorEntFacts, calculate_entity, calculate_ents_facts
 from youbot.memory import is_context_refresh_needed, refresh_context
 from youbot.messenger import user_message
-from youbot.store import get_pending_reminders, get_youbot_user_by_id, update_reminder_state
+from youbot.store import get_archival_messages, get_pending_reminders, get_youbot_user_by_id, update_reminder_state, upsert_memory_entity
 
 
 app = Celery("youbot", broker=os.environ["REDIS_URL"], backend=os.environ["REDIS_URL"])
@@ -22,12 +23,6 @@ app.conf.update(
 @app.on_after_configure.connect  # type: ignore
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(60.0, process_pending_reminders.s(), name="Reminder check every 60 seconds")  # type: ignore
-
-
-@app.task
-def refresh_context_async(youbot_user: YoubotUser):
-    if is_context_refresh_needed(youbot_user):
-        refresh_context(youbot_user)
 
 
 @app.task
@@ -57,3 +52,26 @@ def response_to_twilio_message(youbot_user: YoubotUser, sender_number: str, rece
     response = user_message(youbot_user=youbot_user, msg=message)
     send_message(message=response, receipient_phone=sender_number)
     refresh_context_async.delay(youbot_user)  # type: ignore
+
+
+@app.task
+def refresh_entity(ent_fact: PrecursorEntFacts):
+    entity = calculate_entity(ent_fact)
+    if entity:
+        upsert_memory_entity(
+            youbot_user=ent_fact.youbot_user, entity_name=entity.entity_name, entity_label=entity.entity_label.name, text=entity.summary
+        )
+
+
+@app.task
+def refresh_entities(youbot_user: YoubotUser):
+    archival_messages = get_archival_messages(youbot_user)
+    for precursor_ent_fact in calculate_ents_facts(youbot_user, archival_messages):
+        refresh_entity.delay(precursor_ent_fact)  # type: ignore
+
+
+@app.task
+def refresh_context_async(youbot_user: YoubotUser):
+    if is_context_refresh_needed(youbot_user):
+        refresh_context(youbot_user)
+        refresh_entities.delay(youbot_user)  # type: ignore
