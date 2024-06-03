@@ -159,6 +159,7 @@ def refresh_context(youbot_user: YoubotUser) -> None:
     system_message = deepcopy(agent._messages[0])
     assert system_message.role == "system"
     new_context = get_refreshed_context_message(youbot_user)
+    logging.info(f"New context: {new_context}")
     system_message.text = get_system_instruction(new_context)
     system_message.id = uuid.uuid4()
 
