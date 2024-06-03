@@ -13,8 +13,13 @@ assert redis_url.hostname
 assert redis_url.port
 
 if redis_url.hostname == "localhost":
+    from dotenv import load_dotenv
+
+    load_dotenv()
     redis_client = StrictRedis(host=redis_url.hostname, port=redis_url.port, db=1, ssl=False, decode_responses=True)  # type: ignore
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+
 else:
     assert redis_url.password
     redis_client = StrictRedis(

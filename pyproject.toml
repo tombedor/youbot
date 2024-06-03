@@ -57,6 +57,7 @@ fawltydeps = "^0.15.0"
 spacy-llm = "^0.7.2"
 rich = "^13.7.1"
 typer = ">=0.3.0,<0.10.0"
+python-dotenv = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -11,8 +11,8 @@ import os
 from flask import Flask, redirect, url_for, session, request
 from google.auth.exceptions import GoogleAuthError
 
-
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
 
 # hacky way to get home page to run locally.
@@ -145,6 +145,10 @@ def oauth2callback():
     try:
         state = session["state"]
         flow = create_flow()
+        import pdb
+
+        pdb.set_trace()
+        print(dir(flow))
         flow.state = state
 
         # Use the authorization server's response to fetch the OAuth 2.0 tokens.
@@ -175,3 +179,7 @@ def oauth2callback():
         return f"Authorization error: {error}"
     except Exception as e:
         return f"Unexpected error: {e}"
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=True)
