@@ -4,10 +4,10 @@ from celery import Celery
 
 from youbot.data_models import YoubotUser
 from youbot.clients.twilio_client import send_message
-from youbot.knowledge_base.knowledge_base import PrecursorEntFacts, calculate_entity, calculate_ents_facts
+from youbot.knowledge_base.knowledge_base import PrecursorEntFacts, calculate_entity, calculate_ents_facts, get_all_facts
 from youbot.memory import is_context_refresh_needed, refresh_context
 from youbot.messenger import user_message
-from youbot.store import get_archival_messages, get_pending_reminders, get_youbot_user_by_id, update_reminder_state, upsert_memory_entity
+from youbot.store import get_pending_reminders, get_youbot_user_by_id, update_reminder_state, upsert_memory_entity
 
 
 app = Celery("youbot", broker=os.environ["REDIS_URL"], backend=os.environ["REDIS_URL"])
@@ -65,8 +65,8 @@ def refresh_entity(ent_fact: PrecursorEntFacts):
 
 @app.task
 def refresh_entities(youbot_user: YoubotUser):
-    archival_messages = get_archival_messages(youbot_user)
-    for precursor_ent_fact in calculate_ents_facts(youbot_user, archival_messages):
+    facts = get_all_facts(youbot_user)
+    for precursor_ent_fact in calculate_ents_facts(youbot_user, facts):
         refresh_entity.delay(precursor_ent_fact)  # type: ignore
 
 

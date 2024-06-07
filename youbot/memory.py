@@ -19,11 +19,11 @@ from youbot.prompts import (
     get_system_instruction,
 )
 from youbot.store import YoubotUser, get_entity_name_text
-from youbot import redis_client
+from youbot import REDIS_CLIENT
 
 INVALIDATION_SECONDS_WITHOUT_NEW_MESSAGE = 60 * 60 * 24
 INVALIDATION_SECONDS_AFTER_NEW_MESSAGE = 60 * 15
-MODEL_CONTEXT_WINDOW = 8192
+MODEL_CONTEXT_WINDOW = 16384
 TOKEN_REFRESH_THRESHOLD = int(MODEL_CONTEXT_WINDOW * 0.66)
 TARGET_CONTEXT_REFRESH_TOKENS = int(MODEL_CONTEXT_WINDOW * 0.33)
 
@@ -93,11 +93,11 @@ class ContextWatermark:
 
         watermark_key = cls._watermark_key(youbot_user.id)
         watermark_d = {"message_hash": message_hash, "epoch_seconds": epoch_seconds}
-        redis_client.set(watermark_key, json.dumps(watermark_d))
+        REDIS_CLIENT.set(watermark_key, json.dumps(watermark_d))
 
     @classmethod
     def get(cls, youbot_user: YoubotUser):
-        redis_response = redis_client.get(cls._watermark_key(youbot_user.id))
+        redis_response = REDIS_CLIENT.get(cls._watermark_key(youbot_user.id))
         if redis_response is None:
             return None
         else:

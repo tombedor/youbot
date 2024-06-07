@@ -18,9 +18,9 @@ class EntityLabel(enum.Enum):
         self.summary_prompt = summary_prompt
 
     UNKNOWN = None
-    PRIMARY_USER = "Summarize the personal and professional life of this person. Discuss likes and dislikes, what is important to them, and their relationships with others. As this is the primary user of an AI personal assistant, also discuss their attitudes towards AI personal assistants"
-    PERSON = "Summarize the personal and professional life of this person. Discuss likes and dislikes, what is important to them, and their relationships with others."
-    PET = "Summarize what you know about this pet. Discuss things they like, things they dislike, and things about their behavior and care."
+    PRIMARY_USER = "Summarize the personal and professional life of this person. Discuss likes and dislikes, what is important to them, and their relationships with others. As this is the primary user of an AI personal assistant, also discuss their attitudes towards AI personal assistants Do not speculate, base your description strictly on the provided information"
+    PERSON = "Summarize the personal and professional life of this person. Discuss likes and dislikes, what is important to them, and their relationships with others. Do not speculate, base your description strictly on the provided information"
+    PET = "Summarize what you know about this pet. Discuss things they like, things they dislike, and things about their behavior and care. Do not speculate, base your description strictly on the provided information"
     ORG = None
     PRODUCT = None
     WEBSITE = None
