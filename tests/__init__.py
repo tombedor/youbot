@@ -14,7 +14,7 @@ TEST_RECIPIENT = "+14153231234"
 os.environ["DATABASE_URL"] = "postgresql://localhost:8888/memgpt?user=memgpt&password=memgpt"
 
 try:
-    onboard_user(phone=TEST_RECIPIENT, human_name="John Doe", human_description="a test user")
+    onboard_user(phone=TEST_RECIPIENT, human_name="John Doe")
 except ValueError:
     pass
     # expected

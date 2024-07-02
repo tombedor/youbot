@@ -1,64 +1,33 @@
 # YouBot
 
-An AI personal assistant with long term memory.
+YouBot is an AI personal assistant with long term memory.
 
-## Roadmap
+It's available via CLI, SMS, or WhatsApp.
 
-### Clients
-- [x] command line client
-- [x] Discord client
-- [x] SMS client
-- [x] WhatsApp client
-- [ ] Discord voice client
-
-### User onboarding
-- [x] Signup page
-- [ ] Onboarding flow
-- [ ] logo / design for pages
-- [ ] Updated onboarding, smooth initial conversation to capture initial information about user. Agent should take more initiative in learning about the user, without being spammy
-
-### Integrations
-- [x] [MemGPT](https://memgpt.ai)
-- [ ] [Zep](https://github.com/getzep/zep)
-
-### Toolsets
-- [ ] Google calendar
-- [x] Generic reminders
-- [ ] RSS / feed summarizing
-- [ ] Command line refinement (consume from stderr?)
-
-## Experiments
-General goals: Smooth, immersive, personalized conversation. Minimal capabilities.
-
-### "Personal wikipedia": Form reference document from chat history
-Idea: create pipeline that re-processes chat logs, iteratively building a mini-Wikipedia.
-
-The agent struggled to form coherent articles. Irrelevant and repeated information kept being included. 
-
-### "Delegates": Allow agents to spawn other agents
-Idea: Allow primary agent to delegate tasks to "helper agents". This could prevent the issue of large function sets cluttering the context window.
-
-This was functional but high overhead, and slow. 
-
-### Topic / entity resolution
-Develop a "helper model" which intercepts chat messages and appends context.
-
-Narrowly scoped, open source models
-
-- BERT
-- fine tuning with [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl)
+It includes an optional Google Calendar integration, for learning from and helping you manage your calendar.
 
 
-### Knowledge graph
-- Persistence / management via [spacy](https://github.com/explosion/spaCy)
+## (Coming Soon) Hosted service
+You can join the waitlist for the free alpha version of YouBot at https://youbot.dev.
 
-### Alternative LLMs
-Open router?
 
-Gemini: How does the larger context window impact what is needed from memory consolidation?
+## Install and running the CLI.
 
-Suspicion: larger context window does not eliminate need for structured knowledge representation. If human "context window" is much smaller than the models, does the model become less relatable?
+### Prerequisites
 
-### Interesting resources
-- [Simon Willison](https://simonwillison.net/)
-- [Cererbal Valley](https://cerebralvalley.ai/blog)
+- Docker: [Install Docker](https://docs.docker.com/get-docker/)
+- OpenAI key: Your OpenAI key should be available via the `OPENAI_API_KEY` env variable. YouBot uses GPT-4o.
+
+### Running the CLI
+
+The YouBot CLI runs via Docker. To install and run:
+
+```
+git clone https://github.com/tombedor/youbot.git
+cd youbot
+./cli.sh
+```
+
+## License
+
+Distributed under the GPL 3.0.1 License. See `LICENSE` for more information.

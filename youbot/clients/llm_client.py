@@ -1,13 +1,14 @@
 import json
-import logging
 import os
 from time import sleep
-from typing import List, Optional, Union
+from typing import List, Union
 from llama_index.embeddings.openai import OpenAIEmbedding
 
 import numpy as np
 from openai import OpenAI
 import tiktoken
+from toolz import curry, pipe
+from toolz.dicttoolz import assoc, merge
 
 from youbot import cache
 from youbot.store import MAX_EMBEDDING_DIM
@@ -21,51 +22,47 @@ TEMPERATURE = 0.0
 _embeddings = OpenAIEmbedding(api_base="https://api.openai.com/v1", api_key=os.environ["OPENAI_API_KEY"])
 
 
-def query_llm(prompt: str, system: Optional[str] = None):
-    return _query_llm(prompt=prompt, system=system, model=MODEL, temperature=TEMPERATURE)
-
-
 @cache.cache()
-def _query_llm(prompt: str, system: Optional[str], model: str, temperature: float) -> str:
-    logging.debug("llm query: %s...", prompt[0:50])
+def _query_llm(prompt: str, system: str, model: str, temperature: float, json_mode: bool) -> str:
     if model.startswith("gpt"):
         sleep(GPT_SLEEP_SECONDS)
 
-    if system:
-        msgs = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
-    else:
-        msgs = [{"role": "user", "content": prompt}]
-    response = OpenAI().chat.completions.create(model=model, messages=msgs, temperature=temperature)  # type: ignore
-
-    first_choice = response.choices[0].message.content
-    assert first_choice
-    logging.debug("llm response: %s", first_choice)
-    return first_choice
+    return pipe(
+        [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+        lambda msgs: {"model": model, "messages": msgs, "temperature": temperature},
+        lambda req: assoc(req, "response_format", {"type": "json_object"}) if json_mode else req,
+        lambda req: merge(req, {"model": model, "temperature": temperature}),
+        lambda req: OpenAI().chat.completions.create(**req),
+        lambda response: response.choices[0].message.content,
+    )  # type: ignore
 
 
-def query_llm_json(prompt: str) -> Union[dict, list]:
-    return _query_llm_json(prompt=prompt, model=MODEL, temperature=TEMPERATURE)
+@curry
+def query_llm(prompt: str, system: str):
+    return _query_llm(prompt=prompt, system=system, model=MODEL, temperature=TEMPERATURE, json_mode=False)
+
+
+@curry
+def query_llm_json(prompt: str, system: str) -> Union[dict, list]:
+    return json.loads(_query_llm(prompt=prompt, system=system, model=MODEL, temperature=TEMPERATURE, json_mode=True))
+
+
+def query_llm_with_word_limit(prompt: str, system: str, word_limit: int) -> str:
+
+    return query_llm(
+        prompt="\n".join(
+            [
+                prompt,
+                f"Your word limit is {word_limit}. DO NOT EXCEED IT.",
+            ]
+        ),
+        system=system,
+    )  # type: ignore
 
 
 def count_tokens(s: str) -> int:
     encoding = tiktoken.encoding_for_model(MODEL)
     return len(encoding.encode(s))
-
-
-@cache.cache()
-def _query_llm_json(prompt: str, model: str, temperature: float) -> Union[dict, list]:
-    logging.debug("llm query: %s", prompt[0:200])
-    if model.startswith("gpt"):
-        sleep(GPT_SLEEP_SECONDS)
-    response = OpenAI().chat.completions.create(
-        model=model, messages=[{"role": "user", "content": prompt}], temperature=temperature, response_format={"type": "json_object"}
-    )
-
-    first_choice = response.choices[0].message.content
-    assert first_choice
-    d = json.loads(first_choice)
-    logging.debug("llm response: %s", first_choice)
-    return d
 
 
 @cache.cache()
