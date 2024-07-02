@@ -1,0 +1,78 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    volumes:
+      - redis-data:/data
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    container_name: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=password
+      - DB_PASSWORD=password
+      - DB_NAME=youbot
+      - DB_USER=youbot
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  youbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: youbot
+    depends_on:
+     redis:
+       condition: service_started
+     postgres:
+       condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://youbot:password@postgres:5432/youbot
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
+    command: ["python", "youbot/cli.py"]    
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      youbot:
+        condition: service_started # hack for initial installs, to prevent duplicate DB creation
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://youbot:password@postgres:5432/youbot
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - YOUBOT_GOOGLE_CLIENT_SECRET=${YOUBOT_GOOGLE_CLIENT_SECRET}
+      - YOUBOT_GOOGLE_REDIRECT_URI=${YOUBOT_GOOGLE_REDIRECT_URI}
+      - YOUBOT_GOOGLE_CLIENT_ID=${YOUBOT_GOOGLE_CLIENT_ID}
+      - C_FORCE_ROOT=true
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
+    command: ["celery", "-A", "youbot.workers.worker", "worker", "--beat", "--loglevel=info"]    
+
+volumes:
+  redis-data: {}
+  postgres-data: {}

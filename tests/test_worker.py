@@ -7,13 +7,10 @@ from celery.contrib.testing.worker import start_worker
 
 class AgentStateStub:
     id = test_user.memgpt_agent_id
-    pass
 
 
 class AgentStub:
     state = AgentStateStub()
-
-    pass
 
 
 setattr(AgentStub, "enqueue_reminder", enqueue_reminder)

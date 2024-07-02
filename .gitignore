@@ -12,3 +12,4 @@ scratch/
 dump.rdb
 db.dump
 .vscode/
+celerybeat-schedule

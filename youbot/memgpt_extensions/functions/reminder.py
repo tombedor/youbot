@@ -59,7 +59,7 @@ def enqueue_reminder(self, year: int, month: int, day: int, hour: int, minute: i
     reminder_time = datetime(year=year, month=month, day=day, hour=hour, minute=minute, tzinfo=tz).astimezone(pytz.utc)
 
     agent_id = self.agent_state.id
-    youbot_user = get_youbot_user_by_agent_id(agent_id)
+    youbot_user_id = get_youbot_user_by_agent_id(agent_id).id
 
-    create_agent_reminder(youbot_user.id, reminder_time, message)
+    create_agent_reminder(youbot_user_id, reminder_time, message)
     return "Reminder enqueued."

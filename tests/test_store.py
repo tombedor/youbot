@@ -17,9 +17,7 @@ def user():
         name="foo",
         memgpt_user_id=uuid.uuid4(),
         memgpt_agent_id=uuid.uuid4(),
-        discord_member_id="1234567890",
         phone="+12345678901",
-        human_description="nice man",
         email="foobar@gmail.com",
     )
 
