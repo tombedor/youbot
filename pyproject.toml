@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "youbot"
-version = "0.1.0"
+version = "0.0.3"
 description = ""
 authors = ["Tom Bedor <tombedor@gmail.com>"]
 readme = "README.md"
@@ -9,7 +9,7 @@ readme = "README.md"
 python = ">=3.11,<3.12"
 pgvector = "^0.2.4"
 psycopg2-binary = "^2.9.9"
-pymemgpt = {git = 'https://github.com/tombedor/MemGPT.git', rev='2c161a7b4a61f6345e02bc0b586dcbcb2b6e7450'}
+pymemgpt = {git = 'https://github.com/tombedor/MemGPT.git', rev='6d025af4e698ae761e56f8c2e76057650615c882'}
 sqlalchemy = "^2.0.29"
 celery = {extras = ["redis"], version = "^5.4.0"}
 flask = "^3.0.2"
