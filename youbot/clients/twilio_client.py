@@ -12,7 +12,7 @@ sender_number = os.getenv("TWILIO_SENDER_NUMBER")
 
 
 def prepend_message_length_warning(message: str) -> str:
-    return f"[Warning to AI: Reply will be transmitted via Twilio, character length limit is {TWILIO_CHARACTER_LIMIT} characters. User message follows]\n{message}"
+    return f"[Warning to AI: Reply will be transmitted via Twilio, character length limit is {TWILIO_CHARACTER_LIMIT} characters. Reply in short, concise messages consistent with a text message.]\n{message}"
 
 
 @curry

@@ -24,7 +24,7 @@ def get_ai_reply(youbot_user_id: int, msg: str) -> str:
         elif response.role == "tool":
             logging.info("Tool response found")
             if json.loads(response.text)["status"] == "OK":
-                return get_ai_reply(youbot_user, "[Automatic user invisible message] The result of your function call succeeded.")  # type: ignore
+                return get_ai_reply(youbot_user_id, "[Automatic user invisible message] The result of your function call succeeded.")  # type: ignore
             else:
                 return get_ai_reply(
                     youbot_user_id, f"[Automatic user invisible message] The result of your function call failed: {response.text}"
