@@ -41,7 +41,7 @@ def process_pending_reminders():
             reminder,
             lambda reminder: USER_HIDDEN_MSG_PREFIX + reminder.reminder_message,
             prepend_message_length_warning,
-            get_ai_reply(youbot_user),
+            get_ai_reply(youbot_user.id),
             deliver_twilio_message(youbot_user.phone),
         )
         update_reminder_state(reminder.id, "complete")
