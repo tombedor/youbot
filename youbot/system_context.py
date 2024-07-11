@@ -51,7 +51,7 @@ def get_refreshed_system_message(youbot_user_id: int) -> str:
         lambda _: Fact(youbot_user_id, _, datetime.now()),
         calculate_ent_fact,
         map(lambda _: get_entity_name_summary(youbot_user_id, _.entity_name, _.entity_label.name)),
-        remove(None.__eq__),
+        remove(lambda _: _ is None),
         list,
         "\n".join,
         str,
@@ -86,7 +86,7 @@ def format_message(youbot_user_id: int, message: Message) -> Optional[str]:
         if "message" in msg_d:
             msg = msg_d["message"]
             return f"{youbot_user.name.upper()} ({datetime_str}): {msg}"
-        elif "type" in msg_d and msg_d["type"] == "heartbeat":
+        elif "type" in msg_d and msg_d["type"] in ["heartbeat", "login"]:
             return None
         else:
             raise ValueError(f"Unknown message format: {msg_d}")
@@ -104,7 +104,7 @@ def get_formatted_convo_messages(youbot_user_id: int) -> str:
         youbot_user_id,
         get_memgpt_messages,
         map(format_message(youbot_user_id)),
-        remove(None.__eq__),
+        remove(lambda _: _ is None),
         list,
         "\n".join,
         str,
@@ -128,6 +128,7 @@ def is_context_refresh_needed(youbot_user_id: int) -> bool:
         youbot_user_id,
         get_memgpt_messages,
         map(lambda _: _.text),
+        remove(lambda _: _ is None),
         map(count_tokens),
         partial(reduce, add),
     )

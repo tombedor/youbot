@@ -71,7 +71,7 @@ def calculate_ent_fact(fact: Fact) -> List[EntFact]:
                 else logging.warn(f"Skipping entity with name {x['ENTITY_NAME']} and invalid label {x['ENTITY_LABEL']}")
             )
         ),
-        remove(None.__eq__),
+        remove(lambda _: _ is None),
         list,
     )  # type: ignore
 
