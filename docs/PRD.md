@@ -14,6 +14,12 @@ Youbot is not a file browser or a code editor. For browsing code, open the repo 
 
 The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). The session is stateful — context from earlier in the conversation is preserved and can be referenced.
 
+Youbot persists session state across launches. Conversation history is scoped in two layers:
+- A **global session** for cross-repo requests and orchestrator-level actions
+- A **per-repo session** for each registered repo
+
+When the user returns to a repo, youbot resumes that repo's prior session by default. The user can also reset or branch a session explicitly.
+
 Examples:
 - "what's on my to-do list?" → routes to life_admin, queries data, renders inline
 - "show me the job openings from yesterday" → routes to job_search, queries DB, renders table
@@ -35,7 +41,7 @@ The justfile is the canonical capability registry for each repo. If a capability
 
 Youbot routes requests by calling the Claude API with:
 - The user's message and conversation history
-- The list of registered repos, their PRD summaries, and their available `just` commands
+- The list of registered repos, their youbot-managed metadata, and their available `just` commands
 
 Claude determines: which repo is relevant, what type of action is needed (query, command, code change), and what parameters to pass.
 
@@ -47,32 +53,36 @@ Claude determines: which repo is relevant, what type of action is needed (query,
 
 - Python package: `youbot`
 - Textual TUI: conversation pane + repo status sidebar
-- Plugin loader: discovers and loads `youbot_plugin.py` from each registered repo
+- Repo registry: stores repo metadata, discovered commands, routing hints, session state, and adapter configuration
+- Adapter loader: discovers and loads youbot-owned adapters for registered repos
 - Scheduler: runs `just` commands on configured schedules
 - Agent spawner: runs `claude` as a subprocess in a repo directory
+- Session manager: persists a global session plus per-repo sessions on disk
 
-### Plugin interface
+### Repo adapter model
 
-Each repo exposes a `YoubotPlugin` in its `youbot_plugin.py`:
+Youbot owns the TUI code that renders repo-specific views. Integrated repos are not required to ship Textual code.
 
-```python
-class YoubotPlugin:
-    name: str                    # human-readable repo name
-    repo_path: str               # absolute path to repo root
-    screen: Screen               # Textual Screen for structured views
-    commands: CommandProvider    # Textual CommandProvider for this repo
-```
+For each registered repo, youbot maintains a local adapter in its own state directory. Adapters may be generated, cached, or manually refined over time, but they live in youbot's local plugin/adapter registry rather than in the child repo.
+
+An adapter may contain:
+- Repo identity and source location
+- Discovered `just` commands
+- Command descriptions and invocation hints
+- Structured view definitions for the TUI
+- Output parsing/rendering logic
+- Routing hints based on successful prior usage
 
 ### Command palette
 
 Textual's command palette supports multiple `CommandProvider` instances. Youbot uses this to keep commands context-sensitive:
 
 - A **global provider** is always active: switch repo, initialize new repo, youbot-level settings.
-- Each plugin's `CommandProvider` is only active when that plugin's screen is focused.
+- Each repo adapter's `CommandProvider` is only active when that repo's screen is focused.
 
 When in the job_search view, the palette shows job_search commands plus globals. Switch to life_admin and the palette swaps. No cross-repo noise.
 
-Plugin commands can be a mix of:
+Adapter commands can be a mix of:
 - Wrappers around `just` commands (auto-discovered from the justfile)
 - UI-only actions that have no CLI equivalent (e.g., opening a sub-view, filtering the current table)
 
@@ -80,20 +90,49 @@ Youbot also discovers available `just` commands by reading the repo's justfile d
 
 ### Data layer pattern
 
-Each repo's data logic lives in its Python package and is consumed by two independent surfaces:
+Integrated repos expose capabilities through `just` commands. Youbot consumes those capabilities and renders its own UI around them.
 
-- **CLI / just commands**: shell into the package's CLI module (`python -m repo.cli`)
-- **Textual plugin**: imports the package's data layer directly
-
-This ensures the CLI and UI are always consistent because they share the same underlying code.
+Managed repos created by youbot should still keep data logic in the Python package and keep business logic out of CLI entrypoints, but that is a managed-repo standard rather than a universal integration requirement.
 
 ---
 
-## Sub-repo Contract
+## Repo Integration Model
 
-Every repo integrated into youbot MUST conform to this contract. These are hard requirements, not suggestions.
+Youbot supports two classes of repos:
 
-### Required files
+### Integrated repos
+
+Integrated repos are repos youbot can inspect and invoke. They may be read-only or externally managed.
+
+Minimum contract:
+- `justfile`
+
+That is the only required artifact for integration. If a repo exposes callable `just` commands, youbot can use it.
+
+Additional metadata for integrated repos is stored by youbot, not required from the repo itself.
+
+### Youbot-managed repo metadata
+
+For each integrated repo, youbot may store:
+- Human-readable repo name
+- Repo path
+- Short purpose description
+- Tags
+- Discovered `just` commands
+- Command descriptions and preferred commands
+- Output handling hints and parser configuration
+- Routing hints and examples of successful prompts
+- Repo classification (`integrated` vs `managed`)
+- Session history and last active thread
+- Adapter/plugin state for local TUI rendering
+
+This metadata lives in youbot's own registry and state directory. It is not checked into the child repo by default.
+
+### Managed repos
+
+Managed repos are repos created by youbot or explicitly brought under youbot's stricter standards. These repos are expected to conform to a higher-quality scaffold because youbot has edit authority and ownership over their conventions.
+
+Required files:
 
 | File | Purpose |
 |------|---------|
@@ -101,10 +140,9 @@ Every repo integrated into youbot MUST conform to this contract. These are hard 
 | `AGENTS.md` | Instructions for coding agents working in this repo. Coding style, constraints, architectural decisions. |
 | `CAPTAINS_LOG.md` | Append-only log of meaningful changes, task results, and decisions. Entries are dated. |
 | `justfile` | All user-facing and agent-facing capabilities. Must include at minimum: `test`, `lint`, `format`. |
-| `youbot_plugin.py` | Plugin entry point for youbot integration. |
 | `pyproject.toml` | Package definition. |
 
-### Code quality requirements
+Code quality requirements:
 
 **Typing**
 - All functions must have type annotations. No `Any` except where genuinely unavoidable.
@@ -117,12 +155,12 @@ Every repo integrated into youbot MUST conform to this contract. These are hard 
 
 **Tests**
 - Pytest. `just test` must exit 0.
-- Tests must cover the data layer. CLI and plugin integration can be lighter.
+- Tests must cover the data layer.
 - No tests that hit external APIs without mocking.
 
 **Structure**
 - Data layer (`db.py`, `models.py`, etc.) must be importable independently of CLI and UI.
-- No business logic in CLI entrypoints or Textual components.
+- No business logic in CLI entrypoints.
 - SQLite for local persistence unless there is a specific reason otherwise. Document the reason in `PRD.md`.
 
 **Justfile**
@@ -146,7 +184,6 @@ When youbot initializes a new repo, it scaffolds:
 - All required files with sensible stubs
 - `pyproject.toml` with ruff, mypy, and pytest configured to the above standards
 - A justfile with the required commands wired up
-- A `youbot_plugin.py` stub
 
 New repos may be initialized by the user via the TUI or by youbot autonomously when a new capability is identified.
 
@@ -177,4 +214,4 @@ Example: `job_search: just search` runs nightly.
 
 - File browsing. Open the repo in your editor.
 - Multi-user or remote access.
-- Any repo that does not conform to the sub-repo contract.
+- Managing repos that do not expose a usable `justfile`.
