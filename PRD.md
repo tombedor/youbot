@@ -1,6 +1,6 @@
 # youbot
 
-multi-agent orchestrator
+Youbot is a self-improving, multi-agent orchestrator and UI. It develops specialized capabiltiies that can then be executed and run from the CLI.
 
 interacts with different repos that serve more specialized functions
 
