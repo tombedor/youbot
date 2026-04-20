@@ -6,6 +6,8 @@ Youbot is a stateful conversational agent and TUI that orchestrates a collection
 
 Youbot is not a file browser or a code editor. For browsing code, open the repo directly. Youbot's value is in surfacing data from your repos, triggering their capabilities, and requesting changes to them — all from a single interface, in plain language.
 
+V1 is repo-first because that matches the primary personal-workflow use case. The architecture should remain extensible enough to support non-repo CLI-backed integrations later, but repos are the initial unit of organization and focus.
+
 ---
 
 ## Interaction Model
@@ -14,13 +16,13 @@ Detailed user-driven flows are documented in `docs/user_stories.md`.
 
 ### Conversational interface
 
-The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). The session is stateful — context from earlier in the conversation is preserved and can be referenced.
+The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). Youbot keeps lightweight conversation history so earlier interactions can inform routing and follow-up actions.
 
-Youbot persists session state across launches. Conversation history is scoped in two layers:
-- A **global session** for cross-repo requests and orchestrator-level actions
-- A **per-repo session** for each registered repo
+Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases routing, command palette contents, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
 
-When the user returns to a repo, youbot resumes that repo's prior session by default. The user can also reset or branch a session explicitly.
+For code-change work, youbot should continue backend-native coding-agent sessions when possible. Each repo may have an associated Claude Code or Codex session reference that youbot can reuse instead of reconstructing history itself.
+
+Youbot should only drive automation-compatible, non-interactive coding-agent invocations. It should not depend on interactive pickers or interactive terminal session management inside Claude Code or Codex.
 
 Examples:
 - "what's on my to-do list?" → routes to life_admin, queries data, renders inline
@@ -34,18 +36,24 @@ Examples:
 When a change is requested:
 
 1. Check whether an existing `just` command covers the use case. If so, run it.
-2. If not, spawn a `claude` subprocess in the target repo's directory with the request.
+2. If not, invoke the configured coding-agent backend in the target repo's directory with the request, resuming an existing backend-native non-interactive session when appropriate.
 3. After the change, evaluate whether this is likely to be requested again. If so, add a new `just` command that covers it.
 
 The justfile is the canonical capability registry for each repo. If a capability is worth having, it should be expressible as a `just` command so both humans and agents can reach it without going through the conversational interface.
 
+The coding-agent backend must be configurable. Initial supported backends:
+- Claude Code
+- Codex
+
+Switching between coding-agent backends should be a configuration change, not an architectural rewrite.
+
 ### Routing
 
-Youbot routes requests by calling the Claude API with:
+Youbot routes requests by calling a routing model with:
 - The user's message and conversation history
 - The list of registered repos, their youbot-managed metadata, and their available `just` commands
 
-Claude determines: which repo is relevant, what type of action is needed (query, command, code change), and what parameters to pass.
+The routing model determines: which repo is relevant, what type of action is needed (query, command, code change), and what parameters to pass.
 
 ---
 
@@ -55,11 +63,13 @@ Claude determines: which repo is relevant, what type of action is needed (query,
 
 - Python package: `youbot`
 - Textual TUI: conversation pane + repo status sidebar
-- Repo registry: stores repo metadata, discovered commands, routing hints, session state, and adapter configuration
+- Repo registry: stores repo metadata, discovered commands, routing hints, coding-agent session references, and adapter configuration
 - Adapter loader: discovers and loads youbot-owned adapters for registered repos
 - Scheduler: runs `just` commands on configured schedules
-- Agent spawner: runs `claude` as a subprocess in a repo directory
-- Session manager: persists a global session plus per-repo sessions on disk
+- Coding-agent runner: invokes the configured coding-agent backend in a repo directory
+- Conversation store: persists lightweight youbot conversation history
+- Coding-agent session registry: persists backend-native session references per repo
+- Agent backend config: stores backend selection and backend-specific invocation settings
 
 ### Repo adapter model
 
@@ -125,8 +135,11 @@ For each integrated repo, youbot may store:
 - Output handling hints and parser configuration
 - Routing hints and examples of successful prompts
 - Repo classification (`integrated` vs `managed`)
-- Session history and last active thread
+- Last active coding-agent backend
+- Coding-agent session reference, if the backend supports continuation
+- Coding-agent session kind (`noninteractive` by default for youbot-driven runs)
 - Adapter/plugin state for local TUI rendering
+- Preferred coding-agent backend override, if different from the global default
 
 This metadata lives in youbot's own registry and state directory. It is not checked into the child repo by default.
 

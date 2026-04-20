@@ -25,25 +25,26 @@ Non-goals:
 - routing
 - session persistence
 
-## Milestone 2: Session persistence
+## Milestone 2: Conversation and coding-agent continuation state
 
 Goal:
-- Persist one global session and one session per repo.
+- Persist youbot conversation history and repo-specific coding-agent session references.
 
 Includes:
-- session store
+- conversation store
+- coding-agent session registry
 - append/read operations
 - startup restore behavior
 - active repo tracking
 
 Done when:
-- a message can be recorded in the global session
-- a message can be recorded in a repo session
-- restarting the app restores both histories
+- a user interaction can be recorded in youbot conversation history
+- a repo can store a coding-agent session reference
+- restarting the app restores conversation history and coding-agent session references
 
 Non-goals:
-- branching UI
-- advanced session summarization
+- reconstructing full coding-agent transcripts
+- session branching UI
 
 ## Milestone 3: Minimal Textual shell
 
@@ -58,8 +59,8 @@ Includes:
 
 Done when:
 - the user can see the configured repos
-- switching repos changes the active conversation scope
-- stored session history is rendered
+- switching repos changes active focus and available commands
+- stored conversation history is rendered
 
 Non-goals:
 - routing
@@ -106,15 +107,17 @@ Non-goals:
 ## Milestone 6: Code-change flow
 
 Goal:
-- Spawn `claude` inside a repo when no existing command satisfies the request.
+- Invoke a configurable coding-agent backend inside a repo when no existing command satisfies the request.
 
 Includes:
+- backend abstraction
 - subprocess integration
 - request/context handoff
 - result capture
 
 Done when:
-- a routed `code_change` action launches `claude` in the repo directory
+- a routed `code_change` action launches the configured backend in the repo directory
+- switching between Claude Code and Codex is a config change
 - completion or failure is surfaced in the conversation pane
 
 Non-goals:

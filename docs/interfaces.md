@@ -57,32 +57,27 @@ Invariants:
 - `invocation` is executable from the repo root
 - `command_name` is unique within a repo
 
-### `SessionMessage`
+### `ConversationMessage`
 
-Represents one item in a conversation history.
+Represents one item in youbot's own conversation history.
 
 ```python
 message_id: str
-scope: Literal["global", "repo"]
-repo_id: str | None
 role: Literal["user", "assistant", "system", "tool"]
 content: str
 created_at: str
 ```
 
 Invariants:
-- `repo_id` is set when `scope == "repo"`
-- global messages must have `repo_id is None`
+- Messages belong to youbot's orchestration conversation, not to backend-native coding-agent transcripts
 
-### `SessionRecord`
+### `ConversationRecord`
 
-Represents one persisted conversation thread.
+Represents persisted youbot conversation history.
 
 ```python
-session_id: str
-scope: Literal["global", "repo"]
-repo_id: str | None
-messages: list[SessionMessage]
+conversation_id: str
+messages: list[ConversationMessage]
 updated_at: str
 ```
 
@@ -104,6 +99,20 @@ Invariants:
 - `repo_id` may be `None` only for global actions or clarifications
 - `confidence` is normalized to `0.0 <= x <= 1.0`
 
+### `CodingAgentBackend`
+
+Represents the configured backend for code-change work.
+
+```python
+backend_name: Literal["claude_code", "codex"]
+command_prefix: list[str]
+default_args: list[str]
+```
+
+Invariants:
+- `command_prefix` is executable on the host
+- callers do not branch on backend-specific shell details outside the runner
+
 ### `ExecutionResult`
 
 Represents a completed command execution.
@@ -120,6 +129,40 @@ finished_at: str
 duration_ms: int
 parsed_payload: dict | list | None
 ```
+
+### `CodingAgentResult`
+
+Represents a completed coding-agent invocation.
+
+```python
+repo_id: str
+backend_name: Literal["claude_code", "codex"]
+exit_code: int
+stdout: str
+stderr: str
+started_at: str
+finished_at: str
+duration_ms: int
+```
+
+### `CodingAgentSessionRef`
+
+Represents a backend-native resumable coding-agent session for a repo.
+
+```python
+repo_id: str
+backend_name: Literal["claude_code", "codex"]
+session_kind: Literal["noninteractive"]
+session_id: str
+purpose_summary: str | None
+status: Literal["active", "stale", "unknown"]
+last_used_at: str
+```
+
+Invariants:
+- `session_id` is a backend-native continuation handle
+- `session_kind` is automation-compatible and non-interactive for youbot-driven runs
+- youbot stores the handle and minimal metadata, not the full coding-agent transcript
 
 ### `AdapterRecord`
 
@@ -157,20 +200,33 @@ store_commands(repo_id: str, commands: list[CommandRecord]) -> None
 list_commands(repo_id: str) -> list[CommandRecord]
 ```
 
-### `SessionStore`
+### `ConversationStore`
 
 Responsibilities:
-- Persist global and per-repo sessions
+- Persist youbot conversation history
 - Append messages
-- Load scoped histories for routing
+- Load recent history for routing
 
 Suggested methods:
 
 ```python
-get_global_session() -> SessionRecord
-get_repo_session(repo_id: str) -> SessionRecord
-append_message(message: SessionMessage) -> None
-reset_session(scope: str, repo_id: str | None = None) -> None
+get_conversation() -> ConversationRecord
+append_message(message: ConversationMessage) -> None
+clear_conversation() -> None
+```
+
+### `CodingAgentSessionRegistry`
+
+Responsibilities:
+- Persist repo-specific coding-agent session references
+- Resolve the last known backend-native session for a repo
+
+Suggested methods:
+
+```python
+get_session(repo_id: str) -> CodingAgentSessionRef | None
+set_session(session: CodingAgentSessionRef) -> None
+clear_session(repo_id: str) -> None
 ```
 
 ### `JustfileParser`
@@ -196,8 +252,7 @@ Suggested methods:
 route(
     user_message: str,
     active_repo_id: str | None,
-    global_session: SessionRecord,
-    repo_session: SessionRecord | None,
+    conversation: ConversationRecord,
     repos: list[RepoRecord],
     commands: dict[str, list[CommandRecord]],
 ) -> RouteDecision
@@ -214,16 +269,26 @@ Suggested methods:
 run(repo: RepoRecord, command: CommandRecord, arguments: list[str]) -> ExecutionResult
 ```
 
-### `AgentSpawner`
+### `CodingAgentRunner`
 
 Responsibilities:
-- Invoke `claude` for code-change requests
+- Invoke the configured coding-agent backend for code-change requests
 
 Suggested methods:
 
 ```python
-run_code_change(repo: RepoRecord, request: str, context: str | None = None) -> str
+get_backend(repo_id: str | None = None) -> CodingAgentBackend
+run_code_change(
+    repo: RepoRecord,
+    request: str,
+    context: str | None = None,
+) -> CodingAgentResult
 ```
+
+Behavioral rules:
+- Claude Code runs should use non-interactive scripting-compatible forms
+- Codex runs should use non-interactive forms such as `codex exec` / `codex exec resume`
+- Interactive resume pickers are never part of the orchestration path
 
 ### `AdapterLoader`
 
@@ -242,9 +307,11 @@ refresh(repo: RepoRecord, commands: list[CommandRecord]) -> AdapterRecord
 ## Ownership rules
 
 - The registry owns repo and command metadata.
-- The session store owns conversation history.
+- The conversation store owns youbot conversation history.
+- The coding-agent session registry owns backend-native session references.
 - The adapter loader owns adapter definitions and rendering hints.
 - The executor owns subprocess execution details.
+- The coding-agent runner owns backend selection and backend-specific invocation details.
 - The TUI owns presentation, not domain decisions.
 - The router owns repo/action selection.
 

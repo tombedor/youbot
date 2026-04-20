@@ -9,13 +9,15 @@ This document translates the product requirements in `docs/PRD.md` into a concre
 Youbot is a local Python application with a Textual TUI. It orchestrates a set of registered repos by:
 
 - Discovering and parsing each repo's `justfile`
-- Persisting repo metadata and conversation state in youbot-owned storage
+- Persisting repo metadata, lightweight conversation history, and coding-agent session references in youbot-owned storage
 - Routing natural-language requests to the correct repo and execution mode
 - Running `just` commands in repo directories
-- Spawning `claude` for code-change requests when no existing command fits
+- Invoking a configurable coding-agent backend for code-change requests when no existing command fits
 - Rendering repo-specific views through youbot-owned adapters
 
 Integrated repos are treated as capability providers. They are not required to embed UI code or conform to youbot's internal architecture.
+
+The system is repo-first in v1, but this module structure should not assume that every future integration type is necessarily a local repo. Where practical, interfaces should avoid unnecessary coupling to repo-only concepts.
 
 ## Core modules
 
@@ -32,16 +34,24 @@ Responsibilities:
 Key rule:
 - The registry is the source of truth for repo metadata inside youbot.
 
-### `sessions`
+### `conversation_store`
 
 Responsibilities:
-- Persist one global session
-- Persist one current session per repo
-- Support reset and branching semantics later
+- Persist youbot's own conversation history
 - Provide conversation history to the router
 
 Key rule:
-- Session state is scoped, not global by default.
+- This store is for youbot conversation state, not for reconstructing coding-agent sessions.
+
+### `coding_agent_sessions`
+
+Responsibilities:
+- Persist backend-native coding-agent session references by repo
+- Store backend name, session kind, session id, and human-readable purpose/summary
+- Allow the coding-agent runner to resume an existing backend-native non-interactive session when appropriate
+
+Key rule:
+- Youbot stores session references, not full reconstructed coding-agent transcripts.
 
 ### `justfile_parser`
 
@@ -73,15 +83,18 @@ Responsibilities:
 Key rule:
 - Command execution is the default path when a matching capability exists.
 
-### `agent_spawner`
+### `coding_agent_runner`
 
 Responsibilities:
-- Spawn `claude` in the target repo for code-change requests
+- Invoke the configured coding-agent backend in the target repo for code-change requests
 - Provide request context and capture subprocess outcome
-- Record the result in session state and registry hints
+- Use backend-native continuation when a stored non-interactive session reference is available
+- Record the result in conversation state and registry hints
+- Support backend switching between at least Claude Code and Codex without changing callers
 
 Key rule:
 - This path is only used when no suitable `just` command exists or when the router explicitly chooses code change.
+- The runner should use non-interactive backend entrypoints only. Interactive pickers and interactive terminal resume flows are out of scope for v1 orchestration.
 
 ### `adapters`
 
@@ -114,7 +127,7 @@ Responsibilities:
 - Display execution results and structured views
 
 Key rule:
-- The TUI is a consumer of registry, sessions, routing, and adapters. It should not own business logic.
+- The TUI is a consumer of registry, conversation state, routing, and adapters. It should not own business logic.
 
 ## Persistence model
 
@@ -126,14 +139,20 @@ Expected state areas:
   - registered repos
   - scheduler configuration
   - user preferences
+  - coding-agent backend selection
+  - backend-specific invocation settings
 - Registry store:
   - repo records
   - discovered commands
   - routing hints
   - adapter metadata
-- Session store:
-  - global conversation history
-  - per-repo conversation history
+- Conversation store:
+  - youbot conversation history
+- Coding-agent session registry:
+  - repo id to backend-specific session reference
+  - last used backend
+  - session kind
+  - short session purpose/status
 - Adapter store:
   - local adapter code or adapter definitions
   - parser hints
@@ -156,23 +175,25 @@ The exact on-disk format can be JSON or SQLite in the first version. The impleme
 5. Adapter loader creates or refreshes local adapter metadata.
 6. Repo becomes available in the TUI.
 
-### 2. Resume session
+### 2. Startup and restore state
 
 1. Youbot starts.
 2. Registry loads registered repos.
-3. Session manager loads the global session and repo sessions.
-4. TUI opens with the last active repo or a default global view.
-5. Switching into a repo restores that repo's conversation context.
+3. Conversation store loads recent youbot conversation history.
+4. Coding-agent session registry loads repo-specific backend-native session references.
+5. TUI opens with the last active repo or a default global view.
+
+Switching into a repo restores repo focus, command palette context, adapter state, and any available coding-agent continuation metadata. It does not require a separate repo-scoped youbot transcript.
 
 ### 3. Natural-language request
 
 1. User submits a message.
 2. TUI sends the message plus active scope to the router.
-3. Router reads relevant session history and registry metadata.
+3. Router reads relevant conversation history and registry metadata.
 4. Router returns a structured route decision.
 5. If action type is `command`, executor runs the selected `just` recipe.
-6. If action type is `code_change`, agent spawner runs `claude` in the repo.
-7. Result is rendered in the TUI and appended to the relevant session.
+6. If action type is `code_change`, the coding-agent runner invokes the configured backend in the repo using a non-interactive entrypoint.
+7. Result is rendered in the TUI, appended to youbot conversation history, and used to update any coding-agent session reference.
 
 ### 4. Command-palette action
 
@@ -191,13 +212,13 @@ The system should treat these as expected operational cases:
 - Recipe exits non-zero
 - Command output is not parseable as structured data
 - Router returns an invalid decision
-- `claude` subprocess fails or is unavailable
+- configured coding-agent backend fails or is unavailable
 
 Initial error-handling rules:
 
 - Show failures inline in the conversation pane
 - Preserve raw stderr for inspection
-- Do not destroy session state on failure
+- Do not destroy conversation history or coding-agent session references on failure
 - Mark affected repo status in the registry
 
 ## Non-goals for v1
@@ -218,11 +239,12 @@ youbot/
   app.py
   config.py
   registry.py
-  sessions.py
+  conversation_store.py
+  coding_agent_sessions.py
   justfile_parser.py
   router.py
   executor.py
-  agent_spawner.py
+  coding_agent_runner.py
   adapters/
     __init__.py
     loader.py
