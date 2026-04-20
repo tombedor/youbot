@@ -165,7 +165,7 @@ Includes:
 
 Done when:
 - a new managed repo can be created from the UI or CLI
-- the generated repo matches the managed repo standard in `PRD.md`
+- the generated repo matches the managed repo standard in `docs/PRD.md`
 
 ## Suggested implementation discipline
 

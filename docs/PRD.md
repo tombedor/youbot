@@ -10,6 +10,8 @@ Youbot is not a file browser or a code editor. For browsing code, open the repo 
 
 ## Interaction Model
 
+Detailed user-driven flows are documented in `docs/user_stories.md`.
+
 ### Conversational interface
 
 The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). The session is stateful — context from earlier in the conversation is preserved and can be referenced.
