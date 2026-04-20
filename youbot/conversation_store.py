@@ -23,6 +23,7 @@ class ConversationStore:
                 conversation_id=make_id(),
                 messages=[],
                 updated_at=now_iso(),
+                last_response_id=None,
             )
             self._write(record)
             return record
@@ -31,6 +32,7 @@ class ConversationStore:
             conversation_id=payload["conversation_id"],
             messages=[ConversationMessage(**item) for item in payload["messages"]],
             updated_at=payload["updated_at"],
+            last_response_id=payload.get("last_response_id"),
         )
 
     def append_message(self, message: ConversationMessage) -> None:
@@ -44,7 +46,14 @@ class ConversationStore:
             conversation_id=make_id(),
             messages=[],
             updated_at=now_iso(),
+            last_response_id=None,
         )
+        self._write(record)
+
+    def set_last_response_id(self, response_id: str | None) -> None:
+        record = self.get_conversation()
+        record.last_response_id = response_id
+        record.updated_at = now_iso()
         self._write(record)
 
     def _write(self, record: ConversationRecord) -> None:
@@ -56,6 +65,7 @@ class ConversationStore:
                     "conversation_id": record.conversation_id,
                     "messages": [asdict(message) for message in record.messages],
                     "updated_at": record.updated_at,
+                    "last_response_id": record.last_response_id,
                 },
                 indent=2,
             )

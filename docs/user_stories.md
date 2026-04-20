@@ -32,6 +32,7 @@ As a user, I want to ask cross-repo questions without forcing a single repo cont
 
 Expected behavior:
 - a global scope exists alongside repo scopes
+- the app opens in global chat with no repo preselected
 - global requests can route across repos or ask clarifying questions
 - global context remains available without requiring a separate repo transcript
 

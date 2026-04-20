@@ -11,6 +11,7 @@ Youbot is a local Python application with a Textual TUI. It orchestrates a set o
 - Discovering and parsing each repo's `justfile`
 - Persisting repo metadata, lightweight conversation history, and coding-agent session references in youbot-owned storage
 - Routing natural-language requests to the correct repo and execution mode
+- Driving primary chat orchestration through the OpenAI Responses API with tool calls
 - Running `just` commands in repo directories
 - Invoking a configurable coding-agent backend for code-change requests when no existing command fits
 - Rendering repo-specific views through youbot-owned adapters
@@ -63,15 +64,25 @@ Responsibilities:
 Key rule:
 - Parser output feeds both routing and command-palette generation.
 
+### `openai_chat`
+
+Responsibilities:
+- Assemble model instructions from user message, conversation context, repo metadata, and discovered commands
+- Expose explicit tools for listing repos, listing commands, running repo commands, and triggering code-change work
+- Continue provider-native conversation state through the provider response id
+- Return concise user-facing answers rather than raw backend transcripts
+
+Key rule:
+- The primary conversational path is tool-driven, not prompt-only string routing.
+
 ### `router`
 
 Responsibilities:
-- Assemble routing context from user message, session history, repo metadata, and discovered commands
-- Call the model to choose repo, action type, and parameters
-- Return a structured route decision, not free-form text
+- Provide a simple local fallback decision path when OpenAI-backed orchestration is unavailable
+- Map obvious prompts to repo/action/command selections without external API calls
 
 Key rule:
-- The router decides intent; execution modules do not reinterpret the user's request.
+- The heuristic router is fallback behavior, not the primary orchestration design.
 
 ### `executor`
 
@@ -181,19 +192,22 @@ The exact on-disk format can be JSON or SQLite in the first version. The impleme
 2. Registry loads registered repos.
 3. Conversation store loads recent youbot conversation history.
 4. Coding-agent session registry loads repo-specific backend-native session references.
-5. TUI opens with the last active repo or a default global view.
+5. TUI opens in the global chat view with no repo selected by default.
 
 Switching into a repo restores repo focus, command palette context, adapter state, and any available coding-agent continuation metadata. It does not require a separate repo-scoped youbot transcript.
 
 ### 3. Natural-language request
 
 1. User submits a message.
-2. TUI sends the message plus active scope to the router.
-3. Router reads relevant conversation history and registry metadata.
-4. Router returns a structured route decision.
-5. If action type is `command`, executor runs the selected `just` recipe.
-6. If action type is `code_change`, the coding-agent runner invokes the configured backend in the repo using a non-interactive entrypoint.
+2. TUI sends the message plus active scope to `openai_chat`.
+3. `openai_chat` calls the OpenAI Responses API with conversation context and tool definitions.
+4. The model issues tool calls to inspect repo state or execute actions.
+5. Tool handlers call executor or coding-agent runner as needed.
+6. `openai_chat` returns the final user-facing answer and provider response id.
 7. Result is rendered in the TUI, appended to youbot conversation history, and used to update any coding-agent session reference.
+
+Fallback behavior:
+- If OpenAI-backed orchestration is unavailable, the local heuristic router may still choose a repo and action for simple cases.
 
 ### 4. Command-palette action
 

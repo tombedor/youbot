@@ -79,6 +79,7 @@ Represents persisted youbot conversation history.
 conversation_id: str
 messages: list[ConversationMessage]
 updated_at: str
+last_response_id: str | None
 ```
 
 ### `RouteDecision`
@@ -213,6 +214,28 @@ Suggested methods:
 get_conversation() -> ConversationRecord
 append_message(message: ConversationMessage) -> None
 clear_conversation() -> None
+set_last_response_id(response_id: str | None) -> None
+```
+
+### `OpenAIChatOrchestrator`
+
+Responsibilities:
+- Run the primary chat loop through the OpenAI Responses API
+- Provide tool definitions over repo metadata and execution surfaces
+- Continue provider-native conversational state with `last_response_id`
+
+Suggested method:
+
+```python
+respond(
+    *,
+    user_message: str,
+    active_repo_id: str | None,
+    repos: list[RepoRecord],
+    commands: dict[str, list[CommandRecord]],
+    last_response_id: str | None,
+    tool_handler: Callable[[str, dict], dict],
+) -> tuple[str, str | None]
 ```
 
 ### `CodingAgentSessionRegistry`
@@ -313,7 +336,8 @@ refresh(repo: RepoRecord, commands: list[CommandRecord]) -> AdapterRecord
 - The executor owns subprocess execution details.
 - The coding-agent runner owns backend selection and backend-specific invocation details.
 - The TUI owns presentation, not domain decisions.
-- The router owns repo/action selection.
+- The OpenAI chat orchestrator owns the primary conversational decision path.
+- The router owns fallback repo/action selection when the primary path is unavailable.
 
 ## Serialization rules
 

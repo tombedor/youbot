@@ -104,6 +104,12 @@ Stores youbot's own conversation history.
 
 This is for orchestration context and UI continuity. It is not intended to reconstruct backend-native coding-agent sessions.
 
+Contents include:
+- conversation id
+- ordered message list
+- updated timestamp
+- `last_response_id` for continuing the provider-native OpenAI conversation
+
 ## Coding-agent session registry
 
 ### `coding_agent_sessions/sessions.json`

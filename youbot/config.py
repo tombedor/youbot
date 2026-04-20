@@ -38,7 +38,6 @@ class AppConfig:
     scheduler_jobs: list[SchedulerJob]
     default_backend: CodingBackendName
     backends: dict[CodingBackendName, CodingAgentBackend]
-    last_active_repo_id: str | None
 
 
 def state_root() -> Path:
@@ -79,7 +78,6 @@ def default_config_payload() -> dict[str, Any]:
                 "claude_code": {"command_prefix": ["claude"], "default_args": []},
             },
         },
-        "ui": {"last_active_repo_id": None},
     }
 
 
@@ -129,15 +127,7 @@ def load_config() -> AppConfig:
         scheduler_jobs=scheduler_jobs,
         default_backend=payload["coding_agent"]["default_backend"],
         backends=backends,
-        last_active_repo_id=payload["ui"].get("last_active_repo_id"),
     )
-
-
-def update_last_active_repo(repo_id: str | None) -> None:
-    path = ensure_default_config()
-    payload = json.loads(path.read_text())
-    payload.setdefault("ui", {})["last_active_repo_id"] = repo_id
-    atomic_write(path, json.dumps(payload, indent=2) + "\n")
 
 
 def as_payload(config: AppConfig) -> dict[str, Any]:
@@ -151,5 +141,4 @@ def as_payload(config: AppConfig) -> dict[str, Any]:
             "default_backend": config.default_backend,
             "backends": {name: asdict(backend) for name, backend in config.backends.items()},
         },
-        "ui": {"last_active_repo_id": config.last_active_repo_id},
     }

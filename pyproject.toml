@@ -9,6 +9,7 @@ description = "Repo-first conversational TUI orchestrator"
 readme = "docs/PRD.md"
 requires-python = ">=3.11"
 dependencies = [
+  "openai>=1.99.0",
   "textual>=0.61.0",
   "rich>=13.7.0",
 ]
@@ -25,4 +26,3 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
-

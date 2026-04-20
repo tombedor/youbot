@@ -5,11 +5,12 @@ from pathlib import Path
 
 from youbot.coding_agent_runner import CodingAgentRunner
 from youbot.coding_agent_sessions import CodingAgentSessionRegistry
-from youbot.config import AppConfig, load_config, update_last_active_repo
+from youbot.config import AppConfig, load_config
 from youbot.conversation_store import ConversationStore
 from youbot.executor import Executor
 from youbot.justfile_parser import JustfileParser
 from youbot.models import CommandRecord, ConversationMessage, RepoRecord
+from youbot.openai_chat import OpenAIChatOrchestrator
 from youbot.registry import Registry
 from youbot.router import Router
 from youbot.scheduler import Scheduler
@@ -32,12 +33,13 @@ class AppController:
         self.registry = Registry(self.config, JustfileParser())
         self.executor = Executor()
         self.router = Router()
+        self.openai_chat = OpenAIChatOrchestrator()
         self.coding_agent_runner = CodingAgentRunner(self.config, self.session_registry)
         self.scheduler = Scheduler(self.config, self.executor)
         self.repos, self.commands = self.registry.load()
 
     def set_active_repo(self, repo_id: str | None) -> None:
-        update_last_active_repo(repo_id)
+        _ = repo_id
 
     def get_repo(self, repo_id: str) -> RepoRecord | None:
         for repo in self.repos:
@@ -58,6 +60,19 @@ class AppController:
             )
         )
         conversation = self.conversation_store.get_conversation()
+        if self.openai_chat.enabled:
+            body, response_id = self.openai_chat.respond(
+                user_message=user_message,
+                active_repo_id=active_repo_id,
+                repos=self.repos,
+                commands=self.commands,
+                last_response_id=conversation.last_response_id,
+                tool_handler=self._handle_tool_call,
+            )
+            self.conversation_store.set_last_response_id(response_id)
+            self._record_assistant(body)
+            return ProcessedMessage("Assistant", body, active_repo_id)
+
         decision = self.router.route(user_message, active_repo_id, conversation, self.repos, self.commands)
 
         if decision.action_type == "clarify":
@@ -135,3 +150,90 @@ class AppController:
     def init_managed_repo(self, path: str, name: str) -> str:
         scaffold_managed_repo(Path(path), name, now_iso().split("T")[0])
         return f"Initialized managed repo at {path}"
+
+    def _handle_tool_call(self, name: str, arguments: dict) -> dict:
+        if name == "list_repos":
+            return {
+                "repos": [
+                    {
+                        "repo_id": repo.repo_id,
+                        "name": repo.name,
+                        "path": repo.path,
+                        "status": repo.status,
+                    }
+                    for repo in self.repos
+                ]
+            }
+
+        if name == "get_repo_overview":
+            repo = self.get_repo(arguments["repo_id"])
+            if repo is None:
+                return {"error": f"Unknown repo {arguments['repo_id']}"}
+            session_ref = self.session_registry.get_session(repo.repo_id)
+            return {
+                "repo_id": repo.repo_id,
+                "path": repo.path,
+                "status": repo.status,
+                "adapter_id": repo.adapter_id,
+                "coding_agent_session": None
+                if session_ref is None
+                else {
+                    "backend": session_ref.backend_name,
+                    "session_kind": session_ref.session_kind,
+                    "session_id": session_ref.session_id,
+                    "status": session_ref.status,
+                    "last_used_at": session_ref.last_used_at,
+                },
+            }
+
+        if name == "list_repo_commands":
+            repo_id = arguments["repo_id"]
+            return {
+                "repo_id": repo_id,
+                "commands": [
+                    {
+                        "command_name": command.command_name,
+                        "description": command.description,
+                    }
+                    for command in self.get_commands(repo_id)
+                ],
+            }
+
+        if name == "run_repo_command":
+            repo = self.get_repo(arguments["repo_id"])
+            if repo is None:
+                return {"error": f"Unknown repo {arguments['repo_id']}"}
+            command = next(
+                (
+                    command
+                    for command in self.get_commands(repo.repo_id)
+                    if command.command_name == arguments["command_name"]
+                ),
+                None,
+            )
+            if command is None:
+                return {"error": f"Unknown command {arguments['command_name']} for repo {repo.repo_id}"}
+            result = self.executor.run(repo, command, arguments.get("arguments", []))
+            return {
+                "repo_id": repo.repo_id,
+                "command_name": command.command_name,
+                "exit_code": result.exit_code,
+                "stdout_preview": result.stdout[:2000],
+                "stderr_preview": result.stderr[:2000],
+            }
+
+        if name == "run_code_change":
+            repo = self.get_repo(arguments["repo_id"])
+            if repo is None:
+                return {"error": f"Unknown repo {arguments['repo_id']}"}
+            result = self.coding_agent_runner.run_code_change(repo, arguments["request"])
+            return {
+                "repo_id": repo.repo_id,
+                "backend": result.backend_name,
+                "session_id": result.session_id,
+                "exit_code": result.exit_code,
+                "stdout_preview": result.stdout[:2000],
+                "stderr_preview": result.stderr[:2000],
+            }
+
+        return {"error": f"Unknown tool {name}"}

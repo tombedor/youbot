@@ -16,9 +16,11 @@ Detailed user-driven flows are documented in `docs/user_stories.md`.
 
 ### Conversational interface
 
-The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). Youbot keeps lightweight conversation history so earlier interactions can inform routing and follow-up actions.
+The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). It starts in a global chat state with no repo selected by default. Youbot keeps lightweight conversation history so earlier interactions can inform follow-up actions.
 
-Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases routing, command palette contents, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
+Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases tool use, command discovery, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
+
+Primary chat orchestration should use the OpenAI API with tool calls. The chat model should inspect registered repos, list commands, run repo commands, and trigger code-change work through explicit tool calls rather than relying only on a local heuristic router.
 
 For code-change work, youbot should continue backend-native coding-agent sessions when possible. Each repo may have an associated Claude Code or Codex session reference that youbot can reuse instead of reconstructing history itself.
 
@@ -47,13 +49,15 @@ The coding-agent backend must be configurable. Initial supported backends:
 
 Switching between coding-agent backends should be a configuration change, not an architectural rewrite.
 
-### Routing
+### Tool-driven orchestration
 
-Youbot routes requests by calling a routing model with:
-- The user's message and conversation history
+Primary chat should call a model with:
+- The user's message
+- Recent youbot conversation context
 - The list of registered repos, their youbot-managed metadata, and their available `just` commands
+- A tool surface for inspecting repos and executing actions
 
-The routing model determines: which repo is relevant, what type of action is needed (query, command, code change), and what parameters to pass.
+The model determines which repo is relevant, what type of action is needed, and which tool calls to make. A simpler local heuristic router may exist as fallback behavior when the OpenAI-backed primary path is unavailable, but it is not the main orchestration design.
 
 ---
 

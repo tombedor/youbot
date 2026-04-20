@@ -85,15 +85,16 @@ Non-goals:
 - natural-language routing
 - adapter rendering beyond basic text
 
-## Milestone 5: Routing
+## Milestone 5: Primary chat orchestration
 
 Goal:
-- Route natural-language requests to repo + action + command.
+- Route natural-language requests through the primary chat orchestrator to repo + action + command.
 
 Includes:
-- router prompt assembly
-- route decision parsing
-- fallback behavior for low confidence
+- OpenAI Responses API integration
+- tool definition and tool execution loop
+- concise final answer generation
+- fallback behavior for low confidence or unavailable API
 
 Done when:
 - a natural-language request selects the correct repo in common cases

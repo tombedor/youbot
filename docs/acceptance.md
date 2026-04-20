@@ -21,6 +21,7 @@ This document defines observable behaviors that must hold true for the implement
 ## TUI shell
 
 - The UI shows the list of registered repos and their current status.
+- The UI starts in a global chat state with no repo selected by default.
 - Selecting a repo changes active focus, command palette contents, and routing bias.
 - Global actions remain available even when a repo is focused.
 - The TUI starts without crashing when one configured repo is invalid.
@@ -34,6 +35,7 @@ This document defines observable behaviors that must hold true for the implement
 
 ## Routing
 
+- Given `OPENAI_API_KEY` is configured, the primary chat path uses the OpenAI tool-calling orchestrator.
 - Given a prompt clearly tied to one repo's purpose, the router selects that repo.
 - Given a prompt that maps to an existing discovered command, the router returns `action_type = "command"`.
 - Given an ambiguous prompt with low confidence, the system requests clarification instead of executing an arbitrary command.

@@ -52,6 +52,7 @@ class ConversationRecord:
     conversation_id: str
     messages: list[ConversationMessage]
     updated_at: str
+    last_response_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -118,4 +119,3 @@ class AdapterRecord:
     command_palette_entries: list[str]
     output_rules: list[str]
     updated_at: str
-

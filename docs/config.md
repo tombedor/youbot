@@ -11,6 +11,7 @@ This document defines the user-editable configuration for youbot. It should be p
 - Config should be small, explicit, and stable.
 - Repo metadata that is learned or cached over time belongs in state, not in config.
 - Backend-native coding-agent session ids belong in state, not in config.
+- Primary chat credentials belong in environment variables, not in config.
 
 ## Config location
 
@@ -38,9 +39,6 @@ Suggested shape:
   "coding_agent": {
     "default_backend": "codex",
     "backends": {}
-  },
-  "ui": {
-    "last_active_repo_id": null
   }
 }
 ```
@@ -136,19 +134,17 @@ Rules:
 - each backend must declare `command_prefix`
 - repo-specific backend overrides are stored in state metadata, not necessarily in config
 
-## UI config
+## Environment variables
 
-V1 UI config should remain minimal.
+Primary chat uses the OpenAI API.
 
-Suggested shape:
+Required:
+- `OPENAI_API_KEY`
 
-```json
-{
-  "last_active_repo_id": "life_admin"
-}
-```
+Optional:
+- `OPENAI_MODEL`
 
-This exists so startup can restore the most recently focused repo.
+These are process environment settings rather than file-based config.
 
 ## Example full config
 
@@ -190,9 +186,6 @@ This exists so startup can restore the most recently focused repo.
         "default_args": []
       }
     }
-  },
-  "ui": {
-    "last_active_repo_id": null
   }
 }
 ```
