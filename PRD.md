@@ -57,12 +57,26 @@ Each repo exposes a `YoubotPlugin` in its `youbot_plugin.py`:
 
 ```python
 class YoubotPlugin:
-    name: str           # human-readable repo name
-    repo_path: str      # absolute path to repo root
-    screen: Screen      # Textual Screen for structured views (optional)
+    name: str                    # human-readable repo name
+    repo_path: str               # absolute path to repo root
+    screen: Screen               # Textual Screen for structured views
+    commands: CommandProvider    # Textual CommandProvider for this repo
 ```
 
-Youbot discovers available `just` commands by reading the repo's justfile directly — plugins do not need to declare them.
+### Command palette
+
+Textual's command palette supports multiple `CommandProvider` instances. Youbot uses this to keep commands context-sensitive:
+
+- A **global provider** is always active: switch repo, initialize new repo, youbot-level settings.
+- Each plugin's `CommandProvider` is only active when that plugin's screen is focused.
+
+When in the job_search view, the palette shows job_search commands plus globals. Switch to life_admin and the palette swaps. No cross-repo noise.
+
+Plugin commands can be a mix of:
+- Wrappers around `just` commands (auto-discovered from the justfile)
+- UI-only actions that have no CLI equivalent (e.g., opening a sub-view, filtering the current table)
+
+Youbot also discovers available `just` commands by reading the repo's justfile directly, for use in routing and the change request flow.
 
 ### Data layer pattern
 
