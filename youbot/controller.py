@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from rich.columns import Columns
 from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.table import Table
@@ -65,40 +64,8 @@ class AppController:
             return Text(f"Focused repo {repo_id!r} is not available.")
 
         commands = self.get_commands(repo.repo_id)
-        session_ref = self.session_registry.get_session(repo.repo_id)
         adapter = self.adapter_loader.load(repo.repo_id)
-        header = Text.assemble(
-            ("REPO\n", "bold cyan"),
-            repo.repo_id,
-            "\n",
-            ("Status: ", "bold"),
-            repo.status,
-            "\n",
-            ("Adapter: ", "bold"),
-            repo.adapter_id or "none",
-        )
-        session_text = Text.assemble(
-            ("AGENT\n", "bold magenta"),
-            (
-                "No coding-agent session tracked yet."
-                if session_ref is None
-                else (
-                    f"{session_ref.backend_name}\n"
-                    f"{session_ref.session_kind}\n"
-                    f"{session_ref.session_id}\n"
-                    f"{session_ref.status}"
-                )
-            )
-        )
         sections = [
-            Columns(
-                [
-                    Panel(header, border_style="cyan"),
-                    Panel(session_text, border_style="magenta"),
-                ],
-                expand=True,
-                equal=True,
-            ),
             *self._build_repo_preview_sections(repo, commands, adapter),
             self._build_commands_panel(commands),
         ]
