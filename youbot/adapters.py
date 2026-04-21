@@ -70,6 +70,13 @@ class AdapterLoader:
                     render_mode="json",
                     max_lines=8,
                 ),
+                OverviewSectionSpec(
+                    command_name="active-openings",
+                    arguments=["json"],
+                    title="Top Openings",
+                    render_mode="json",
+                    max_lines=6,
+                ),
             ],
             "life_admin": [
                 OverviewSectionSpec(
@@ -95,6 +102,12 @@ class AdapterLoader:
                     render_mode="text",
                     max_lines=14,
                     fallback_command_names=["research-findings"],
+                ),
+                OverviewSectionSpec(
+                    command_name="research-findings",
+                    title="Recent Findings",
+                    render_mode="text",
+                    max_lines=14,
                 ),
             ],
         }

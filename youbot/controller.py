@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from rich.columns import Columns
 from rich.console import Group
 from rich.panel import Panel
 from rich.table import Table
@@ -87,8 +88,14 @@ class AppController:
             )
         )
         sections = [
-            Panel(header, title="Repo", border_style="cyan"),
-            Panel(session_text, title="Coding Agent", border_style="magenta"),
+            Columns(
+                [
+                    Panel(header, title="Repo", border_style="cyan"),
+                    Panel(session_text, title="Coding Agent", border_style="magenta"),
+                ],
+                expand=True,
+                equal=True,
+            ),
             *self._build_repo_preview_sections(repo, commands, adapter),
             self._build_commands_panel(commands),
         ]
@@ -130,33 +137,6 @@ class AppController:
             result = self.executor.run(repo, command, arguments)
             panels.append(self._render_overview_result(repo.repo_id, result, spec, label))
         return panels
-
-    def _render_overview_result(
-        self,
-        repo_id: str,
-        result,
-        spec: OverviewSectionSpec,
-        label: str,
-    ) -> Panel:
-        title = spec.title or "Overview"
-        if result.exit_code != 0:
-            preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
-            return Panel(
-                Text(f"Source: {label}\nPreview unavailable.\n{self._limit_lines(preview_error, max_lines=8)}"),
-                title=title,
-                border_style="red",
-            )
-
-        if spec.render_mode == "json" and result.parsed_payload is not None:
-            renderable = self._render_json_overview(repo_id, result.parsed_payload, spec, label)
-            return Panel(renderable, title=title, border_style="green")
-
-        preview_text = result.stdout.strip() or "(no stdout)"
-        return Panel(
-            Text(f"Source: {label}\n{self._limit_lines(preview_text, max_lines=spec.max_lines)}"),
-            title=title,
-            border_style="green",
-        )
 
     def process_message(self, user_message: str, active_repo_id: str | None) -> ProcessedMessage:
         self.conversation_store.append_message(
@@ -309,10 +289,14 @@ class AppController:
             return self._render_job_search_pipeline(payload, label)
         if repo_id == "job_search" and spec.command_name == "next-actions" and isinstance(payload, dict):
             return self._render_checklist(payload.get("items", []), label, max_items=6)
+        if repo_id == "job_search" and spec.command_name == "active-openings" and isinstance(payload, dict):
+            return self._render_job_search_openings(payload, label)
         if repo_id == "life_admin" and spec.command_name == "task-digest" and isinstance(payload, dict):
             return self._render_life_admin_digest(payload, label)
         if repo_id == "life_admin" and spec.command_name == "task-list" and isinstance(payload, dict):
             return self._render_task_list(payload.get("tasks", []), label, max_items=5)
+        if repo_id == "trader-bot" and spec.command_name == "research-findings" and isinstance(payload, str):
+            return Text(payload)
         return Text(f"Source: {label}\n{self._limit_lines(str(payload), max_lines=spec.max_lines)}")
 
     def _render_job_search_pipeline(self, payload: dict[str, Any], label: str):
@@ -338,6 +322,30 @@ class AppController:
             table.add_row(row.get("Company", ""), row.get("Status", ""), row.get("Notes", ""))
         if len(active_rows) > 7:
             table.add_row("...", "", f"{len(active_rows) - 7} more active opportunities")
+        return Group(summary, table)
+
+    def _render_job_search_openings(self, payload: dict[str, Any], label: str):
+        summary = Text(f"Source: {label}\n")
+        summary.append(f"Tracked openings: {len(payload.get('items', []))}", style="bold green")
+
+        table = Table(expand=True, box=None, show_header=True)
+        table.add_column("Company", style="bold")
+        table.add_column("Opening")
+        highlights = 0
+        for item in payload.get("items", []):
+            details = str(item.get("details", ""))
+            if "TOP PRIORITY" not in details:
+                continue
+            title = details.split(" — ")[0] if " — " in details else details
+            table.add_row(str(item.get("name", "")), title)
+            highlights += 1
+            if highlights >= 5:
+                break
+        if highlights == 0:
+            for item in payload.get("items", [])[:5]:
+                details = str(item.get("details", ""))
+                title = details.split(" — ")[0] if " — " in details else details
+                table.add_row(str(item.get("name", "")), title)
         return Group(summary, table)
 
     def _render_checklist(self, items: list[dict[str, Any]], label: str, *, max_items: int):
@@ -372,6 +380,61 @@ class AppController:
         for task in tasks[:max_items]:
             table.add_row(task.get("title", ""), str(task.get("priority", "")), str(task.get("status", "")))
         return Group(Text(f"Source: {label}"), table)
+
+    def _render_overview_result(
+        self,
+        repo_id: str,
+        result,
+        spec: OverviewSectionSpec,
+        label: str,
+    ) -> Panel:
+        title = spec.title or "Overview"
+        if result.exit_code != 0:
+            preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
+            return Panel(
+                Text(f"Source: {label}\nPreview unavailable.\n{self._limit_lines(preview_error, max_lines=8)}"),
+                title=title,
+                border_style="red",
+            )
+
+        if spec.render_mode == "json" and result.parsed_payload is not None:
+            renderable = self._render_json_overview(repo_id, result.parsed_payload, spec, label)
+            return Panel(renderable, title=title, border_style="green")
+
+        preview_text = result.stdout.strip() or "(no stdout)"
+        if repo_id == "trader-bot" and spec.command_name == "research-findings":
+            renderable = self._render_trader_findings(preview_text, label)
+        elif repo_id == "trader-bot" and spec.command_name == "research-program":
+            renderable = self._render_trader_program(preview_text, label, spec.max_lines)
+        else:
+            renderable = Text(f"Source: {label}\n{self._limit_lines(preview_text, max_lines=spec.max_lines)}")
+        return Panel(renderable, title=title, border_style="green")
+
+    def _render_trader_findings(self, text: str, label: str):
+        strategies: list[str] = []
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("### "):
+                strategies.append(stripped.removeprefix("### ").strip())
+            if len(strategies) >= 6:
+                break
+        lines = [f"Source: {label}", "Latest validated strategies:"]
+        for item in strategies:
+            lines.append(f"- {item}")
+        return Text("\n".join(lines))
+
+    def _render_trader_program(self, text: str, label: str, max_lines: int):
+        important_lines: list[str] = [f"Source: {label}"]
+        capture_prefixes = ("# Auto Research Program", "## Research Goal", "## Active Research Directions", "### ")
+        for line in text.splitlines():
+            stripped = line.strip()
+            if any(stripped.startswith(prefix) for prefix in capture_prefixes):
+                important_lines.append(stripped)
+            if stripped.startswith("Markets:"):
+                important_lines.append(stripped)
+            if len(important_lines) >= max_lines:
+                break
+        return Text("\n".join(important_lines))
 
     def _limit_lines(self, text: str, *, max_lines: int) -> str:
         lines = [line.rstrip() for line in text.splitlines() if line.strip()]
