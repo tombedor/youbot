@@ -18,6 +18,8 @@ Detailed user-driven flows are documented in `docs/user_stories.md`.
 
 The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). It starts in a global chat state with no repo selected by default. Youbot keeps lightweight conversation history so earlier interactions can inform follow-up actions.
 
+When youbot is processing a user message, the UI must show a visible in-flight indicator in the chat area so the user can tell the request is actively being handled. A spinner or equivalent loading treatment is sufficient; silent waiting is not.
+
 Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases tool use, command discovery, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
 
 Primary chat orchestration should use the OpenAI API with tool calls. The chat model should inspect registered repos, list commands, run repo commands, and trigger code-change work through explicit tool calls rather than relying only on a local heuristic router.

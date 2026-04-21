@@ -80,6 +80,12 @@ class YoubotApp(App[None]):
       background: transparent;
     }
 
+    #processing-indicator {
+      height: auto;
+      padding: 0 0 1 0;
+      color: $text-muted;
+    }
+
     #composer-shell {
       border: round yellow;
       background: $panel;
@@ -93,11 +99,14 @@ class YoubotApp(App[None]):
     ]
 
     active_repo_id: reactive[str | None] = reactive(None)
+    is_processing: reactive[bool] = reactive(False)
 
     def __init__(self) -> None:
         super().__init__()
         self.controller = AppController()
         self.active_repo_id = None
+        self.is_processing = False
+        self._processing_frame = 0
         self._repo_view_cache: dict[str, object] = {}
 
     def compose(self) -> ComposeResult:
@@ -112,6 +121,7 @@ class YoubotApp(App[None]):
                     yield Static("", id="repo-view")
                 with Vertical(id="chat-shell"):
                     yield Static("Assistant", id="conversation-title", classes="section-title")
+                    yield Static("", id="processing-indicator")
                     yield RichLog(id="conversation", wrap=True, markup=False)
                 with Vertical(id="composer-shell"):
                     yield Static("Ask", id="composer-title", classes="section-title")
@@ -119,10 +129,12 @@ class YoubotApp(App[None]):
         yield Footer()
 
     def on_mount(self) -> None:
+        self.set_interval(0.12, self._advance_processing_indicator)
         self._refresh_repo_list()
         self._render_conversation()
         self._render_repo_view()
         self._update_scope_layout()
+        self._sync_processing_ui()
 
     def action_reload_repos(self) -> None:
         self.controller = AppController()
@@ -130,12 +142,14 @@ class YoubotApp(App[None]):
         self._render_conversation()
         self._render_repo_view()
         self._update_scope_layout()
+        self._sync_processing_ui()
 
     def action_clear_conversation(self) -> None:
         self.controller.conversation_store.clear_conversation()
         self._render_conversation()
         self._render_repo_view()
         self._update_scope_layout()
+        self._sync_processing_ui()
 
     @on(ListView.Selected, "#repo-list")
     def on_repo_selected(self, event: ListView.Selected) -> None:
@@ -149,17 +163,24 @@ class YoubotApp(App[None]):
     @on(Input.Submitted, "#input")
     def on_input_submitted(self, event: Input.Submitted) -> None:
         message = event.value.strip()
-        if not message:
+        if not message or self.is_processing:
             return
         input_widget = self.query_one("#input", Input)
         input_widget.value = ""
         self.query_one("#conversation", RichLog).write(f"> {message}")
+        self._set_processing(True)
         self.process_user_message(message)
 
     @work(thread=True)
     def process_user_message(self, message: str) -> None:
-        processed = self.controller.process_message(message, self.active_repo_id)
-        self.call_from_thread(self._append_result, processed.summary, processed.body)
+        try:
+            processed = self.controller.process_message(message, self.active_repo_id)
+        except Exception as exc:
+            self.call_from_thread(self._append_result, "Error", f"Processing failed.\n\n```\n{exc}\n```")
+        else:
+            self.call_from_thread(self._append_result, processed.summary, processed.body)
+        finally:
+            self.call_from_thread(self._set_processing, False)
 
     def _append_result(self, summary: str, body: str) -> None:
         log = self.query_one("#conversation", RichLog)
@@ -179,6 +200,31 @@ class YoubotApp(App[None]):
         self._repo_view_cache[repo_id] = content
         if self.active_repo_id == repo_id:
             self._render_repo_view()
+
+    def _set_processing(self, processing: bool) -> None:
+        self.is_processing = processing
+        if processing:
+            self._processing_frame = 0
+        self._sync_processing_ui()
+
+    def _advance_processing_indicator(self) -> None:
+        if not self.is_processing:
+            return
+        self._processing_frame = (self._processing_frame + 1) % 4
+        self._sync_processing_ui()
+
+    def _sync_processing_ui(self) -> None:
+        indicator = self.query_one("#processing-indicator", Static)
+        input_widget = self.query_one("#input", Input)
+        if self.is_processing:
+            frames = ["|", "/", "-", "\\"]
+            indicator.update(f"{frames[self._processing_frame]} Processing message...")
+            input_widget.disabled = True
+            input_widget.placeholder = "Youbot is working..."
+        else:
+            indicator.update("")
+            input_widget.disabled = False
+            input_widget.placeholder = "Ask youbot to run a command or use /code ..."
 
     def _refresh_repo_list(self) -> None:
         repo_list = self.query_one("#repo-list", ListView)

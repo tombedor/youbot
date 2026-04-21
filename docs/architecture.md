@@ -139,6 +139,7 @@ Responsibilities:
 - Manage repo focus and screen switching
 - Expose global and repo-scoped command palette actions
 - Display execution results and structured views
+- Show explicit in-flight UI state while a user message is being processed
 
 Key rule:
 - The TUI is a consumer of registry, conversation state, routing, and adapters. It should not own business logic.

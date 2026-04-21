@@ -26,6 +26,8 @@ This document defines observable behaviors that must hold true for the implement
 - Selecting a repo changes active focus, command palette contents, and routing bias.
 - Global actions remain available even when a repo is focused.
 - The TUI starts without crashing when one configured repo is invalid.
+- While a chat request is being processed, the UI shows an explicit in-flight indicator in the chat area.
+- When processing completes or fails, the in-flight indicator clears.
 
 ## Command execution
 
