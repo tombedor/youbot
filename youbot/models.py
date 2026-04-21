@@ -111,6 +111,15 @@ class CodingAgentSessionRef:
 
 
 @dataclass(slots=True)
+class OverviewCommandSpec:
+    command_name: str
+    arguments: list[str] = field(default_factory=list)
+    title: str | None = None
+    max_lines: int = 14
+    fallback_command_names: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class AdapterRecord:
     adapter_id: str
     repo_id: str
@@ -119,3 +128,4 @@ class AdapterRecord:
     command_palette_entries: list[str]
     output_rules: list[str]
     updated_at: str
+    overview_command: OverviewCommandSpec | None = None

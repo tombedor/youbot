@@ -128,10 +128,20 @@ As a user, I want youbot to refresh its command inventory, so that the UI and ro
 
 Expected behavior:
 - re-scan updates command records
+- re-scan regenerates adapter metadata when overview commands or rendering hints should change
 - stale commands are removed or marked stale
 - refreshed commands appear in the palette and routing context
 
-### 14. Initialize a new managed repo
+### 14. Generate an adapter when onboarding a repo
+
+As a user, I want onboarding to generate a usable initial adapter automatically, so that a newly integrated repo gets a meaningful workspace without manual UI coding.
+
+Expected behavior:
+- onboarding writes adapter metadata into youbot state
+- onboarding generates an initial overview command choice for the selected-repo workspace
+- generated adapter artifacts can be refined later without requiring child-repo changes
+
+### 15. Initialize a new managed repo
 
 As a user, I want youbot to scaffold a new repo when I identify a new capability area, so that new tools start from a consistent standard.
 
@@ -141,7 +151,7 @@ Expected behavior:
 
 ## Change-request stories
 
-### 15. Request a code change when no command exists
+### 16. Request a code change when no command exists
 
 As a user, I want to ask for a new capability in plain language, so that I do not need to manually open a repo and script the change myself.
 
@@ -150,7 +160,7 @@ Expected behavior:
 - if none fits, youbot routes to the code-change flow
 - the result is reported back in the conversation
 
-### 18. Switch coding-agent backends without reworking the system
+### 17. Switch coding-agent backends without reworking the system
 
 As a user, I want to switch between Claude Code and Codex as the coding agent, so that I can choose the backend that fits the task or my environment.
 
@@ -159,7 +169,7 @@ Expected behavior:
 - the rest of the system does not need to change when the backend changes
 - a repo may optionally override the global default backend
 
-### 17. Promote repeated work into a first-class command
+### 18. Promote repeated work into a first-class command
 
 As a user, I want frequently repeated actions to become explicit commands, so that the system gets more efficient over time.
 
@@ -169,7 +179,7 @@ Expected behavior:
 
 ## Structured view stories
 
-### 18. See structured data in a dedicated view mode
+### 19. See structured data in a dedicated view mode
 
 As a user, I want results like job listings or task lists to render as structured views rather than only plain text, so that scanning and comparison are easier.
 
@@ -177,7 +187,7 @@ Expected behavior:
 - adapters can render tables, lists, or repo-specific panels
 - structured views are owned by youbot, not child repos
 
-### 19. Apply UI-only filters to current results
+### 20. Apply UI-only filters to current results
 
 As a user, I want to filter or sort visible results without necessarily re-running a command, so that exploration is fast.
 
@@ -187,7 +197,7 @@ Expected behavior:
 
 ## Scheduling stories
 
-### 20. Configure recurring repo actions centrally
+### 21. Configure recurring repo actions centrally
 
 As a user, I want recurring tasks like nightly searches to run from youbot, so that scheduling is centralized and not duplicated inside child repos.
 
@@ -196,7 +206,7 @@ Expected behavior:
 - scheduled runs execute in the correct repo
 - recent run results are visible in the UI
 
-### 21. Review scheduled run outcomes
+### 22. Review scheduled run outcomes
 
 As a user, I want to inspect what happened in scheduled runs, so that background automation remains observable.
 
@@ -206,7 +216,7 @@ Expected behavior:
 
 ## Degraded-state stories
 
-### 22. Keep using other repos when one repo is broken
+### 23. Keep using other repos when one repo is broken
 
 As a user, I want one missing or failing repo not to take down the whole tool, so that the orchestrator remains useful under partial failure.
 
@@ -214,7 +224,7 @@ Expected behavior:
 - repo failures are isolated
 - unaffected repos remain usable
 
-### 23. Understand why a repo cannot be used
+### 24. Understand why a repo cannot be used
 
 As a user, I want a broken repo to show a clear reason, so that I can fix the problem without guessing.
 
@@ -230,10 +240,11 @@ The highest-priority user stories for v1 are:
 3. Resume an existing coding-agent session for a repo
 4. Run a known repo command directly
 5. Add an existing repo with minimal friction
-6. Request a code change when no command exists
-7. Switch coding-agent backends without reworking the system
-8. See structured data in a dedicated view mode
-9. Configure recurring repo actions centrally
+6. Generate an adapter when onboarding a repo
+7. Request a code change when no command exists
+8. Switch coding-agent backends without reworking the system
+9. See structured data in a dedicated view mode
+10. Configure recurring repo actions centrally
 
 ## Relationship to other docs
 

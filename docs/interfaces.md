@@ -177,6 +177,19 @@ view_names: list[str]
 command_palette_entries: list[str]
 output_rules: list[str]
 updated_at: str
+overview_command: OverviewCommandSpec | None
+```
+
+### `OverviewCommandSpec`
+
+Represents generated adapter metadata for the selected-repo overview panel.
+
+```python
+command_name: str
+arguments: list[str]
+title: str | None
+max_lines: int
+fallback_command_names: list[str]
 ```
 
 ## Service interfaces
@@ -318,6 +331,7 @@ Behavioral rules:
 Responsibilities:
 - Load local adapter definitions for a repo
 - Provide palette entries and output rendering rules
+- Generate adapter metadata during onboarding or refresh
 
 Suggested methods:
 

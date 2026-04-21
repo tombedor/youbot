@@ -53,6 +53,7 @@ This document defines observable behaviors that must hold true for the implement
 ## Adapters and structured views
 
 - Adapters are loaded from youbot-owned storage rather than from child repos.
+- Repo onboarding generates adapter metadata in youbot-owned state.
 - A repo can appear in the TUI without any child-repo Textual code.
 - At least one adapter can transform structured command output into a non-plain-text view.
 - Repo-specific command-palette entries only appear when that repo is active.

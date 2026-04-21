@@ -5,11 +5,12 @@ from pathlib import Path
 
 from youbot.coding_agent_runner import CodingAgentRunner
 from youbot.coding_agent_sessions import CodingAgentSessionRegistry
+from youbot.adapters import AdapterLoader
 from youbot.config import AppConfig, load_config
 from youbot.conversation_store import ConversationStore
 from youbot.executor import Executor
 from youbot.justfile_parser import JustfileParser
-from youbot.models import CommandRecord, ConversationMessage, RepoRecord
+from youbot.models import AdapterRecord, CommandRecord, ConversationMessage, RepoRecord
 from youbot.openai_chat import OpenAIChatOrchestrator
 from youbot.registry import Registry
 from youbot.router import Router
@@ -30,6 +31,7 @@ class AppController:
         self.config: AppConfig = load_config()
         self.conversation_store = ConversationStore()
         self.session_registry = CodingAgentSessionRegistry()
+        self.adapter_loader = AdapterLoader()
         self.registry = Registry(self.config, JustfileParser())
         self.executor = Executor()
         self.router = Router()
@@ -75,7 +77,8 @@ class AppController:
             )
         )
 
-        preview_text = self._build_repo_preview(repo, commands)
+        adapter = self.adapter_loader.load(repo.repo_id)
+        preview_text = self._build_repo_preview(repo, commands, adapter)
         return (
             f"Repo: {repo.repo_id}\n"
             f"Path: {repo.path}\n"
@@ -190,45 +193,54 @@ class AppController:
         scaffold_managed_repo(Path(path), name, now_iso().split("T")[0])
         return f"Initialized managed repo at {path}"
 
-    def _build_repo_preview(self, repo: RepoRecord, commands: list[CommandRecord]) -> str:
-        selected = self._select_preview_command(repo.repo_id, commands)
-        if selected is None:
+    def _build_repo_preview(
+        self,
+        repo: RepoRecord,
+        commands: list[CommandRecord],
+        adapter: AdapterRecord | None,
+    ) -> str:
+        if adapter is None or adapter.overview_command is None:
             return "No repo overview preview configured."
 
-        command, arguments, label = selected
+        selected = self._resolve_overview_command(commands, adapter)
+        if selected is None:
+            return "Configured overview command is not available in the current command inventory."
+
+        command, arguments, label, max_lines, title = selected
         result = self.executor.run(repo, command, arguments)
         if result.exit_code != 0:
             preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
             return (
+                f"{title or 'Overview'}\n"
                 f"Source: {label}\n"
                 f"Preview unavailable.\n"
                 f"{self._limit_lines(preview_error, max_lines=8)}"
             )
 
         preview_text = result.stdout.strip() or "(no stdout)"
-        return f"Source: {label}\n{self._limit_lines(preview_text, max_lines=14)}"
+        return (
+            f"{title or 'Overview'}\n"
+            f"Source: {label}\n"
+            f"{self._limit_lines(preview_text, max_lines=max_lines)}"
+        )
 
-    def _select_preview_command(
+    def _resolve_overview_command(
         self,
-        repo_id: str,
         commands: list[CommandRecord],
-    ) -> tuple[CommandRecord, list[str], str] | None:
-        preview_preferences: dict[str, list[tuple[str, list[str]]]] = {
-            "job_search": [("pipeline-status", [])],
-            "life_admin": [("task-list", ["5"])],
-            "trader-bot": [("research-program", [])],
-        }
-        preferred = preview_preferences.get(repo_id, [])
-        for command_name, arguments in preferred:
-            command = next((item for item in commands if item.command_name == command_name), None)
-            if command is not None:
-                label = " ".join([*command.invocation, *arguments])
-                return command, arguments, label
+        adapter: AdapterRecord,
+    ) -> tuple[CommandRecord, list[str], str, int, str | None] | None:
+        overview = adapter.overview_command
+        if overview is None:
+            return None
 
-        fallback_candidates = ("status", "list", "overview", "summary")
-        for command in commands:
-            if any(token in command.command_name for token in fallback_candidates):
-                return command, [], " ".join(command.invocation)
+        candidate_names = [overview.command_name, *overview.fallback_command_names]
+        for index, command_name in enumerate(candidate_names):
+            command = next((item for item in commands if item.command_name == command_name), None)
+            if command is None:
+                continue
+            arguments = overview.arguments if index == 0 else []
+            label = " ".join([*command.invocation, *arguments])
+            return command, arguments, label, overview.max_lines, overview.title
         return None
 
     def _limit_lines(self, text: str, *, max_lines: int) -> str:

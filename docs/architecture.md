@@ -113,7 +113,8 @@ Responsibilities:
 - Load youbot-owned repo adapters from local state
 - Provide repo-specific command palette entries
 - Map command output into Textual views
-- Define or infer a repo overview preview command where useful
+- Generate adapter metadata during repo onboarding and refresh
+- Store the selected overview command and fallback commands in adapter metadata
 - Hold parsing and presentation hints
 
 Key rule:
@@ -288,8 +289,9 @@ sequenceDiagram
 2. Registry validates presence of `justfile`.
 3. `justfile_parser` discovers commands.
 4. Registry stores repo metadata and initial command inventory.
-5. Adapter loader creates or refreshes local adapter metadata.
-6. Repo becomes available in the TUI.
+5. Adapter loader generates or refreshes local adapter metadata and generated adapter artifacts.
+6. Adapter metadata captures the initial overview command and rendering hints.
+7. Repo becomes available in the TUI.
 
 ### 2. Startup and restore state
 
@@ -325,8 +327,8 @@ Fallback behavior:
 
 1. User selects a repo in the sidebar.
 2. TUI sets active repo focus immediately and renders a loading state for the repo workspace.
-3. Controller builds a repo-specific overview using adapter metadata, coding-agent session state, and a preview command.
-4. The preview command runs in the repo and returns a concise summary for the selected-repo panel.
+3. Controller builds a repo-specific overview using adapter metadata, coding-agent session state, and the adapter's overview command.
+4. The overview command runs in the repo and returns a concise summary for the selected-repo panel.
 5. The TUI updates the repo workspace while keeping the main conversation available.
 
 ## Error handling

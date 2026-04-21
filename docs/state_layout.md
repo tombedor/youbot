@@ -138,13 +138,16 @@ Contents may include:
 - view names
 - command palette entries
 - output rules
+- overview command metadata
 - update timestamp
 
 ### `adapters/generated/`
 
-Reserved for generated adapter artifacts if needed later.
+Stores generated adapter artifacts created during onboarding or refresh.
 
-V1 can leave this directory empty if adapters are metadata-only.
+Examples:
+- generated notes about the selected overview command
+- future generated parser or rendering scaffolds
 
 ## Scheduler files
 
