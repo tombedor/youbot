@@ -18,11 +18,10 @@ class AdapterLoader:
             adapter_id=f"{repo.repo_id}-adapter",
             repo_id=repo.repo_id,
             version="0.1.0",
-            view_names=["conversation"],
+            view_names=["overview", "conversation"],
             command_palette_entries=[command.command_name for command in commands],
-            output_rules=[],
+            output_rules=["repo_overview_preview"],
             updated_at=now_iso(),
         )
         atomic_write(self._root / f"{repo.repo_id}.json", json.dumps(asdict(adapter), indent=2) + "\n")
         return adapter
-

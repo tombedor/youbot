@@ -50,6 +50,45 @@ class AppController:
     def get_commands(self, repo_id: str) -> list[CommandRecord]:
         return self.commands.get(repo_id, [])
 
+    def build_repo_view(self, repo_id: str) -> str:
+        repo = self.get_repo(repo_id)
+        if repo is None:
+            return f"Focused repo {repo_id!r} is not available."
+
+        commands = self.get_commands(repo.repo_id)
+        session_ref = self.session_registry.get_session(repo.repo_id)
+        command_lines = [
+            f"- {command.command_name}: {command.description or 'No description'}"
+            for command in commands[:12]
+        ]
+        if len(commands) > 12:
+            command_lines.append(f"... and {len(commands) - 12} more")
+
+        session_text = (
+            "No coding-agent session tracked yet."
+            if session_ref is None
+            else (
+                f"Backend: {session_ref.backend_name}\n"
+                f"Kind: {session_ref.session_kind}\n"
+                f"Session: {session_ref.session_id}\n"
+                f"Status: {session_ref.status}"
+            )
+        )
+
+        preview_text = self._build_repo_preview(repo, commands)
+        return (
+            f"Repo: {repo.repo_id}\n"
+            f"Path: {repo.path}\n"
+            f"Status: {repo.status}\n"
+            f"Adapter: {repo.adapter_id or 'none'}\n\n"
+            "Coding Agent\n"
+            f"{session_text}\n\n"
+            "Overview\n"
+            f"{preview_text}\n\n"
+            "Commands\n"
+            + ("\n".join(command_lines) if command_lines else "(no commands discovered)")
+        )
+
     def process_message(self, user_message: str, active_repo_id: str | None) -> ProcessedMessage:
         self.conversation_store.append_message(
             ConversationMessage(
@@ -150,6 +189,53 @@ class AppController:
     def init_managed_repo(self, path: str, name: str) -> str:
         scaffold_managed_repo(Path(path), name, now_iso().split("T")[0])
         return f"Initialized managed repo at {path}"
+
+    def _build_repo_preview(self, repo: RepoRecord, commands: list[CommandRecord]) -> str:
+        selected = self._select_preview_command(repo.repo_id, commands)
+        if selected is None:
+            return "No repo overview preview configured."
+
+        command, arguments, label = selected
+        result = self.executor.run(repo, command, arguments)
+        if result.exit_code != 0:
+            preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
+            return (
+                f"Source: {label}\n"
+                f"Preview unavailable.\n"
+                f"{self._limit_lines(preview_error, max_lines=8)}"
+            )
+
+        preview_text = result.stdout.strip() or "(no stdout)"
+        return f"Source: {label}\n{self._limit_lines(preview_text, max_lines=14)}"
+
+    def _select_preview_command(
+        self,
+        repo_id: str,
+        commands: list[CommandRecord],
+    ) -> tuple[CommandRecord, list[str], str] | None:
+        preview_preferences: dict[str, list[tuple[str, list[str]]]] = {
+            "job_search": [("pipeline-status", [])],
+            "life_admin": [("task-list", ["5"])],
+            "trader-bot": [("research-program", [])],
+        }
+        preferred = preview_preferences.get(repo_id, [])
+        for command_name, arguments in preferred:
+            command = next((item for item in commands if item.command_name == command_name), None)
+            if command is not None:
+                label = " ".join([*command.invocation, *arguments])
+                return command, arguments, label
+
+        fallback_candidates = ("status", "list", "overview", "summary")
+        for command in commands:
+            if any(token in command.command_name for token in fallback_candidates):
+                return command, [], " ".join(command.invocation)
+        return None
+
+    def _limit_lines(self, text: str, *, max_lines: int) -> str:
+        lines = [line.rstrip() for line in text.splitlines() if line.strip()]
+        if len(lines) <= max_lines:
+            return "\n".join(lines)
+        return "\n".join([*lines[:max_lines], f"... ({len(lines) - max_lines} more lines)"])
 
     def _handle_tool_call(self, name: str, arguments: dict) -> dict:
         if name == "list_repos":

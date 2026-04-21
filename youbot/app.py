@@ -65,6 +65,7 @@ class YoubotApp(App[None]):
         super().__init__()
         self.controller = AppController()
         self.active_repo_id = None
+        self._repo_view_cache: dict[str, str] = {}
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -112,6 +113,7 @@ class YoubotApp(App[None]):
             self._render_repo_view()
             self._update_scope_layout()
             self._update_status(f"Focused repo: {self.active_repo_id}")
+            self.load_repo_view(self.active_repo_id)
 
     @on(Input.Submitted, "#input")
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -131,9 +133,21 @@ class YoubotApp(App[None]):
     def _append_result(self, summary: str, body: str) -> None:
         log = self.query_one("#conversation", RichLog)
         log.write(f"[{summary}]\n{body}")
+        if self.active_repo_id is not None:
+            self.load_repo_view(self.active_repo_id)
         self._render_repo_view()
         self._update_scope_layout()
         self._update_status(summary)
+
+    @work(thread=True)
+    def load_repo_view(self, repo_id: str) -> None:
+        content = self.controller.build_repo_view(repo_id)
+        self.call_from_thread(self._store_repo_view, repo_id, content)
+
+    def _store_repo_view(self, repo_id: str, content: str) -> None:
+        self._repo_view_cache[repo_id] = content
+        if self.active_repo_id == repo_id:
+            self._render_repo_view()
 
     def _refresh_repo_list(self) -> None:
         repo_list = self.query_one("#repo-list", ListView)
@@ -173,37 +187,7 @@ class YoubotApp(App[None]):
         if repo is None:
             panel.update(f"Focused repo {self.active_repo_id!r} is not available.")
             return
-
-        commands = self.controller.get_commands(repo.repo_id)
-        session_ref = self.controller.session_registry.get_session(repo.repo_id)
-        command_lines = [
-            f"- {command.command_name}: {command.description or 'No description'}"
-            for command in commands[:12]
-        ]
-        if len(commands) > 12:
-            command_lines.append(f"... and {len(commands) - 12} more")
-
-        session_text = (
-            "No coding-agent session tracked yet."
-            if session_ref is None
-            else (
-                f"Backend: {session_ref.backend_name}\n"
-                f"Kind: {session_ref.session_kind}\n"
-                f"Session: {session_ref.session_id}\n"
-                f"Status: {session_ref.status}"
-            )
-        )
-        body = (
-            f"Repo: {repo.repo_id}\n"
-            f"Path: {repo.path}\n"
-            f"Status: {repo.status}\n"
-            f"Adapter: {repo.adapter_id or 'none'}\n\n"
-            "Coding Agent\n"
-            f"{session_text}\n\n"
-            "Commands\n"
-            + ("\n".join(command_lines) if command_lines else "(no commands discovered)")
-        )
-        panel.update(body)
+        panel.update(self._repo_view_cache.get(repo.repo_id, f"Loading overview for {repo.repo_id}..."))
 
     def _update_scope_layout(self) -> None:
         repo_view = self.query_one("#repo-view", Static)

@@ -113,6 +113,7 @@ Responsibilities:
 - Load youbot-owned repo adapters from local state
 - Provide repo-specific command palette entries
 - Map command output into Textual views
+- Define or infer a repo overview preview command where useful
 - Hold parsing and presentation hints
 
 Key rule:
@@ -133,6 +134,7 @@ Key rule:
 Responsibilities:
 - Render the conversation pane
 - Render repo list/status sidebar
+- Render a selected-repo overview workspace with a preview of current repo data
 - Manage repo focus and screen switching
 - Expose global and repo-scoped command palette actions
 - Display execution results and structured views
@@ -177,6 +179,109 @@ The exact on-disk format can be JSON or SQLite in the first version. The impleme
 
 ## Main runtime flows
 
+## Overall control flow
+
+```mermaid
+flowchart TD
+    A[Start youbot] --> B[Load config]
+    B --> C[Registry scans configured repos]
+    C --> D[Parse justfiles into command inventory]
+    D --> E[Load conversation store]
+    E --> F[Load coding-agent session registry]
+    F --> G[Launch Textual TUI]
+    G --> H{User action}
+
+    H -->|Submit chat message| I[AppController.process_message]
+    H -->|Select repo| J[Update active repo in UI]
+    H -->|Command palette action| K[Run adapter action or repo command]
+    H -->|Scheduled run| L[Scheduler triggers executor]
+
+    I --> M{OPENAI_API_KEY configured?}
+    M -->|Yes| N[OpenAIChatOrchestrator.respond]
+    M -->|No| O[Fallback heuristic router]
+
+    N --> P[Call OpenAI Responses API with tools]
+    P --> Q{Model requests tool call?}
+    Q -->|list repos / commands / overview| R[Controller tool handler reads registry state]
+    Q -->|run_repo_command| S[Executor runs just command in repo]
+    Q -->|run_code_change| T[CodingAgentRunner invokes Codex or Claude]
+    Q -->|No more tools| U[Return final assistant answer plus response id]
+    R --> P
+    S --> P
+    T --> V[Update backend-native session reference]
+    V --> P
+
+    O --> W{Route decision}
+    W -->|command| S
+    W -->|code_change| T
+    W -->|clarify| X[Return clarification message]
+
+    K --> S
+    L --> S
+
+    U --> Y[Append assistant message to conversation store]
+    X --> Y
+    S --> Z[Normalize execution result for display]
+    T --> AA[Normalize coding-agent result for display]
+    Z --> Y
+    AA --> Y
+
+    J --> AB[Render repo overview panel]
+    Y --> AC[Render conversation pane and status]
+    AB --> H
+    AC --> H
+```
+
+## OpenAI chat sequence
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant TUI as Textual TUI
+    participant Controller as AppController
+    participant Store as ConversationStore
+    participant Chat as OpenAIChatOrchestrator
+    participant OpenAI as OpenAI Responses API
+    participant Tools as Controller Tool Handler
+    participant Exec as Executor / CodingAgentRunner
+    participant Sessions as CodingAgentSessionRegistry
+
+    User->>TUI: Submit chat message
+    TUI->>Controller: process_message(message, active_repo_id)
+    Controller->>Store: append user message
+    Controller->>Store: get_conversation()
+    Store-->>Controller: messages + last_response_id
+
+    Controller->>Chat: respond(..., last_response_id, tool_handler)
+    Chat->>OpenAI: responses.create(input=message, tools=..., previous_response_id=last_response_id)
+
+    loop While model emits function calls
+        OpenAI-->>Chat: function_call(name, arguments, call_id)
+        Chat->>Tools: tool_handler(name, arguments)
+
+        alt run_repo_command
+            Tools->>Exec: executor.run(repo, command, args)
+            Exec-->>Tools: execution result
+        else run_code_change
+            Tools->>Exec: coding_agent_runner.run_code_change(repo, request)
+            Exec->>Sessions: set_session(...) if backend session id available
+            Exec-->>Tools: coding-agent result
+        else metadata lookup
+            Tools-->>Chat: repo / command / session metadata
+        end
+
+        Tools-->>Chat: tool output payload
+        Chat->>OpenAI: responses.create(input=function_call_output, previous_response_id=response.id)
+    end
+
+    OpenAI-->>Chat: final output_text + response.id
+    Chat-->>Controller: assistant body + response_id
+    Controller->>Store: set_last_response_id(response_id)
+    Controller->>Store: append assistant message
+    Controller-->>TUI: ProcessedMessage(summary, body)
+    TUI-->>User: Render answer in conversation pane
+```
+
 ### 1. Repo onboarding
 
 1. User adds a repo path.
@@ -215,6 +320,14 @@ Fallback behavior:
 2. Global commands are always available.
 3. If a repo is focused, the active adapter contributes repo-specific commands.
 4. Selected command invokes executor or a UI-only adapter action.
+
+### 5. Repo selection and overview workspace
+
+1. User selects a repo in the sidebar.
+2. TUI sets active repo focus immediately and renders a loading state for the repo workspace.
+3. Controller builds a repo-specific overview using adapter metadata, coding-agent session state, and a preview command.
+4. The preview command runs in the repo and returns a concise summary for the selected-repo panel.
+5. The TUI updates the repo workspace while keeping the main conversation available.
 
 ## Error handling
 
