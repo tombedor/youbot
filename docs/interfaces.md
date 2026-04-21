@@ -178,6 +178,7 @@ command_palette_entries: list[str]
 output_rules: list[str]
 updated_at: str
 overview_sections: list[OverviewSectionSpec]
+quick_actions: list[QuickActionSpec]
 ```
 
 ### `OverviewSectionSpec`
@@ -191,6 +192,16 @@ title: str | None
 max_lines: int
 fallback_command_names: list[str]
 render_mode: Literal["json", "text"]
+```
+
+### `QuickActionSpec`
+
+Represents a recommended action for the selected-repo workspace.
+
+```python
+command_name: str
+title: str | None
+arguments: list[str]
 ```
 
 ## Service interfaces

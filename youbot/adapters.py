@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 
 from youbot.config import state_root
-from youbot.models import AdapterRecord, CommandRecord, OverviewSectionSpec, RepoRecord
+from youbot.models import AdapterRecord, CommandRecord, OverviewSectionSpec, QuickActionSpec, RepoRecord
 from youbot.utils import atomic_write, ensure_dir, now_iso
 
 
@@ -17,6 +17,7 @@ class AdapterLoader:
         ensure_dir(self._root)
         ensure_dir(self._generated_root)
         overview_sections = self._select_overview_sections(repo, commands)
+        quick_actions = self._select_quick_actions(repo, commands)
         adapter = AdapterRecord(
             adapter_id=f"{repo.repo_id}-adapter",
             repo_id=repo.repo_id,
@@ -26,6 +27,7 @@ class AdapterLoader:
             output_rules=["repo_overview_preview"],
             updated_at=now_iso(),
             overview_sections=overview_sections,
+            quick_actions=quick_actions,
         )
         atomic_write(self._root / f"{repo.repo_id}.json", json.dumps(asdict(adapter), indent=2) + "\n")
         self._write_generated_notes(repo, adapter)
@@ -37,6 +39,7 @@ class AdapterLoader:
             return None
         payload = json.loads(path.read_text())
         overview_sections = [OverviewSectionSpec(**item) for item in payload.get("overview_sections", [])]
+        quick_actions = [QuickActionSpec(**item) for item in payload.get("quick_actions", [])]
         return AdapterRecord(
             adapter_id=payload["adapter_id"],
             repo_id=payload["repo_id"],
@@ -46,6 +49,7 @@ class AdapterLoader:
             output_rules=payload["output_rules"],
             updated_at=payload["updated_at"],
             overview_sections=overview_sections,
+            quick_actions=quick_actions,
         )
 
     def _select_overview_sections(
@@ -158,4 +162,52 @@ class AdapterLoader:
                         f"  fallbacks: {section.fallback_command_names}",
                     ]
                 )
+        lines.extend(["", "## Quick actions"])
+        if not adapter.quick_actions:
+            lines.append("No quick actions were inferred.")
+        else:
+            for action in adapter.quick_actions:
+                lines.extend(
+                    [
+                        f"- command: {action.command_name}",
+                        f"  title: {action.title}",
+                        f"  arguments: {action.arguments}",
+                    ]
+                )
         atomic_write(self._generated_root / f"{repo.repo_id}.md", "\n".join(lines) + "\n")
+
+    def _select_quick_actions(self, repo: RepoRecord, commands: list[CommandRecord]) -> list[QuickActionSpec]:
+        preferred_specs: dict[str, list[QuickActionSpec]] = {
+            "job_search": [
+                QuickActionSpec(command_name="pipeline-status", title="Pipeline"),
+                QuickActionSpec(command_name="next-actions", title="Next actions"),
+                QuickActionSpec(command_name="active-openings", title="Openings"),
+                QuickActionSpec(command_name="action-items", title="Action items"),
+            ],
+            "life_admin": [
+                QuickActionSpec(command_name="task-digest", title="Priority digest"),
+                QuickActionSpec(command_name="task-list", title="Top tasks", arguments=["5"]),
+                QuickActionSpec(command_name="task-create", title="Add task"),
+                QuickActionSpec(command_name="task-search", title="Search tasks"),
+            ],
+            "trader-bot": [
+                QuickActionSpec(command_name="research-program", title="Research program"),
+                QuickActionSpec(command_name="research-findings", title="Recent findings"),
+                QuickActionSpec(command_name="research-cycle", title="Run research"),
+                QuickActionSpec(command_name="list-markets", title="List markets"),
+            ],
+        }
+        preferred = preferred_specs.get(repo.repo_id)
+        available = {command.command_name for command in commands}
+        if preferred is not None:
+            return [spec for spec in preferred if spec.command_name in available]
+
+        boilerplate = {"default", "venv", "install", "sync", "format", "lint", "typecheck", "pyright", "test"}
+        inferred: list[QuickActionSpec] = []
+        for command in commands:
+            if command.command_name in boilerplate:
+                continue
+            inferred.append(QuickActionSpec(command_name=command.command_name))
+            if len(inferred) >= 4:
+                break
+        return inferred

@@ -24,6 +24,7 @@ This document defines observable behaviors that must hold true for the implement
 - The UI shows the list of registered repos and their current status.
 - The UI starts in a global chat state with no repo selected by default.
 - Selecting a repo changes active focus, command palette contents, and routing bias.
+- When a repo is selected, the workspace header changes to that repo's identity and summary rather than staying generic.
 - Global actions remain available even when a repo is focused.
 - The TUI starts without crashing when one configured repo is invalid.
 - While a chat request is being processed, the UI shows an explicit in-flight indicator in the chat area.
@@ -58,6 +59,7 @@ This document defines observable behaviors that must hold true for the implement
 - Adapters are loaded from youbot-owned storage rather than from child repos.
 - Repo onboarding generates adapter metadata in youbot-owned state.
 - Repo onboarding generates selected-repo overview sections in adapter metadata when they can be inferred.
+- Repo onboarding generates recommended quick actions in adapter metadata when they can be inferred.
 - When a repo exposes JSON-capable commands, adapters may use those structured payloads to build a more ordered workspace view.
 - A repo can appear in the TUI without any child-repo Textual code.
 - At least one adapter can transform structured command output into a non-plain-text view.

@@ -20,6 +20,8 @@ The TUI is primarily a conversation pane with rich inline output (tables, lists,
 
 When youbot is processing a user message, the UI must show a visible in-flight indicator in the chat area so the user can tell the request is actively being handled. A spinner or equivalent loading treatment is sufficient; silent waiting is not.
 
+When a repo is selected, the workspace should present a compact repo-specific header, a purpose-built overview layout, and adapter-defined quick actions. It should not feel like a generic stack of undifferentiated panels.
+
 Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases tool use, command discovery, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
 
 Primary chat orchestration should use the OpenAI API with tool calls. The chat model should inspect registered repos, list commands, run repo commands, and trigger code-change work through explicit tool calls rather than relying only on a local heuristic router.
@@ -84,6 +86,8 @@ Youbot owns the TUI code that renders repo-specific views. Integrated repos are 
 For each registered repo, youbot maintains a local adapter in its own state directory. Adapters may be generated, cached, or manually refined over time, but they live in youbot's local plugin/adapter registry rather than in the child repo.
 
 Repo onboarding includes an adapter generation step. At minimum, youbot generates adapter metadata that picks overview sections for the selected-repo workspace, basic rendering limits, preferred render modes, and any fallback commands.
+
+Adapters should also define a small set of recommended quick actions for the selected-repo workspace so the UI can highlight the most useful commands instead of dumping a long raw command list.
 
 When a repo exposes JSON-capable commands, adapters should prefer those structured outputs for the selected-repo workspace so the view can emphasize the most relevant information rather than dumping raw markdown or raw text.
 

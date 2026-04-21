@@ -205,9 +205,18 @@ Expected behavior:
 - some adapter actions can operate on current displayed data
 - these actions are available only when relevant to the current repo/view
 
+### 22. See repo-specific quick actions when a repo is focused
+
+As a user, I want a selected repo workspace to surface a few recommended actions immediately, so that I can act without scanning a long generic command list.
+
+Expected behavior:
+- the selected-repo workspace shows a compact set of adapter-defined quick actions
+- the workspace header identifies the selected repo and its purpose
+- the workspace emphasizes repo-specific data over raw command inventory
+
 ## Scheduling stories
 
-### 22. Configure recurring repo actions centrally
+### 23. Configure recurring repo actions centrally
 
 As a user, I want recurring tasks like nightly searches to run from youbot, so that scheduling is centralized and not duplicated inside child repos.
 
@@ -216,7 +225,7 @@ Expected behavior:
 - scheduled runs execute in the correct repo
 - recent run results are visible in the UI
 
-### 23. Review scheduled run outcomes
+### 24. Review scheduled run outcomes
 
 As a user, I want to inspect what happened in scheduled runs, so that background automation remains observable.
 
@@ -226,7 +235,7 @@ Expected behavior:
 
 ## Degraded-state stories
 
-### 24. Keep using other repos when one repo is broken
+### 25. Keep using other repos when one repo is broken
 
 As a user, I want one missing or failing repo not to take down the whole tool, so that the orchestrator remains useful under partial failure.
 
@@ -234,7 +243,7 @@ Expected behavior:
 - repo failures are isolated
 - unaffected repos remain usable
 
-### 25. Understand why a repo cannot be used
+### 26. Understand why a repo cannot be used
 
 As a user, I want a broken repo to show a clear reason, so that I can fix the problem without guessing.
 

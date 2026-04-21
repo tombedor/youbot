@@ -43,7 +43,7 @@ class YoubotApp(App[None]):
 
     .section-title {
       height: auto;
-      padding: 0 0 1 0;
+      padding: 0;
       text-style: bold;
       color: $text-muted;
     }
@@ -51,8 +51,19 @@ class YoubotApp(App[None]):
     #repo-shell {
       border: round green;
       background: $boost;
-      padding: 1;
+      padding: 0 1;
       margin-bottom: 1;
+    }
+
+    #repo-title {
+      color: $text;
+      padding-top: 1;
+    }
+
+    #repo-subtitle {
+      height: auto;
+      color: $text-muted;
+      padding: 0 0 1 0;
     }
 
     #repo-view {
@@ -66,8 +77,14 @@ class YoubotApp(App[None]):
       height: 1fr;
       border: round blue;
       background: $surface-darken-1;
-      padding: 1;
+      padding: 0 1;
       margin-bottom: 1;
+    }
+
+    #chat-header {
+      height: auto;
+      padding-top: 1;
+      padding-bottom: 1;
     }
 
     #conversation-title {
@@ -82,14 +99,21 @@ class YoubotApp(App[None]):
 
     #processing-indicator {
       height: auto;
-      padding: 0 0 1 0;
+      dock: right;
       color: $text-muted;
     }
 
     #composer-shell {
       border: round yellow;
       background: $panel;
-      padding: 1;
+      padding: 0;
+      height: auto;
+      min-height: 3;
+    }
+
+    #input {
+      border: none;
+      margin: 0;
     }
     """
 
@@ -118,13 +142,14 @@ class YoubotApp(App[None]):
             with Vertical(id="main"):
                 with Vertical(id="repo-shell"):
                     yield Static("Workspace", id="repo-title", classes="section-title")
+                    yield Static("Select a repo to open a focused workspace.", id="repo-subtitle")
                     yield Static("", id="repo-view")
                 with Vertical(id="chat-shell"):
-                    yield Static("Assistant", id="conversation-title", classes="section-title")
-                    yield Static("", id="processing-indicator")
+                    with Horizontal(id="chat-header"):
+                        yield Static("Assistant", id="conversation-title", classes="section-title")
+                        yield Static("", id="processing-indicator")
                     yield RichLog(id="conversation", wrap=True, markup=False)
                 with Vertical(id="composer-shell"):
-                    yield Static("Ask", id="composer-title", classes="section-title")
                     yield Input(placeholder="Ask youbot to run a command or use /code ...", id="input")
         yield Footer()
 
@@ -133,6 +158,7 @@ class YoubotApp(App[None]):
         self._refresh_repo_list()
         self._render_conversation()
         self._render_repo_view()
+        self._update_repo_header()
         self._update_scope_layout()
         self._sync_processing_ui()
 
@@ -141,6 +167,7 @@ class YoubotApp(App[None]):
         self._refresh_repo_list()
         self._render_conversation()
         self._render_repo_view()
+        self._update_repo_header()
         self._update_scope_layout()
         self._sync_processing_ui()
 
@@ -148,6 +175,7 @@ class YoubotApp(App[None]):
         self.controller.conversation_store.clear_conversation()
         self._render_conversation()
         self._render_repo_view()
+        self._update_repo_header()
         self._update_scope_layout()
         self._sync_processing_ui()
 
@@ -157,6 +185,7 @@ class YoubotApp(App[None]):
             self.active_repo_id = event.item.repo_id
             self.controller.set_active_repo(self.active_repo_id)
             self._render_repo_view()
+            self._update_repo_header()
             self._update_scope_layout()
             self.load_repo_view(self.active_repo_id)
 
@@ -272,6 +301,31 @@ class YoubotApp(App[None]):
             return
         panel.update(self._repo_view_cache.get(repo.repo_id, Panel(f"Loading overview for {repo.repo_id}...", title="Repo Workspace")))
 
+    def _update_repo_header(self) -> None:
+        title = self.query_one("#repo-title", Static)
+        subtitle = self.query_one("#repo-subtitle", Static)
+        if self.active_repo_id is None:
+            title.update("Workspace")
+            subtitle.update("Select a repo to open a focused workspace.")
+            return
+
+        repo = self.controller.get_repo(self.active_repo_id)
+        if repo is None:
+            title.update("Workspace")
+            subtitle.update("Focused repo is unavailable.")
+            return
+
+        title.update(repo.repo_id)
+        subtitle.update(repo.purpose_summary or self._default_repo_subtitle(repo.repo_id))
+
+    def _default_repo_subtitle(self, repo_id: str) -> str:
+        fallback = {
+            "job_search": "Applications, follow-ups, and top openings.",
+            "life_admin": "Priority tasks, admin work, and personal operations.",
+            "trader-bot": "Research directions, findings, and trading workflows.",
+        }
+        return fallback.get(repo_id, "Repo-specific workspace and common actions.")
+
     def _update_scope_layout(self) -> None:
         repo_shell = self.query_one("#repo-shell", Vertical)
         chat_shell = self.query_one("#chat-shell", Vertical)
@@ -280,4 +334,4 @@ class YoubotApp(App[None]):
             chat_shell.styles.height = "1fr"
         else:
             repo_shell.styles.height = "1fr"
-            chat_shell.styles.height = 12
+            chat_shell.styles.height = 10

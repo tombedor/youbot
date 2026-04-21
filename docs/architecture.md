@@ -114,7 +114,7 @@ Responsibilities:
 - Provide repo-specific command palette entries
 - Map command output into Textual views
 - Generate adapter metadata during repo onboarding and refresh
-- Store selected overview sections, fallback commands, and preferred render modes in adapter metadata
+- Store selected overview sections, quick actions, fallback commands, and preferred render modes in adapter metadata
 - Hold parsing and presentation hints
 
 Key rule:

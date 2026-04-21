@@ -16,7 +16,7 @@ from youbot.config import AppConfig, add_repo_config, load_config
 from youbot.conversation_store import ConversationStore
 from youbot.executor import Executor
 from youbot.justfile_parser import JustfileParser
-from youbot.models import AdapterRecord, CommandRecord, ConversationMessage, OverviewSectionSpec, RepoRecord
+from youbot.models import AdapterRecord, CommandRecord, ConversationMessage, OverviewSectionSpec, QuickActionSpec, RepoRecord
 from youbot.openai_chat import OpenAIChatOrchestrator
 from youbot.registry import Registry
 from youbot.router import Router
@@ -65,21 +65,41 @@ class AppController:
 
         commands = self.get_commands(repo.repo_id)
         adapter = self.adapter_loader.load(repo.repo_id)
-        sections = [
-            *self._build_repo_preview_sections(repo, commands, adapter),
-            self._build_commands_panel(commands),
-        ]
-        return Group(*sections)
+        sections = self._build_repo_preview_sections(repo, commands, adapter)
+        quick_actions = self._build_quick_actions_panel(commands, adapter)
+        if not sections:
+            return quick_actions
+        if len(sections) == 1:
+            return Group(sections[0], quick_actions)
 
-    def _build_commands_panel(self, commands: list[CommandRecord]) -> Panel:
-        table = Table(expand=True, box=None, show_header=True)
-        table.add_column("Command", style="bold")
+        primary = sections[0]
+        secondary = Group(*sections[1:], quick_actions)
+        grid = Table.grid(expand=True)
+        grid.add_column(ratio=3)
+        grid.add_column(ratio=2)
+        grid.add_row(primary, secondary)
+        return grid
+
+    def _build_quick_actions_panel(self, commands: list[CommandRecord], adapter: AdapterRecord | None) -> Panel:
+        available = {command.command_name: command for command in commands}
+        quick_actions = [] if adapter is None else [item for item in adapter.quick_actions if item.command_name in available]
+        table = Table(expand=True, box=None, show_header=False)
+        table.add_column("Action", style="bold cyan", no_wrap=True)
+        table.add_column("Command")
         table.add_column("Description")
-        for command in commands[:8]:
-            table.add_row(command.command_name, command.description or "No description")
-        if len(commands) > 8:
-            table.add_row("...", f"{len(commands) - 8} more commands")
-        return Panel(table, title="Commands", border_style="blue")
+        for action in quick_actions[:4]:
+            command = available[action.command_name]
+            invocation = " ".join([command.command_name, *action.arguments]).strip()
+            table.add_row(
+                action.title or command.command_name.replace("-", " "),
+                invocation,
+                command.description or "Common action",
+            )
+        if not quick_actions:
+            table.add_row("No quick actions", "", "Adapter metadata has not defined recommended commands yet.")
+        elif len(commands) > len(quick_actions):
+            table.add_row("More", "", f"{len(commands) - len(quick_actions)} additional commands available.")
+        return Panel(table, title="Quick Actions", border_style="blue")
 
     def _build_repo_preview_sections(
         self,
@@ -329,10 +349,11 @@ class AppController:
     def _render_life_admin_digest(self, payload: dict[str, Any], label: str):
         counts = payload.get("counts", {})
         summary = Text("", style="")
-        summary.append(
-            f"Urgent: {counts.get('urgent', 0)}  High: {counts.get('high', 0)}  Medium: {counts.get('medium', 0)}",
-            style="bold",
-        )
+        summary.append(f"{counts.get('urgent', 0)} urgent", style="bold red")
+        summary.append("  |  ", style="dim")
+        summary.append(f"{counts.get('high', 0)} high", style="bold yellow")
+        summary.append("  |  ", style="dim")
+        summary.append(f"{counts.get('medium', 0)} medium", style="bold")
         table = Table(expand=True, box=None, show_header=True)
         table.add_column("Priority", style="bold")
         table.add_column("Task")
@@ -388,23 +409,36 @@ class AppController:
                 strategies.append(stripped.removeprefix("### ").strip())
             if len(strategies) >= 6:
                 break
-        lines = ["Latest validated strategies:"]
-        for item in strategies:
-            lines.append(f"- {item}")
-        return Text("\n".join(lines))
+        table = Table(expand=True, box=None, show_header=True)
+        table.add_column("#", style="bold cyan", width=3)
+        table.add_column("Strategy", style="bold")
+        for index, item in enumerate(strategies, start=1):
+            table.add_row(str(index), item.replace("_", " "))
+        return table
 
     def _render_trader_program(self, text: str, label: str, max_lines: int):
-        important_lines: list[str] = []
-        capture_prefixes = ("# Auto Research Program", "## Research Goal", "## Active Research Directions", "### ")
+        goal = ""
+        directions: list[tuple[str, str]] = []
+        current_title = ""
         for line in text.splitlines():
             stripped = line.strip()
-            if any(stripped.startswith(prefix) for prefix in capture_prefixes):
-                important_lines.append(stripped)
-            if stripped.startswith("Markets:"):
-                important_lines.append(stripped)
-            if len(important_lines) >= max_lines:
+            if stripped.startswith("Goal:"):
+                goal = stripped.removeprefix("Goal:").strip()
+            elif stripped.startswith("### "):
+                current_title = stripped.removeprefix("### ").strip()
+            elif stripped.startswith("Markets:") and current_title:
+                directions.append((current_title, stripped.removeprefix("Markets:").strip()))
+                current_title = ""
+            if len(directions) >= max_lines:
                 break
-        return Text("\n".join(important_lines))
+
+        summary = Text(goal or "Active market research directions extracted from the current program.", style="italic")
+        table = Table(expand=True, box=None, show_header=True)
+        table.add_column("Direction", style="bold")
+        table.add_column("Markets")
+        for title, markets in directions[:4]:
+            table.add_row(title, markets)
+        return Group(summary, table)
 
     def _limit_lines(self, text: str, *, max_lines: int) -> str:
         lines = [line.rstrip() for line in text.splitlines() if line.strip()]

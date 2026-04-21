@@ -121,6 +121,13 @@ class OverviewSectionSpec:
 
 
 @dataclass(slots=True)
+class QuickActionSpec:
+    command_name: str
+    title: str | None = None
+    arguments: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class AdapterRecord:
     adapter_id: str
     repo_id: str
@@ -130,3 +137,4 @@ class AdapterRecord:
     output_rules: list[str]
     updated_at: str
     overview_sections: list[OverviewSectionSpec] = field(default_factory=list)
+    quick_actions: list[QuickActionSpec] = field(default_factory=list)
