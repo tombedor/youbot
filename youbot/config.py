@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -139,6 +140,57 @@ def as_payload(config: AppConfig) -> dict[str, Any]:
         },
         "coding_agent": {
             "default_backend": config.default_backend,
-            "backends": {name: asdict(backend) for name, backend in config.backends.items()},
+            "backends": {
+                name: {
+                    "command_prefix": backend.command_prefix,
+                    "default_args": backend.default_args,
+                }
+                for name, backend in config.backends.items()
+            },
         },
     }
+
+
+def save_config(config: AppConfig) -> None:
+    path = ensure_default_config()
+    atomic_write(path, json.dumps(as_payload(config), indent=2) + "\n")
+
+
+def make_repo_id(name: str) -> str:
+    repo_id = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
+    return repo_id or "repo"
+
+
+def add_repo_config(
+    *,
+    path: str,
+    name: str | None = None,
+    classification: RepoClassification = "integrated",
+) -> RepoConfig:
+    config = load_config()
+    resolved_path = str(Path(path).resolve())
+    existing_by_path = next((repo for repo in config.repos if Path(repo.path).resolve() == Path(resolved_path)), None)
+    repo_name = name or Path(resolved_path).name
+    if existing_by_path is not None:
+        existing_by_path.name = repo_name
+        existing_by_path.classification = classification
+        save_config(config)
+        return existing_by_path
+
+    base_repo_id = make_repo_id(repo_name)
+    repo_id = base_repo_id
+    existing_ids = {repo.repo_id for repo in config.repos}
+    suffix = 2
+    while repo_id in existing_ids:
+        repo_id = f"{base_repo_id}-{suffix}"
+        suffix += 1
+
+    repo = RepoConfig(
+        repo_id=repo_id,
+        name=repo_name,
+        path=resolved_path,
+        classification=classification,
+    )
+    config.repos.append(repo)
+    save_config(config)
+    return repo

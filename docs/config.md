@@ -7,6 +7,7 @@ This document defines the user-editable configuration for youbot. It should be p
 ## Principles
 
 - Config is user-owned input.
+- Youbot may update config as part of explicit onboarding flows such as repo registration.
 - Runtime state is not stored in config.
 - Config should be small, explicit, and stable.
 - Repo metadata that is learned or cached over time belongs in state, not in config.
@@ -46,6 +47,8 @@ Suggested shape:
 ## Repo entries
 
 `repos` is the authoritative list of integrations youbot should attempt to load at startup.
+
+This list may be edited by the user directly or updated by youbot when a repo is added through the onboarding flow.
 
 Suggested shape:
 

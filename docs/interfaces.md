@@ -214,6 +214,11 @@ store_commands(repo_id: str, commands: list[CommandRecord]) -> None
 list_commands(repo_id: str) -> list[CommandRecord]
 ```
 
+Behavioral rules:
+- `register_repo(...)` persists the repo into user config
+- registration triggers command discovery and adapter generation
+- integrated repo registration requires only a valid path and `justfile`
+
 ### `ConversationStore`
 
 Responsibilities:

@@ -10,6 +10,7 @@ This document defines observable behaviors that must hold true for the implement
 - Given a configured repo path without a `justfile`, startup marks the repo invalid and does not expose it as ready for use.
 - Given a repo with multiple `just` recipes, the parser stores each recipe as a separate command record.
 - Given a previously scanned repo, rescanning updates the stored command inventory rather than duplicating it.
+- Given a user adds a repo through the onboarding flow, the repo is persisted into config and appears in the next registry load without manual config editing.
 
 ## Conversation and coding-agent continuation
 
@@ -54,6 +55,7 @@ This document defines observable behaviors that must hold true for the implement
 
 - Adapters are loaded from youbot-owned storage rather than from child repos.
 - Repo onboarding generates adapter metadata in youbot-owned state.
+- Repo onboarding generates a selected-repo overview command in adapter metadata when one can be inferred.
 - A repo can appear in the TUI without any child-repo Textual code.
 - At least one adapter can transform structured command output into a non-plain-text view.
 - Repo-specific command-palette entries only appear when that repo is active.

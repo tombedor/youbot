@@ -130,6 +130,13 @@ That is the only required artifact for integration. If a repo exposes callable `
 
 Additional metadata for integrated repos is stored by youbot, not required from the repo itself.
 
+First-class onboarding should:
+- register the repo into youbot config
+- validate the repo path and `justfile`
+- scan the repo's commands
+- generate initial adapter metadata and artifacts
+- make the repo immediately available in the TUI and CLI
+
 ### Youbot-managed repo metadata
 
 For each integrated repo, youbot may store:

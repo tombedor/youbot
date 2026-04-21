@@ -6,7 +6,7 @@ from pathlib import Path
 from youbot.coding_agent_runner import CodingAgentRunner
 from youbot.coding_agent_sessions import CodingAgentSessionRegistry
 from youbot.adapters import AdapterLoader
-from youbot.config import AppConfig, load_config
+from youbot.config import AppConfig, add_repo_config, load_config
 from youbot.conversation_store import ConversationStore
 from youbot.executor import Executor
 from youbot.justfile_parser import JustfileParser
@@ -192,6 +192,30 @@ class AppController:
     def init_managed_repo(self, path: str, name: str) -> str:
         scaffold_managed_repo(Path(path), name, now_iso().split("T")[0])
         return f"Initialized managed repo at {path}"
+
+    def register_repo(
+        self,
+        path: str,
+        *,
+        name: str | None = None,
+        classification: str = "integrated",
+    ) -> RepoRecord:
+        repo_path = Path(path).resolve()
+        if not repo_path.exists():
+            raise ValueError(f"Repo path does not exist: {repo_path}")
+        if not (repo_path / "justfile").exists():
+            raise ValueError(f"Repo path does not contain a justfile: {repo_path}")
+
+        add_repo_config(path=str(repo_path), name=name, classification=classification)  # type: ignore[arg-type]
+        self.config = load_config()
+        self.registry = Registry(self.config, JustfileParser())
+        self.coding_agent_runner = CodingAgentRunner(self.config, self.session_registry)
+        self.repos, self.commands = self.registry.load()
+
+        registered = next((repo for repo in self.repos if Path(repo.path).resolve() == repo_path), None)
+        if registered is None:
+            raise RuntimeError(f"Repo registration completed but repo was not loaded: {repo_path}")
+        return registered
 
     def _build_repo_preview(
         self,

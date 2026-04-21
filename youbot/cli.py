@@ -16,6 +16,11 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("scan")
     subparsers.add_parser("run-scheduled")
 
+    add_repo = subparsers.add_parser("add-repo")
+    add_repo.add_argument("path")
+    add_repo.add_argument("--name", default=None)
+    add_repo.add_argument("--classification", choices=["integrated", "managed"], default="integrated")
+
     init_managed = subparsers.add_parser("init-managed")
     init_managed.add_argument("path")
     init_managed.add_argument("--name", required=True)
@@ -64,6 +69,28 @@ def main() -> None:
             for result in results
         ]
         print(json.dumps(payload, indent=2))
+        return
+
+    if args.command == "add-repo":
+        controller = AppController()
+        repo = controller.register_repo(
+            args.path,
+            name=args.name,
+            classification=args.classification,
+        )
+        print(
+            json.dumps(
+                {
+                    "repo_id": repo.repo_id,
+                    "name": repo.name,
+                    "path": repo.path,
+                    "classification": repo.classification,
+                    "status": repo.status,
+                    "adapter_id": repo.adapter_id,
+                },
+                indent=2,
+            )
+        )
         return
 
     if args.command == "init-managed":

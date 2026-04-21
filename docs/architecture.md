@@ -286,12 +286,14 @@ sequenceDiagram
 ### 1. Repo onboarding
 
 1. User adds a repo path.
-2. Registry validates presence of `justfile`.
-3. `justfile_parser` discovers commands.
-4. Registry stores repo metadata and initial command inventory.
-5. Adapter loader generates or refreshes local adapter metadata and generated adapter artifacts.
-6. Adapter metadata captures the initial overview command and rendering hints.
-7. Repo becomes available in the TUI.
+2. Controller normalizes repo id, name, and classification for registration.
+3. Config is updated so the repo is part of the persistent configured set.
+4. Registry validates presence of `justfile`.
+5. `justfile_parser` discovers commands.
+6. Registry stores repo metadata and initial command inventory.
+7. Adapter loader generates or refreshes local adapter metadata and generated adapter artifacts.
+8. Adapter metadata captures the initial overview command and rendering hints.
+9. Repo becomes available in the TUI and CLI without manual config editing.
 
 ### 2. Startup and restore state
 

@@ -111,6 +111,8 @@ As a user, I want to add a repo that already exists on disk as long as it has a 
 
 Expected behavior:
 - onboarding requires only a valid path and a usable `justfile`
+- onboarding persists the repo into youbot config
+- onboarding makes the repo available immediately without manual config edits
 - missing governance docs do not block integration
 - initial repo metadata can live in youbot state
 
