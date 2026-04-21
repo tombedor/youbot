@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from rich.columns import Columns
-from rich.console import Group
+from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -59,16 +59,16 @@ class AppController:
     def get_commands(self, repo_id: str) -> list[CommandRecord]:
         return self.commands.get(repo_id, [])
 
-    def build_repo_view(self, repo_id: str) -> Panel:
+    def build_repo_view(self, repo_id: str) -> RenderableType:
         repo = self.get_repo(repo_id)
         if repo is None:
-            return Panel(f"Focused repo {repo_id!r} is not available.", title="Repo Workspace")
+            return Text(f"Focused repo {repo_id!r} is not available.")
 
         commands = self.get_commands(repo.repo_id)
         session_ref = self.session_registry.get_session(repo.repo_id)
         adapter = self.adapter_loader.load(repo.repo_id)
         header = Text.assemble(
-            ("Repo: ", "bold"),
+            ("REPO\n", "bold cyan"),
             repo.repo_id,
             "\n",
             ("Status: ", "bold"),
@@ -77,21 +77,24 @@ class AppController:
             ("Adapter: ", "bold"),
             repo.adapter_id or "none",
         )
-        session_text = Text(
-            "No coding-agent session tracked yet."
-            if session_ref is None
-            else (
-                f"Backend: {session_ref.backend_name}\n"
-                f"Kind: {session_ref.session_kind}\n"
-                f"Session: {session_ref.session_id}\n"
-                f"Status: {session_ref.status}"
+        session_text = Text.assemble(
+            ("AGENT\n", "bold magenta"),
+            (
+                "No coding-agent session tracked yet."
+                if session_ref is None
+                else (
+                    f"{session_ref.backend_name}\n"
+                    f"{session_ref.session_kind}\n"
+                    f"{session_ref.session_id}\n"
+                    f"{session_ref.status}"
+                )
             )
         )
         sections = [
             Columns(
                 [
-                    Panel(header, title="Repo", border_style="cyan"),
-                    Panel(session_text, title="Coding Agent", border_style="magenta"),
+                    Panel(header, border_style="cyan"),
+                    Panel(session_text, border_style="magenta"),
                 ],
                 expand=True,
                 equal=True,
@@ -99,7 +102,7 @@ class AppController:
             *self._build_repo_preview_sections(repo, commands, adapter),
             self._build_commands_panel(commands),
         ]
-        return Panel(Group(*sections), title="Repo Workspace", border_style="green")
+        return Group(*sections)
 
     def _build_commands_panel(self, commands: list[CommandRecord]) -> Panel:
         table = Table(expand=True, box=None, show_header=True)
@@ -297,7 +300,7 @@ class AppController:
             return self._render_task_list(payload.get("tasks", []), label, max_items=5)
         if repo_id == "trader-bot" and spec.command_name == "research-findings" and isinstance(payload, str):
             return Text(payload)
-        return Text(f"Source: {label}\n{self._limit_lines(str(payload), max_lines=spec.max_lines)}")
+        return Text(self._limit_lines(str(payload), max_lines=spec.max_lines))
 
     def _render_job_search_pipeline(self, payload: dict[str, Any], label: str):
         active_rows = []
@@ -309,7 +312,7 @@ class AppController:
                 continue
             active_rows.append(row)
 
-        summary = Text(f"Source: {label}\n")
+        summary = Text()
         summary.append(f"Active opportunities: {len(active_rows)}", style="bold green")
         if closed_rows:
             summary.append(f"  Hidden closed outcomes: {closed_rows}", style="yellow")
@@ -325,7 +328,7 @@ class AppController:
         return Group(summary, table)
 
     def _render_job_search_openings(self, payload: dict[str, Any], label: str):
-        summary = Text(f"Source: {label}\n")
+        summary = Text()
         summary.append(f"Tracked openings: {len(payload.get('items', []))}", style="bold green")
 
         table = Table(expand=True, box=None, show_header=True)
@@ -349,7 +352,7 @@ class AppController:
         return Group(summary, table)
 
     def _render_checklist(self, items: list[dict[str, Any]], label: str, *, max_items: int):
-        lines = [f"Source: {label}"]
+        lines = []
         for item in items[:max_items]:
             lines.append(f"- {item.get('text', '')}")
         if len(items) > max_items:
@@ -358,7 +361,7 @@ class AppController:
 
     def _render_life_admin_digest(self, payload: dict[str, Any], label: str):
         counts = payload.get("counts", {})
-        summary = Text(f"Source: {label}\n", style="")
+        summary = Text("", style="")
         summary.append(
             f"Urgent: {counts.get('urgent', 0)}  High: {counts.get('high', 0)}  Medium: {counts.get('medium', 0)}",
             style="bold",
@@ -379,7 +382,7 @@ class AppController:
         table.add_column("Status")
         for task in tasks[:max_items]:
             table.add_row(task.get("title", ""), str(task.get("priority", "")), str(task.get("status", "")))
-        return Group(Text(f"Source: {label}"), table)
+        return table
 
     def _render_overview_result(
         self,
@@ -392,7 +395,7 @@ class AppController:
         if result.exit_code != 0:
             preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
             return Panel(
-                Text(f"Source: {label}\nPreview unavailable.\n{self._limit_lines(preview_error, max_lines=8)}"),
+                Text(f"Preview unavailable.\n{self._limit_lines(preview_error, max_lines=8)}"),
                 title=title,
                 border_style="red",
             )
@@ -407,7 +410,7 @@ class AppController:
         elif repo_id == "trader-bot" and spec.command_name == "research-program":
             renderable = self._render_trader_program(preview_text, label, spec.max_lines)
         else:
-            renderable = Text(f"Source: {label}\n{self._limit_lines(preview_text, max_lines=spec.max_lines)}")
+            renderable = Text(self._limit_lines(preview_text, max_lines=spec.max_lines))
         return Panel(renderable, title=title, border_style="green")
 
     def _render_trader_findings(self, text: str, label: str):
@@ -418,13 +421,13 @@ class AppController:
                 strategies.append(stripped.removeprefix("### ").strip())
             if len(strategies) >= 6:
                 break
-        lines = [f"Source: {label}", "Latest validated strategies:"]
+        lines = ["Latest validated strategies:"]
         for item in strategies:
             lines.append(f"- {item}")
         return Text("\n".join(lines))
 
     def _render_trader_program(self, text: str, label: str, max_lines: int):
-        important_lines: list[str] = [f"Source: {label}"]
+        important_lines: list[str] = []
         capture_prefixes = ("# Auto Research Program", "## Research Goal", "## Active Research Directions", "### ")
         for line in text.splitlines():
             stripped = line.strip()

@@ -6,6 +6,7 @@ from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, ListItem, ListView, RichLog, Static
 from rich.markdown import Markdown
+from rich.rule import Rule
 from rich.panel import Panel
 from rich.text import Text
 
@@ -42,15 +43,15 @@ class YoubotApp(App[None]):
 
     .section-title {
       height: auto;
-      padding: 0 1;
+      padding: 0 0 1 0;
       text-style: bold;
-      color: $text;
+      color: $text-muted;
     }
 
     #repo-shell {
       border: round green;
       background: $boost;
-      padding: 0 1 1 1;
+      padding: 1;
       margin-bottom: 1;
     }
 
@@ -65,7 +66,7 @@ class YoubotApp(App[None]):
       height: 1fr;
       border: round blue;
       background: $surface-darken-1;
-      padding: 0 1 1 1;
+      padding: 1;
       margin-bottom: 1;
     }
 
@@ -82,13 +83,7 @@ class YoubotApp(App[None]):
     #composer-shell {
       border: round yellow;
       background: $panel;
-      padding: 0 1 1 1;
-    }
-
-    #status {
-      height: auto;
-      padding: 0 1;
-      color: $text-muted;
+      padding: 1;
     }
     """
 
@@ -113,14 +108,13 @@ class YoubotApp(App[None]):
                 yield ListView(id="repo-list")
             with Vertical(id="main"):
                 with Vertical(id="repo-shell"):
-                    yield Static("Repo Workspace", id="repo-title", classes="section-title")
+                    yield Static("Workspace", id="repo-title", classes="section-title")
                     yield Static("", id="repo-view")
                 with Vertical(id="chat-shell"):
-                    yield Static("Conversation", id="conversation-title", classes="section-title")
+                    yield Static("Assistant", id="conversation-title", classes="section-title")
                     yield RichLog(id="conversation", wrap=True, markup=False)
-                yield Static("", id="status")
                 with Vertical(id="composer-shell"):
-                    yield Static("Composer", id="composer-title", classes="section-title")
+                    yield Static("Ask", id="composer-title", classes="section-title")
                     yield Input(placeholder="Ask youbot to run a command or use /code ...", id="input")
         yield Footer()
 
@@ -129,10 +123,6 @@ class YoubotApp(App[None]):
         self._render_conversation()
         self._render_repo_view()
         self._update_scope_layout()
-        if self.active_repo_id is not None:
-            self._update_status(f"Focused repo: {self.active_repo_id}")
-        else:
-            self._update_status("No repo focused.")
 
     def action_reload_repos(self) -> None:
         self.controller = AppController()
@@ -140,14 +130,12 @@ class YoubotApp(App[None]):
         self._render_conversation()
         self._render_repo_view()
         self._update_scope_layout()
-        self._update_status("Reloaded repo registry.")
 
     def action_clear_conversation(self) -> None:
         self.controller.conversation_store.clear_conversation()
         self._render_conversation()
         self._render_repo_view()
         self._update_scope_layout()
-        self._update_status("Cleared conversation history.")
 
     @on(ListView.Selected, "#repo-list")
     def on_repo_selected(self, event: ListView.Selected) -> None:
@@ -156,7 +144,6 @@ class YoubotApp(App[None]):
             self.controller.set_active_repo(self.active_repo_id)
             self._render_repo_view()
             self._update_scope_layout()
-            self._update_status(f"Focused repo: {self.active_repo_id}")
             self.load_repo_view(self.active_repo_id)
 
     @on(Input.Submitted, "#input")
@@ -176,12 +163,12 @@ class YoubotApp(App[None]):
 
     def _append_result(self, summary: str, body: str) -> None:
         log = self.query_one("#conversation", RichLog)
-        log.write(Panel(Markdown(body), title=summary, border_style="blue"))
+        log.write(Rule(summary, style="blue"))
+        log.write(Markdown(body))
         if self.active_repo_id is not None:
             self.load_repo_view(self.active_repo_id)
         self._render_repo_view()
         self._update_scope_layout()
-        self._update_status(summary)
 
     @work(thread=True)
     def load_repo_view(self, repo_id: str) -> None:
@@ -197,7 +184,7 @@ class YoubotApp(App[None]):
         repo_list = self.query_one("#repo-list", ListView)
         repo_list.clear()
         for repo in self.controller.repos:
-            label = f"{repo.repo_id} [{repo.status}]"
+            label = repo.repo_id if repo.status == "ready" else f"{repo.repo_id} [{repo.status}]"
             item = RepoListItem(repo.repo_id, label)
             repo_list.append(item)
         if self.active_repo_id is not None:
@@ -214,9 +201,10 @@ class YoubotApp(App[None]):
         log.clear()
         for message in self.controller.conversation_store.get_conversation().messages:
             if message.role == "user":
-                log.write(Text(f"> {message.content}"))
+                log.write(Text(f"You: {message.content}", style="bold"))
             else:
-                log.write(Panel(Markdown(message.content), title=message.role.title(), border_style="blue"))
+                log.write(Rule(message.role.title(), style="blue"))
+                log.write(Markdown(message.content))
 
     def _render_repo_view(self) -> None:
         panel = self.query_one("#repo-view", Static)
@@ -247,6 +235,3 @@ class YoubotApp(App[None]):
         else:
             repo_shell.styles.height = "1fr"
             chat_shell.styles.height = 12
-
-    def _update_status(self, text: str) -> None:
-        self.query_one("#status", Static).update(text)
