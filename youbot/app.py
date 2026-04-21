@@ -31,27 +31,58 @@ class YoubotApp(App[None]):
     #sidebar {
       width: 30;
       border: round $accent;
+      background: $panel-darken-1;
       padding: 1;
+      margin-right: 1;
     }
 
     #main {
-      border: round $accent;
-      padding: 1;
+      padding: 0;
+    }
+
+    .section-title {
+      height: auto;
+      padding: 0 1;
+      text-style: bold;
+      color: $text;
+    }
+
+    #repo-shell {
+      border: round green;
+      background: $boost;
+      padding: 0 1 1 1;
+      margin-bottom: 1;
     }
 
     #repo-view {
       height: 8;
-      border: round green;
-      background: $boost;
-      padding: 0 1;
+      border: none;
+      background: transparent;
       overflow: auto;
+    }
+
+    #chat-shell {
+      height: 1fr;
+      border: round blue;
+      background: $surface-darken-1;
+      padding: 0 1 1 1;
       margin-bottom: 1;
+    }
+
+    #conversation-title {
+      color: $text;
     }
 
     #conversation {
       height: 1fr;
-      border: round blue;
-      background: $surface-darken-1;
+      border: none;
+      background: transparent;
+    }
+
+    #composer-shell {
+      border: round yellow;
+      background: $panel;
+      padding: 0 1 1 1;
     }
 
     #status {
@@ -78,13 +109,19 @@ class YoubotApp(App[None]):
         yield Header()
         with Horizontal(id="body"):
             with Vertical(id="sidebar"):
-                yield Static("Repos")
+                yield Static("Repos", classes="section-title")
                 yield ListView(id="repo-list")
             with Vertical(id="main"):
-                yield Static("", id="repo-view")
-                yield RichLog(id="conversation", wrap=True, markup=False)
+                with Vertical(id="repo-shell"):
+                    yield Static("Repo Workspace", id="repo-title", classes="section-title")
+                    yield Static("", id="repo-view")
+                with Vertical(id="chat-shell"):
+                    yield Static("Conversation", id="conversation-title", classes="section-title")
+                    yield RichLog(id="conversation", wrap=True, markup=False)
                 yield Static("", id="status")
-                yield Input(placeholder="Ask youbot to run a command or use /code ...", id="input")
+                with Vertical(id="composer-shell"):
+                    yield Static("Composer", id="composer-title", classes="section-title")
+                    yield Input(placeholder="Ask youbot to run a command or use /code ...", id="input")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -202,14 +239,14 @@ class YoubotApp(App[None]):
         panel.update(self._repo_view_cache.get(repo.repo_id, Panel(f"Loading overview for {repo.repo_id}...", title="Repo Workspace")))
 
     def _update_scope_layout(self) -> None:
-        repo_view = self.query_one("#repo-view", Static)
-        conversation = self.query_one("#conversation", RichLog)
+        repo_shell = self.query_one("#repo-shell", Vertical)
+        chat_shell = self.query_one("#chat-shell", Vertical)
         if self.active_repo_id is None:
-            repo_view.styles.height = 8
-            conversation.styles.height = "1fr"
+            repo_shell.styles.height = 8
+            chat_shell.styles.height = "1fr"
         else:
-            repo_view.styles.height = "1fr"
-            conversation.styles.height = 10
+            repo_shell.styles.height = "1fr"
+            chat_shell.styles.height = 12
 
     def _update_status(self, text: str) -> None:
         self.query_one("#status", Static).update(text)
