@@ -177,10 +177,10 @@ view_names: list[str]
 command_palette_entries: list[str]
 output_rules: list[str]
 updated_at: str
-overview_command: OverviewCommandSpec | None
+overview_sections: list[OverviewSectionSpec]
 ```
 
-### `OverviewCommandSpec`
+### `OverviewSectionSpec`
 
 Represents generated adapter metadata for the selected-repo overview panel.
 
@@ -190,6 +190,7 @@ arguments: list[str]
 title: str | None
 max_lines: int
 fallback_command_names: list[str]
+render_mode: Literal["json", "text"]
 ```
 
 ## Service interfaces

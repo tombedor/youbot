@@ -55,7 +55,8 @@ This document defines observable behaviors that must hold true for the implement
 
 - Adapters are loaded from youbot-owned storage rather than from child repos.
 - Repo onboarding generates adapter metadata in youbot-owned state.
-- Repo onboarding generates a selected-repo overview command in adapter metadata when one can be inferred.
+- Repo onboarding generates selected-repo overview sections in adapter metadata when they can be inferred.
+- When a repo exposes JSON-capable commands, adapters may use those structured payloads to build a more ordered workspace view.
 - A repo can appear in the TUI without any child-repo Textual code.
 - At least one adapter can transform structured command output into a non-plain-text view.
 - Repo-specific command-palette entries only appear when that repo is active.
@@ -102,6 +103,7 @@ Expected behavior:
   - the company table header
   - current pipeline entries such as `Netflix`, `Cursor`, or `Whatnot`
 - the result is visible in youbot conversation history
+- in the selected-repo workspace, active opportunities are shown more prominently than rejected or closed outcomes
 
 ### Scenario 2: Read current tasks from `life_admin`
 

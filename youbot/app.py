@@ -5,6 +5,9 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, ListItem, ListView, RichLog, Static
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.text import Text
 
 from youbot.controller import AppController
 
@@ -33,18 +36,22 @@ class YoubotApp(App[None]):
 
     #main {
       border: round $accent;
+      padding: 1;
     }
 
     #repo-view {
       height: 8;
-      border: solid $surface;
+      border: round green;
+      background: $boost;
       padding: 0 1;
       overflow: auto;
+      margin-bottom: 1;
     }
 
     #conversation {
       height: 1fr;
-      border: solid $surface;
+      border: round blue;
+      background: $surface-darken-1;
     }
 
     #status {
@@ -65,7 +72,7 @@ class YoubotApp(App[None]):
         super().__init__()
         self.controller = AppController()
         self.active_repo_id = None
-        self._repo_view_cache: dict[str, str] = {}
+        self._repo_view_cache: dict[str, object] = {}
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -132,7 +139,7 @@ class YoubotApp(App[None]):
 
     def _append_result(self, summary: str, body: str) -> None:
         log = self.query_one("#conversation", RichLog)
-        log.write(f"[{summary}]\n{body}")
+        log.write(Panel(Markdown(body), title=summary, border_style="blue"))
         if self.active_repo_id is not None:
             self.load_repo_view(self.active_repo_id)
         self._render_repo_view()
@@ -144,7 +151,7 @@ class YoubotApp(App[None]):
         content = self.controller.build_repo_view(repo_id)
         self.call_from_thread(self._store_repo_view, repo_id, content)
 
-    def _store_repo_view(self, repo_id: str, content: str) -> None:
+    def _store_repo_view(self, repo_id: str, content: object) -> None:
         self._repo_view_cache[repo_id] = content
         if self.active_repo_id == repo_id:
             self._render_repo_view()
@@ -169,25 +176,30 @@ class YoubotApp(App[None]):
         log = self.query_one("#conversation", RichLog)
         log.clear()
         for message in self.controller.conversation_store.get_conversation().messages:
-            prefix = ">" if message.role == "user" else f"[{message.role}]"
-            log.write(f"{prefix} {message.content}")
+            if message.role == "user":
+                log.write(Text(f"> {message.content}"))
+            else:
+                log.write(Panel(Markdown(message.content), title=message.role.title(), border_style="blue"))
 
     def _render_repo_view(self) -> None:
         panel = self.query_one("#repo-view", Static)
         if self.active_repo_id is None:
             panel.update(
-                "Global Chat\n\n"
-                "No repo selected.\n"
-                "Select a repo in the sidebar to open its overview.\n"
-                "You can still chat globally and let routing choose a repo."
+                Panel(
+                    "No repo selected.\n\n"
+                    "Select a repo in the sidebar to open its workspace.\n"
+                    "You can still chat globally and let routing choose a repo.",
+                    title="Global Workspace",
+                    border_style="green",
+                )
             )
             return
 
         repo = self.controller.get_repo(self.active_repo_id)
         if repo is None:
-            panel.update(f"Focused repo {self.active_repo_id!r} is not available.")
+            panel.update(Panel(f"Focused repo {self.active_repo_id!r} is not available.", title="Repo Workspace"))
             return
-        panel.update(self._repo_view_cache.get(repo.repo_id, f"Loading overview for {repo.repo_id}..."))
+        panel.update(self._repo_view_cache.get(repo.repo_id, Panel(f"Loading overview for {repo.repo_id}...", title="Repo Workspace")))
 
     def _update_scope_layout(self) -> None:
         repo_view = self.query_one("#repo-view", Static)

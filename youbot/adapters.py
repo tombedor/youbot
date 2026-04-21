@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from pathlib import Path
 
 from youbot.config import state_root
-from youbot.models import AdapterRecord, CommandRecord, OverviewCommandSpec, RepoRecord
+from youbot.models import AdapterRecord, CommandRecord, OverviewSectionSpec, RepoRecord
 from youbot.utils import atomic_write, ensure_dir, now_iso
 
 
@@ -17,7 +16,7 @@ class AdapterLoader:
     def refresh(self, repo: RepoRecord, commands: list[CommandRecord]) -> AdapterRecord:
         ensure_dir(self._root)
         ensure_dir(self._generated_root)
-        overview_command = self._select_overview_command(repo, commands)
+        overview_sections = self._select_overview_sections(repo, commands)
         adapter = AdapterRecord(
             adapter_id=f"{repo.repo_id}-adapter",
             repo_id=repo.repo_id,
@@ -26,7 +25,7 @@ class AdapterLoader:
             command_palette_entries=[command.command_name for command in commands],
             output_rules=["repo_overview_preview"],
             updated_at=now_iso(),
-            overview_command=overview_command,
+            overview_sections=overview_sections,
         )
         atomic_write(self._root / f"{repo.repo_id}.json", json.dumps(asdict(adapter), indent=2) + "\n")
         self._write_generated_notes(repo, adapter)
@@ -37,10 +36,7 @@ class AdapterLoader:
         if not path.exists():
             return None
         payload = json.loads(path.read_text())
-        overview_payload = payload.get("overview_command")
-        overview_command = None
-        if overview_payload is not None:
-            overview_command = OverviewCommandSpec(**overview_payload)
+        overview_sections = [OverviewSectionSpec(**item) for item in payload.get("overview_sections", [])]
         return AdapterRecord(
             adapter_id=payload["adapter_id"],
             repo_id=payload["repo_id"],
@@ -49,48 +45,79 @@ class AdapterLoader:
             command_palette_entries=payload["command_palette_entries"],
             output_rules=payload["output_rules"],
             updated_at=payload["updated_at"],
-            overview_command=overview_command,
+            overview_sections=overview_sections,
         )
 
-    def _select_overview_command(
+    def _select_overview_sections(
         self,
         repo: RepoRecord,
         commands: list[CommandRecord],
-    ) -> OverviewCommandSpec | None:
-        preferred_specs: dict[str, OverviewCommandSpec] = {
-            "job_search": OverviewCommandSpec(
-                command_name="pipeline-status",
-                title="Pipeline Snapshot",
-                max_lines=14,
-                fallback_command_names=["next-actions", "active-openings"],
-            ),
-            "life_admin": OverviewCommandSpec(
-                command_name="task-list",
-                arguments=["5"],
-                title="Top Tasks",
-                max_lines=14,
-                fallback_command_names=["task-digest", "cal-today"],
-            ),
-            "trader-bot": OverviewCommandSpec(
-                command_name="research-program",
-                title="Research Program",
-                max_lines=14,
-                fallback_command_names=["research-findings"],
-            ),
+    ) -> list[OverviewSectionSpec]:
+        preferred_specs: dict[str, list[OverviewSectionSpec]] = {
+            "job_search": [
+                OverviewSectionSpec(
+                    command_name="pipeline-status",
+                    arguments=["json"],
+                    title="Active Pipeline",
+                    render_mode="json",
+                    max_lines=12,
+                    fallback_command_names=["active-openings"],
+                ),
+                OverviewSectionSpec(
+                    command_name="next-actions",
+                    arguments=["json"],
+                    title="Next Actions",
+                    render_mode="json",
+                    max_lines=8,
+                ),
+            ],
+            "life_admin": [
+                OverviewSectionSpec(
+                    command_name="task-digest",
+                    arguments=["json"],
+                    title="Priority Digest",
+                    render_mode="json",
+                    max_lines=10,
+                    fallback_command_names=["task-list"],
+                ),
+                OverviewSectionSpec(
+                    command_name="task-list",
+                    arguments=["5", "json"],
+                    title="Top Tasks",
+                    render_mode="json",
+                    max_lines=8,
+                ),
+            ],
+            "trader-bot": [
+                OverviewSectionSpec(
+                    command_name="research-program",
+                    title="Research Program",
+                    render_mode="text",
+                    max_lines=14,
+                    fallback_command_names=["research-findings"],
+                ),
+            ],
         }
         preferred = preferred_specs.get(repo.repo_id)
-        if preferred is not None and any(command.command_name == preferred.command_name for command in commands):
-            return preferred
+        if preferred is not None:
+            available = {command.command_name for command in commands}
+            return [
+                spec
+                for spec in preferred
+                if spec.command_name in available or any(name in available for name in spec.fallback_command_names)
+            ]
 
         fallback_candidates = ("status", "list", "overview", "summary")
         for command in commands:
             if any(token in command.command_name for token in fallback_candidates):
-                return OverviewCommandSpec(
-                    command_name=command.command_name,
-                    title=f"{repo.repo_id} Overview",
-                    max_lines=12,
-                )
-        return None
+                return [
+                    OverviewSectionSpec(
+                        command_name=command.command_name,
+                        title=f"{repo.repo_id} Overview",
+                        max_lines=12,
+                    )
+                ]
+        return []
 
     def _write_generated_notes(self, repo: RepoRecord, adapter: AdapterRecord) -> None:
         lines = [
@@ -102,18 +129,20 @@ class AdapterLoader:
             "This file is generated by youbot during repo onboarding / refresh.",
             "It captures the current adapter decision so it can later be refined manually or regenerated.",
             "",
-            "## Overview command",
+            "## Overview sections",
         ]
-        if adapter.overview_command is None:
-            lines.append("No overview command was inferred.")
+        if not adapter.overview_sections:
+            lines.append("No overview sections were inferred.")
         else:
-            lines.extend(
-                [
-                    f"- command: {adapter.overview_command.command_name}",
-                    f"- arguments: {adapter.overview_command.arguments}",
-                    f"- title: {adapter.overview_command.title}",
-                    f"- max_lines: {adapter.overview_command.max_lines}",
-                    f"- fallbacks: {adapter.overview_command.fallback_command_names}",
-                ]
-            )
+            for section in adapter.overview_sections:
+                lines.extend(
+                    [
+                        f"- command: {section.command_name}",
+                        f"  arguments: {section.arguments}",
+                        f"  title: {section.title}",
+                        f"  render_mode: {section.render_mode}",
+                        f"  max_lines: {section.max_lines}",
+                        f"  fallbacks: {section.fallback_command_names}",
+                    ]
+                )
         atomic_write(self._generated_root / f"{repo.repo_id}.md", "\n".join(lines) + "\n")

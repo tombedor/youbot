@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+from rich.console import Group
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 from youbot.coding_agent_runner import CodingAgentRunner
 from youbot.coding_agent_sessions import CodingAgentSessionRegistry
@@ -10,7 +16,7 @@ from youbot.config import AppConfig, add_repo_config, load_config
 from youbot.conversation_store import ConversationStore
 from youbot.executor import Executor
 from youbot.justfile_parser import JustfileParser
-from youbot.models import AdapterRecord, CommandRecord, ConversationMessage, RepoRecord
+from youbot.models import AdapterRecord, CommandRecord, ConversationMessage, OverviewSectionSpec, RepoRecord
 from youbot.openai_chat import OpenAIChatOrchestrator
 from youbot.registry import Registry
 from youbot.router import Router
@@ -52,21 +58,25 @@ class AppController:
     def get_commands(self, repo_id: str) -> list[CommandRecord]:
         return self.commands.get(repo_id, [])
 
-    def build_repo_view(self, repo_id: str) -> str:
+    def build_repo_view(self, repo_id: str) -> Panel:
         repo = self.get_repo(repo_id)
         if repo is None:
-            return f"Focused repo {repo_id!r} is not available."
+            return Panel(f"Focused repo {repo_id!r} is not available.", title="Repo Workspace")
 
         commands = self.get_commands(repo.repo_id)
         session_ref = self.session_registry.get_session(repo.repo_id)
-        command_lines = [
-            f"- {command.command_name}: {command.description or 'No description'}"
-            for command in commands[:12]
-        ]
-        if len(commands) > 12:
-            command_lines.append(f"... and {len(commands) - 12} more")
-
-        session_text = (
+        adapter = self.adapter_loader.load(repo.repo_id)
+        header = Text.assemble(
+            ("Repo: ", "bold"),
+            repo.repo_id,
+            "\n",
+            ("Status: ", "bold"),
+            repo.status,
+            "\n",
+            ("Adapter: ", "bold"),
+            repo.adapter_id or "none",
+        )
+        session_text = Text(
             "No coding-agent session tracked yet."
             if session_ref is None
             else (
@@ -76,20 +86,76 @@ class AppController:
                 f"Status: {session_ref.status}"
             )
         )
+        sections = [
+            Panel(header, title="Repo", border_style="cyan"),
+            Panel(session_text, title="Coding Agent", border_style="magenta"),
+            *self._build_repo_preview_sections(repo, commands, adapter),
+            self._build_commands_panel(commands),
+        ]
+        return Panel(Group(*sections), title="Repo Workspace", border_style="green")
 
-        adapter = self.adapter_loader.load(repo.repo_id)
-        preview_text = self._build_repo_preview(repo, commands, adapter)
-        return (
-            f"Repo: {repo.repo_id}\n"
-            f"Path: {repo.path}\n"
-            f"Status: {repo.status}\n"
-            f"Adapter: {repo.adapter_id or 'none'}\n\n"
-            "Coding Agent\n"
-            f"{session_text}\n\n"
-            "Overview\n"
-            f"{preview_text}\n\n"
-            "Commands\n"
-            + ("\n".join(command_lines) if command_lines else "(no commands discovered)")
+    def _build_commands_panel(self, commands: list[CommandRecord]) -> Panel:
+        table = Table(expand=True, box=None, show_header=True)
+        table.add_column("Command", style="bold")
+        table.add_column("Description")
+        for command in commands[:8]:
+            table.add_row(command.command_name, command.description or "No description")
+        if len(commands) > 8:
+            table.add_row("...", f"{len(commands) - 8} more commands")
+        return Panel(table, title="Commands", border_style="blue")
+
+    def _build_repo_preview_sections(
+        self,
+        repo: RepoRecord,
+        commands: list[CommandRecord],
+        adapter: AdapterRecord | None,
+    ) -> list[Panel]:
+        if adapter is None or not adapter.overview_sections:
+            return [Panel("No repo overview preview configured.", title="Overview", border_style="yellow")]
+
+        panels: list[Panel] = []
+        for spec in adapter.overview_sections:
+            selected = self._resolve_overview_section(commands, spec)
+            if selected is None:
+                panels.append(
+                    Panel(
+                        "Configured overview command is not available in the current command inventory.",
+                        title=spec.title or "Overview",
+                        border_style="yellow",
+                    )
+                )
+                continue
+
+            command, arguments, label = selected
+            result = self.executor.run(repo, command, arguments)
+            panels.append(self._render_overview_result(repo.repo_id, result, spec, label))
+        return panels
+
+    def _render_overview_result(
+        self,
+        repo_id: str,
+        result,
+        spec: OverviewSectionSpec,
+        label: str,
+    ) -> Panel:
+        title = spec.title or "Overview"
+        if result.exit_code != 0:
+            preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
+            return Panel(
+                Text(f"Source: {label}\nPreview unavailable.\n{self._limit_lines(preview_error, max_lines=8)}"),
+                title=title,
+                border_style="red",
+            )
+
+        if spec.render_mode == "json" and result.parsed_payload is not None:
+            renderable = self._render_json_overview(repo_id, result.parsed_payload, spec, label)
+            return Panel(renderable, title=title, border_style="green")
+
+        preview_text = result.stdout.strip() or "(no stdout)"
+        return Panel(
+            Text(f"Source: {label}\n{self._limit_lines(preview_text, max_lines=spec.max_lines)}"),
+            title=title,
+            border_style="green",
         )
 
     def process_message(self, user_message: str, active_repo_id: str | None) -> ProcessedMessage:
@@ -217,55 +283,95 @@ class AppController:
             raise RuntimeError(f"Repo registration completed but repo was not loaded: {repo_path}")
         return registered
 
-    def _build_repo_preview(
-        self,
-        repo: RepoRecord,
-        commands: list[CommandRecord],
-        adapter: AdapterRecord | None,
-    ) -> str:
-        if adapter is None or adapter.overview_command is None:
-            return "No repo overview preview configured."
-
-        selected = self._resolve_overview_command(commands, adapter)
-        if selected is None:
-            return "Configured overview command is not available in the current command inventory."
-
-        command, arguments, label, max_lines, title = selected
-        result = self.executor.run(repo, command, arguments)
-        if result.exit_code != 0:
-            preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
-            return (
-                f"{title or 'Overview'}\n"
-                f"Source: {label}\n"
-                f"Preview unavailable.\n"
-                f"{self._limit_lines(preview_error, max_lines=8)}"
-            )
-
-        preview_text = result.stdout.strip() or "(no stdout)"
-        return (
-            f"{title or 'Overview'}\n"
-            f"Source: {label}\n"
-            f"{self._limit_lines(preview_text, max_lines=max_lines)}"
-        )
-
-    def _resolve_overview_command(
+    def _resolve_overview_section(
         self,
         commands: list[CommandRecord],
-        adapter: AdapterRecord,
-    ) -> tuple[CommandRecord, list[str], str, int, str | None] | None:
-        overview = adapter.overview_command
-        if overview is None:
-            return None
-
-        candidate_names = [overview.command_name, *overview.fallback_command_names]
+        section: OverviewSectionSpec,
+    ) -> tuple[CommandRecord, list[str], str] | None:
+        candidate_names = [section.command_name, *section.fallback_command_names]
         for index, command_name in enumerate(candidate_names):
             command = next((item for item in commands if item.command_name == command_name), None)
             if command is None:
                 continue
-            arguments = overview.arguments if index == 0 else []
+            arguments = section.arguments if index == 0 else []
             label = " ".join([*command.invocation, *arguments])
-            return command, arguments, label, overview.max_lines, overview.title
+            return command, arguments, label
         return None
+
+    def _render_json_overview(
+        self,
+        repo_id: str,
+        payload: dict | list,
+        spec: OverviewSectionSpec,
+        label: str,
+    ):
+        if repo_id == "job_search" and spec.command_name == "pipeline-status" and isinstance(payload, dict):
+            return self._render_job_search_pipeline(payload, label)
+        if repo_id == "job_search" and spec.command_name == "next-actions" and isinstance(payload, dict):
+            return self._render_checklist(payload.get("items", []), label, max_items=6)
+        if repo_id == "life_admin" and spec.command_name == "task-digest" and isinstance(payload, dict):
+            return self._render_life_admin_digest(payload, label)
+        if repo_id == "life_admin" and spec.command_name == "task-list" and isinstance(payload, dict):
+            return self._render_task_list(payload.get("tasks", []), label, max_items=5)
+        return Text(f"Source: {label}\n{self._limit_lines(str(payload), max_lines=spec.max_lines)}")
+
+    def _render_job_search_pipeline(self, payload: dict[str, Any], label: str):
+        active_rows = []
+        closed_rows = 0
+        for row in payload.get("table", []):
+            status = row.get("Status", "")
+            if any(token in status.lower() for token in ("rejected", "soft no", "closed")):
+                closed_rows += 1
+                continue
+            active_rows.append(row)
+
+        summary = Text(f"Source: {label}\n")
+        summary.append(f"Active opportunities: {len(active_rows)}", style="bold green")
+        if closed_rows:
+            summary.append(f"  Hidden closed outcomes: {closed_rows}", style="yellow")
+
+        table = Table(expand=True, box=None, show_header=True)
+        table.add_column("Company", style="bold")
+        table.add_column("Status", style="green")
+        table.add_column("Notes")
+        for row in active_rows[:7]:
+            table.add_row(row.get("Company", ""), row.get("Status", ""), row.get("Notes", ""))
+        if len(active_rows) > 7:
+            table.add_row("...", "", f"{len(active_rows) - 7} more active opportunities")
+        return Group(summary, table)
+
+    def _render_checklist(self, items: list[dict[str, Any]], label: str, *, max_items: int):
+        lines = [f"Source: {label}"]
+        for item in items[:max_items]:
+            lines.append(f"- {item.get('text', '')}")
+        if len(items) > max_items:
+            lines.append(f"... {len(items) - max_items} more")
+        return Text("\n".join(lines))
+
+    def _render_life_admin_digest(self, payload: dict[str, Any], label: str):
+        counts = payload.get("counts", {})
+        summary = Text(f"Source: {label}\n", style="")
+        summary.append(
+            f"Urgent: {counts.get('urgent', 0)}  High: {counts.get('high', 0)}  Medium: {counts.get('medium', 0)}",
+            style="bold",
+        )
+        table = Table(expand=True, box=None, show_header=True)
+        table.add_column("Priority", style="bold")
+        table.add_column("Task")
+        for task in payload.get("urgent", [])[:3]:
+            table.add_row("Urgent", task.get("title", ""))
+        for task in payload.get("high", [])[:3]:
+            table.add_row("High", task.get("title", ""))
+        return Group(summary, table)
+
+    def _render_task_list(self, tasks: list[dict[str, Any]], label: str, *, max_items: int):
+        table = Table(expand=True, box=None, show_header=True)
+        table.add_column("Task", style="bold")
+        table.add_column("Priority")
+        table.add_column("Status")
+        for task in tasks[:max_items]:
+            table.add_row(task.get("title", ""), str(task.get("priority", "")), str(task.get("status", "")))
+        return Group(Text(f"Source: {label}"), table)
 
     def _limit_lines(self, text: str, *, max_lines: int) -> str:
         lines = [line.rstrip() for line in text.splitlines() if line.strip()]

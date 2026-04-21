@@ -114,7 +114,7 @@ Responsibilities:
 - Provide repo-specific command palette entries
 - Map command output into Textual views
 - Generate adapter metadata during repo onboarding and refresh
-- Store the selected overview command and fallback commands in adapter metadata
+- Store selected overview sections, fallback commands, and preferred render modes in adapter metadata
 - Hold parsing and presentation hints
 
 Key rule:
@@ -292,7 +292,7 @@ sequenceDiagram
 5. `justfile_parser` discovers commands.
 6. Registry stores repo metadata and initial command inventory.
 7. Adapter loader generates or refreshes local adapter metadata and generated adapter artifacts.
-8. Adapter metadata captures the initial overview command and rendering hints.
+8. Adapter metadata captures the initial overview sections and rendering hints.
 9. Repo becomes available in the TUI and CLI without manual config editing.
 
 ### 2. Startup and restore state
@@ -329,8 +329,8 @@ Fallback behavior:
 
 1. User selects a repo in the sidebar.
 2. TUI sets active repo focus immediately and renders a loading state for the repo workspace.
-3. Controller builds a repo-specific overview using adapter metadata, coding-agent session state, and the adapter's overview command.
-4. The overview command runs in the repo and returns a concise summary for the selected-repo panel.
+3. Controller builds a repo-specific overview using adapter metadata, coding-agent session state, and the adapter's overview sections.
+4. Overview section commands run in the repo and return concise summaries for the selected-repo panel, preferring structured JSON output when available.
 5. The TUI updates the repo workspace while keeping the main conversation available.
 
 ## Error handling

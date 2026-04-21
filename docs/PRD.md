@@ -81,12 +81,14 @@ Youbot owns the TUI code that renders repo-specific views. Integrated repos are 
 
 For each registered repo, youbot maintains a local adapter in its own state directory. Adapters may be generated, cached, or manually refined over time, but they live in youbot's local plugin/adapter registry rather than in the child repo.
 
-Repo onboarding includes an adapter generation step. At minimum, youbot generates adapter metadata that picks an overview command for the selected-repo workspace, basic rendering limits, and any fallback commands.
+Repo onboarding includes an adapter generation step. At minimum, youbot generates adapter metadata that picks overview sections for the selected-repo workspace, basic rendering limits, preferred render modes, and any fallback commands.
+
+When a repo exposes JSON-capable commands, adapters should prefer those structured outputs for the selected-repo workspace so the view can emphasize the most relevant information rather than dumping raw markdown or raw text.
 
 An adapter may contain:
 - Repo identity and source location
 - Discovered `just` commands
-- Generated overview-command metadata for the selected-repo workspace
+- Generated overview-section metadata for the selected-repo workspace
 - Command descriptions and invocation hints
 - Structured view definitions for the TUI
 - Output parsing/rendering logic

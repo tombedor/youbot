@@ -111,12 +111,13 @@ class CodingAgentSessionRef:
 
 
 @dataclass(slots=True)
-class OverviewCommandSpec:
+class OverviewSectionSpec:
     command_name: str
     arguments: list[str] = field(default_factory=list)
     title: str | None = None
     max_lines: int = 14
     fallback_command_names: list[str] = field(default_factory=list)
+    render_mode: Literal["json", "text"] = "text"
 
 
 @dataclass(slots=True)
@@ -128,4 +129,4 @@ class AdapterRecord:
     command_palette_entries: list[str]
     output_rules: list[str]
     updated_at: str
-    overview_command: OverviewCommandSpec | None = None
+    overview_sections: list[OverviewSectionSpec] = field(default_factory=list)
