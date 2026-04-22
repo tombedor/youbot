@@ -15,6 +15,7 @@ Youbot is a local Python application with a Textual TUI. It orchestrates a set o
 - Running `just` commands in repo directories
 - Invoking a configurable coding-agent backend for code-change requests when no existing command fits
 - Rendering repo-specific views through youbot-owned adapters
+- Surfacing live coding-agent activity in the TUI while long-running agent work is in progress
 
 Integrated repos are treated as capability providers. They are not required to embed UI code or conform to youbot's internal architecture.
 
@@ -99,6 +100,7 @@ Key rule:
 Responsibilities:
 - Invoke the configured coding-agent backend in the target repo for code-change requests
 - Provide request context and capture subprocess outcome
+- Stream or publish incremental activity events so the TUI can show live progress
 - Use backend-native continuation when a stored non-interactive session reference is available
 - Record the result in conversation state and registry hints
 - Support backend switching between at least Claude Code and Codex without changing callers
@@ -114,6 +116,7 @@ Responsibilities:
 - Provide repo-specific command palette entries
 - Map command output into Textual views
 - Generate adapter metadata during repo onboarding and refresh
+- Act as the default edit target for requests about selected-repo presentation inside youbot
 - Store selected overview sections, quick actions, fallback commands, and preferred render modes in adapter metadata
 - Hold parsing and presentation hints
 
@@ -140,6 +143,7 @@ Responsibilities:
 - Expose global and repo-scoped command palette actions
 - Display execution results and structured views
 - Show explicit in-flight UI state while a user message is being processed
+- Show a live coding-agent activity/log view for in-progress agent runs
 
 Key rule:
 - The TUI is a consumer of registry, conversation state, routing, and adapters. It should not own business logic.
@@ -206,11 +210,11 @@ flowchart TD
     P --> Q{Model requests tool call?}
     Q -->|list repos / commands / overview| R[Controller tool handler reads registry state]
     Q -->|run_repo_command| S[Executor runs just command in repo]
-    Q -->|run_code_change| T[CodingAgentRunner invokes Codex or Claude]
+    Q -->|run_code_change| T[Resolve change target and invoke adapter editor or coding agent]
     Q -->|No more tools| U[Return final assistant answer plus response id]
     R --> P
     S --> P
-    T --> V[Update backend-native session reference]
+    T --> V[Update backend-native session reference or adapter state]
     V --> P
 
     O --> W{Route decision}
@@ -224,7 +228,7 @@ flowchart TD
     U --> Y[Append assistant message to conversation store]
     X --> Y
     S --> Z[Normalize execution result for display]
-    T --> AA[Normalize coding-agent result for display]
+    T --> AA[Normalize change result for display]
     Z --> Y
     AA --> Y
 
@@ -312,9 +316,9 @@ Switching into a repo restores repo focus, command palette context, adapter stat
 2. TUI sends the message plus active scope to `openai_chat`.
 3. `openai_chat` calls the OpenAI Responses API with conversation context and tool definitions.
 4. The model issues tool calls to inspect repo state or execute actions.
-5. Tool handlers call executor or coding-agent runner as needed.
+5. Tool handlers call executor, adapter-editing paths, or coding-agent runner as needed.
 6. `openai_chat` returns the final user-facing answer and provider response id.
-7. Result is rendered in the TUI, appended to youbot conversation history, and used to update any coding-agent session reference.
+7. Result is rendered in the TUI, appended to youbot conversation history, used to update any coding-agent session reference, and reloads adapter-backed workspace state when relevant.
 
 Fallback behavior:
 - If OpenAI-backed orchestration is unavailable, the local heuristic router may still choose a repo and action for simple cases.

@@ -20,6 +20,8 @@ The TUI is primarily a conversation pane with rich inline output (tables, lists,
 
 When youbot is processing a user message, the UI must show a visible in-flight indicator in the chat area so the user can tell the request is actively being handled. A spinner or equivalent loading treatment is sufficient; silent waiting is not.
 
+When youbot launches a coding-agent run, the UI must also expose a live activity view for that run. The user should be able to see that a coding session has started, which backend and target it is using, and incremental log/output updates while the run is in progress. A completed summary alone is not sufficient for longer-running coding work.
+
 When a repo is selected, the workspace should present a compact repo-specific header, a purpose-built overview layout, and adapter-defined quick actions. It should not feel like a generic stack of undifferentiated panels.
 
 Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases tool use, command discovery, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
@@ -42,8 +44,12 @@ Examples:
 When a change is requested:
 
 1. Check whether an existing `just` command covers the use case. If so, run it.
-2. If not, invoke the configured coding-agent backend in the target repo's directory with the request, resuming an existing backend-native non-interactive session when appropriate.
-3. After the change, evaluate whether this is likely to be requested again. If so, add a new `just` command that covers it.
+2. Determine whether the change targets a child repo's implementation or a youbot-owned adapter/view.
+3. If the request is about how a repo is presented inside youbot's TUI, route the change to the relevant adapter/plugin in youbot-owned state by default rather than editing the child repo.
+4. If the request is about the child repo's own commands, data model, business logic, or outputs, invoke the configured coding-agent backend in that repo's directory, resuming an existing backend-native non-interactive session when appropriate.
+5. If the target is ambiguous, ask a clarification question before making changes.
+6. After an adapter/view change, reload the affected selected-repo workspace so the updated presentation is visible without restarting the app.
+7. After the change, evaluate whether this is likely to be requested again. If so, add a new `just` command that covers it when the capability belongs in the child repo rather than the adapter layer.
 
 The justfile is the canonical capability registry for each repo. If a capability is worth having, it should be expressible as a `just` command so both humans and agents can reach it without going through the conversational interface.
 
@@ -85,11 +91,15 @@ Youbot owns the TUI code that renders repo-specific views. Integrated repos are 
 
 For each registered repo, youbot maintains a local adapter in its own state directory. Adapters may be generated, cached, or manually refined over time, but they live in youbot's local plugin/adapter registry rather than in the child repo.
 
+This separation is user-visible and must affect routing. A request to change how `life_admin` appears inside youbot is, by default, a request to change the `life_admin` adapter in youbot-owned state rather than a request to edit the `life_admin` repo itself.
+
 Repo onboarding includes an adapter generation step. At minimum, youbot generates adapter metadata that picks overview sections for the selected-repo workspace, basic rendering limits, preferred render modes, and any fallback commands.
 
 Adapters should also define a small set of recommended quick actions for the selected-repo workspace so the UI can highlight the most useful commands instead of dumping a long raw command list.
 
 When a repo exposes JSON-capable commands, adapters should prefer those structured outputs for the selected-repo workspace so the view can emphasize the most relevant information rather than dumping raw markdown or raw text.
+
+When an adapter is updated, youbot should refresh the active selected-repo workspace from the updated adapter state so UI changes are visible immediately.
 
 An adapter may contain:
 - Repo identity and source location

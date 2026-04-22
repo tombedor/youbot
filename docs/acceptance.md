@@ -29,6 +29,9 @@ This document defines observable behaviors that must hold true for the implement
 - The TUI starts without crashing when one configured repo is invalid.
 - While a chat request is being processed, the UI shows an explicit in-flight indicator in the chat area.
 - When processing completes or fails, the in-flight indicator clears.
+- When a coding-agent run starts, the UI shows a live activity view tied to that run rather than only a final summary.
+- While a coding-agent run is in progress, incremental session/log output is visible to the user.
+- The live activity view shows at least the target, backend, and whether a coding session has started.
 
 ## Command execution
 
@@ -53,6 +56,9 @@ This document defines observable behaviors that must hold true for the implement
 - The coding-agent runner uses non-interactive backend invocation paths only.
 - Switching the configured coding-agent backend from Claude Code to Codex does not require changes to calling code.
 - A failure to launch the configured coding-agent backend is surfaced to the user and recorded in session history.
+- Given a request to change how a repo is displayed inside youbot, the system targets the youbot-owned adapter/plugin rather than the child repo by default.
+- Given an ambiguous change request that could refer to either the adapter layer or the child repo, the system asks for clarification before editing either target.
+- After an adapter/view change succeeds, the affected selected-repo workspace reloads without requiring an app restart.
 
 ## Adapters and structured views
 
