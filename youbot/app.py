@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, ListItem, ListView, RichLog, Static
-from rich.markdown import Markdown
-from rich.rule import Rule
-from rich.panel import Panel
-from rich.text import Text
 
 from youbot.controller import AppController
 
@@ -97,6 +97,26 @@ class YoubotApp(App[None]):
       background: transparent;
     }
 
+    #activity-shell {
+      height: 12;
+      border: round magenta;
+      background: $surface-darken-1;
+      padding: 0 1;
+      margin-bottom: 1;
+    }
+
+    #activity-title {
+      color: $text;
+      padding-top: 1;
+      padding-bottom: 1;
+    }
+
+    #activity-view {
+      height: 1fr;
+      border: none;
+      background: transparent;
+    }
+
     #processing-indicator {
       height: auto;
       dock: right;
@@ -149,15 +169,22 @@ class YoubotApp(App[None]):
                         yield Static("Assistant", id="conversation-title", classes="section-title")
                         yield Static("", id="processing-indicator")
                     yield RichLog(id="conversation", wrap=True, markup=False)
+                with Vertical(id="activity-shell"):
+                    yield Static("Coding Activity", id="activity-title", classes="section-title")
+                    yield Static("", id="activity-view")
                 with Vertical(id="composer-shell"):
-                    yield Input(placeholder="Ask youbot to run a command or use /code ...", id="input")
+                    yield Input(
+                        placeholder="Ask youbot to run a command or use /code ...", id="input"
+                    )
         yield Footer()
 
     def on_mount(self) -> None:
         self.set_interval(0.12, self._advance_processing_indicator)
+        self.set_interval(0.35, self._refresh_activity_view)
         self._refresh_repo_list()
         self._render_conversation()
         self._render_repo_view()
+        self._refresh_activity_view()
         self._update_repo_header()
         self._update_scope_layout()
         self._sync_processing_ui()
@@ -167,6 +194,7 @@ class YoubotApp(App[None]):
         self._refresh_repo_list()
         self._render_conversation()
         self._render_repo_view()
+        self._refresh_activity_view()
         self._update_repo_header()
         self._update_scope_layout()
         self._sync_processing_ui()
@@ -175,6 +203,7 @@ class YoubotApp(App[None]):
         self.controller.conversation_store.clear_conversation()
         self._render_conversation()
         self._render_repo_view()
+        self._refresh_activity_view()
         self._update_repo_header()
         self._update_scope_layout()
         self._sync_processing_ui()
@@ -205,7 +234,9 @@ class YoubotApp(App[None]):
         try:
             processed = self.controller.process_message(message, self.active_repo_id)
         except Exception as exc:
-            self.call_from_thread(self._append_result, "Error", f"Processing failed.\n\n```\n{exc}\n```")
+            self.call_from_thread(
+                self._append_result, "Error", f"Processing failed.\n\n```\n{exc}\n```"
+            )
         else:
             self.call_from_thread(self._append_result, processed.summary, processed.body)
         finally:
@@ -218,6 +249,7 @@ class YoubotApp(App[None]):
         if self.active_repo_id is not None:
             self.load_repo_view(self.active_repo_id)
         self._render_repo_view()
+        self._refresh_activity_view()
         self._update_scope_layout()
 
     @work(thread=True)
@@ -254,6 +286,47 @@ class YoubotApp(App[None]):
             indicator.update("")
             input_widget.disabled = False
             input_widget.placeholder = "Ask youbot to run a command or use /code ..."
+
+    def _refresh_activity_view(self) -> None:
+        panel = self.query_one("#activity-view", Static)
+        snapshot = self.controller.get_coding_agent_activity()
+        panel.update(self._build_activity_panel(snapshot))
+
+    def _build_activity_panel(self, snapshot) -> Panel:
+        if snapshot is None:
+            return Panel(
+                "No coding-agent activity yet.\n\n"
+                "Code and adapter changes will stream progress here while they run.",
+                title="Activity",
+                border_style="magenta",
+            )
+
+        lines = [
+            f"Status: {snapshot.status}",
+            f"Target repo: {snapshot.repo_id}",
+            f"Target kind: {snapshot.target_kind}",
+            f"Backend: {snapshot.backend_name}",
+            f"Session id: {snapshot.session_id or 'pending'}",
+            f"Started: {snapshot.started_at}",
+        ]
+        if snapshot.finished_at is not None:
+            lines.append(f"Finished: {snapshot.finished_at}")
+        if snapshot.exit_code is not None:
+            lines.append(f"Exit code: {snapshot.exit_code}")
+        lines.extend(["", "Recent output:"])
+        recent_entries = snapshot.entries[-14:]
+        if not recent_entries:
+            lines.append("(waiting for agent output)")
+        else:
+            for entry in recent_entries:
+                prefix = {"status": "[status]", "stdout": "[out]", "stderr": "[err]"}[entry.stream]
+                lines.append(f"{prefix} {entry.content}")
+
+        return Panel(
+            "\n".join(lines),
+            title=f"Coding Activity: {snapshot.request_summary[:48]}",
+            border_style="magenta",
+        )
 
     def _refresh_repo_list(self) -> None:
         repo_list = self.query_one("#repo-list", ListView)
@@ -297,9 +370,19 @@ class YoubotApp(App[None]):
 
         repo = self.controller.get_repo(self.active_repo_id)
         if repo is None:
-            panel.update(Panel(f"Focused repo {self.active_repo_id!r} is not available.", title="Repo Workspace"))
+            panel.update(
+                Panel(
+                    f"Focused repo {self.active_repo_id!r} is not available.",
+                    title="Repo Workspace",
+                )
+            )
             return
-        panel.update(self._repo_view_cache.get(repo.repo_id, Panel(f"Loading overview for {repo.repo_id}...", title="Repo Workspace")))
+        panel.update(
+            self._repo_view_cache.get(
+                repo.repo_id,
+                Panel(f"Loading overview for {repo.repo_id}...", title="Repo Workspace"),
+            )
+        )
 
     def _update_repo_header(self) -> None:
         title = self.query_one("#repo-title", Static)

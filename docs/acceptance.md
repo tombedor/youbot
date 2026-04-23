@@ -22,8 +22,11 @@ This document defines observable behaviors that must hold true for the implement
 ## TUI shell
 
 - The UI shows the list of registered repos and their current status.
+- The repo list/status sidebar can be dismissed and restored without losing chat or repo state.
 - The UI starts in a global chat state with no repo selected by default.
+- When no repo is selected, no repo overview panel is rendered.
 - Selecting a repo changes active focus, command palette contents, and routing bias.
+- When a repo is selected, exactly one repo overview panel is rendered for the active repo.
 - When a repo is selected, the workspace header changes to that repo's identity and summary rather than staying generic.
 - Global actions remain available even when a repo is focused.
 - The TUI starts without crashing when one configured repo is invalid.
@@ -39,6 +42,14 @@ This document defines observable behaviors that must hold true for the implement
 - A successful command shows stdout and exit code `0`.
 - A failing command shows stderr and non-zero exit code without crashing the app.
 - Command execution occurs in the selected repo's working directory.
+
+## Developer usage review
+
+- Given the `youbot` repo is being worked on directly, a developer-facing `review-usage` command can inspect this installation's `~/.youbot/` runtime state.
+- Running `review-usage` generates a bounded review bundle rather than passing the full unbounded raw transcript directly into normal coding-agent context.
+- The generated review bundle includes recent conversation history plus recent command and coding-agent run records.
+- The review command returns or surfaces the path to the generated bundle so the coding agent can inspect it deliberately.
+- Missing or partially corrupt run-log files do not prevent review-bundle generation from the remaining valid state.
 
 ## Routing
 

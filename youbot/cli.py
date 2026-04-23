@@ -15,11 +15,14 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("tui")
     subparsers.add_parser("scan")
     subparsers.add_parser("run-scheduled")
+    subparsers.add_parser("review-usage")
 
     add_repo = subparsers.add_parser("add-repo")
     add_repo.add_argument("path")
     add_repo.add_argument("--name", default=None)
-    add_repo.add_argument("--classification", choices=["integrated", "managed"], default="integrated")
+    add_repo.add_argument(
+        "--classification", choices=["integrated", "managed"], default="integrated"
+    )
 
     init_managed = subparsers.add_parser("init-managed")
     init_managed.add_argument("path")
@@ -69,6 +72,12 @@ def main() -> None:
             for result in results
         ]
         print(json.dumps(payload, indent=2))
+        return
+
+    if args.command == "review-usage":
+        controller = AppController()
+        summary, bundle_path = controller.review_usage()
+        print(json.dumps({"summary": summary, "bundle_path": bundle_path}, indent=2))
         return
 
     if args.command == "add-repo":

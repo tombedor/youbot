@@ -4,7 +4,6 @@ import re
 
 from youbot.models import CommandRecord, ConversationRecord, RepoRecord, RouteDecision
 
-
 TOKEN_RE = re.compile(r"[a-z0-9_-]+")
 
 
@@ -28,6 +27,19 @@ class Router:
                 arguments=[user_message[len("/code ") :].strip()],
                 reasoning_summary="Explicit code-change request.",
                 confidence=0.95,
+            )
+
+        if self._looks_like_adapter_change(lowered):
+            repo_id = active_repo_id or self._select_repo(lowered, repos)
+            return RouteDecision(
+                repo_id=repo_id,
+                action_type="adapter_change",
+                command_name=None,
+                arguments=[user_message],
+                reasoning_summary=(
+                    "Request appears to target the youbot-owned repo view or adapter."
+                ),
+                confidence=0.8,
             )
 
         repo_id = active_repo_id or self._select_repo(lowered, repos)
@@ -63,7 +75,10 @@ class Router:
                 confidence=0.9,
             )
 
-        if any(word in lowered for word in ("add ", "update ", "create ", "change ", "implement ", "edit ")):
+        if any(
+            word in lowered
+            for word in ("add ", "update ", "create ", "change ", "implement ", "edit ")
+        ):
             return RouteDecision(
                 repo_id=repo_id,
                 action_type="code_change",
@@ -88,9 +103,15 @@ class Router:
                 return repo.repo_id
         if any(word in lowered for word in ("task", "calendar", "linear")):
             return "life_admin"
-        if any(word in lowered for word in ("job", "pipeline", "resume", "opening", "apply", "netflix", "cursor")):
+        if any(
+            word in lowered
+            for word in ("job", "pipeline", "resume", "opening", "apply", "netflix", "cursor")
+        ):
             return "job_search"
-        if any(word in lowered for word in ("trade", "market", "spotify", "nfl", "research", "position")):
+        if any(
+            word in lowered
+            for word in ("trade", "market", "spotify", "nfl", "research", "position")
+        ):
             return "trader-bot"
         return None
 
@@ -102,7 +123,9 @@ class Router:
                 return command
         return None
 
-    def _fallback_command(self, repo_id: str, lowered: str, commands: list[CommandRecord]) -> CommandRecord | None:
+    def _fallback_command(
+        self, repo_id: str, lowered: str, commands: list[CommandRecord]
+    ) -> CommandRecord | None:
         desired = None
         if repo_id == "life_admin":
             if "task" in lowered:
@@ -135,6 +158,32 @@ class Router:
             match = re.search(r"\b(\d+)\b", lowered)
             return [match.group(1)] if match is not None else ["20"]
         if command_name == "search-action-items":
-            tokens = [token for token in TOKEN_RE.findall(lowered) if token not in {"search", "action", "items"}]
+            tokens = [
+                token
+                for token in TOKEN_RE.findall(lowered)
+                if token not in {"search", "action", "items"}
+            ]
             return [" ".join(tokens)] if tokens else [lowered]
         return []
+
+    def _looks_like_adapter_change(self, lowered: str) -> bool:
+        ui_tokens = (
+            "view",
+            "workspace",
+            "panel",
+            "layout",
+            "render",
+            "rendering",
+            "adapter",
+            "quick action",
+            "header",
+            "display",
+            "sort visible",
+            "filter visible",
+            "inside youbot",
+            "in youbot",
+        )
+        change_tokens = ("change", "update", "edit", "make", "show", "reorder", "move", "hide")
+        return any(token in lowered for token in ui_tokens) and any(
+            token in lowered for token in change_tokens
+        )

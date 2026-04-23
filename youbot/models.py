@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
-
+from typing import Any, Literal
 
 RepoClassification = Literal["integrated", "managed"]
 RepoStatus = Literal["ready", "invalid", "missing", "error"]
-RouteAction = Literal["command", "query", "code_change", "clarify", "global_action"]
+RouteAction = Literal[
+    "command", "query", "code_change", "adapter_change", "clarify", "global_action"
+]
 CodingBackendName = Literal["claude_code", "codex"]
 CodingSessionKind = Literal["noninteractive"]
 
@@ -90,6 +91,7 @@ class ExecutionResult:
 class CodingAgentResult:
     repo_id: str
     backend_name: CodingBackendName
+    target_kind: Literal["repo", "adapter"]
     exit_code: int
     stdout: str
     stderr: str
@@ -138,3 +140,41 @@ class AdapterRecord:
     updated_at: str
     overview_sections: list[OverviewSectionSpec] = field(default_factory=list)
     quick_actions: list[QuickActionSpec] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class CodingAgentActivityEntry:
+    stream: Literal["status", "stdout", "stderr"]
+    content: str
+    created_at: str
+
+
+@dataclass(slots=True)
+class CodingAgentActivitySnapshot:
+    run_id: str
+    status: Literal["idle", "running", "finished"]
+    repo_id: str
+    backend_name: CodingBackendName
+    target_kind: Literal["repo", "adapter"]
+    request_summary: str
+    session_id: str | None
+    started_at: str
+    updated_at: str
+    finished_at: str | None = None
+    exit_code: int | None = None
+    entries: list[CodingAgentActivityEntry] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class UsageReviewBundle:
+    bundle_id: str
+    created_at: str
+    source_state_root: str
+    window_summary: str
+    conversation_id: str | None
+    messages: list[ConversationMessage] = field(default_factory=list)
+    command_runs: list[dict[str, Any]] = field(default_factory=list)
+    coding_agent_runs: list[dict[str, Any]] = field(default_factory=list)
+    activity_entries: list[dict[str, Any]] = field(default_factory=list)
+    activity_log_refs: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)

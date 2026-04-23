@@ -70,6 +70,7 @@ As a user, I want to see the repos youbot knows about and whether they are usabl
 
 Expected behavior:
 - the sidebar shows registered repos
+- the sidebar can be dismissed without losing chat context
 - degraded or invalid repos are clearly distinguishable
 - repo status does not require leaving the main UI
 
@@ -80,6 +81,8 @@ As a user, I want to move between repos quickly, so that I can work across sever
 Expected behavior:
 - switching repos changes active scope immediately
 - the conversation pane remains coherent while repo focus changes
+- only one repo panel is visible at a time for the active repo
+- if no repo is active, no repo panel is shown
 - repo-specific commands update with focus
 
 ### 9. Resume an existing coding-agent session for a repo

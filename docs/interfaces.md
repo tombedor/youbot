@@ -82,13 +82,36 @@ updated_at: str
 last_response_id: str | None
 ```
 
+### `UsageReviewBundle`
+
+Represents a bounded developer-facing snapshot of how this installation of youbot has been used.
+
+```python
+bundle_id: str
+created_at: str
+source_state_root: str
+window_summary: str
+conversation_id: str | None
+messages: list[ConversationMessage]
+command_runs: list[dict]
+coding_agent_runs: list[dict]
+activity_entries: list[dict]
+activity_log_refs: list[str]
+notes: list[str]
+```
+
+Invariants:
+- A bundle is derived review data, not the primary source of truth
+- A bundle must be bounded in size and time window
+- A bundle is intended for review of the `youbot` repo itself, not as ambient context for arbitrary child-repo coding work
+
 ### `RouteDecision`
 
 The router's structured output.
 
 ```python
 repo_id: str | None
-action_type: Literal["command", "query", "code_change", "clarify", "global_action"]
+action_type: Literal["command", "query", "code_change", "adapter_change", "clarify", "global_action"]
 command_name: str | None
 arguments: list[str]
 reasoning_summary: str
@@ -99,6 +122,7 @@ Invariants:
 - `command_name` is required when `action_type == "command"`
 - `repo_id` may be `None` only for global actions or clarifications
 - `confidence` is normalized to `0.0 <= x <= 1.0`
+- `action_type == "adapter_change"` targets youbot-owned adapter/view behavior rather than child-repo code
 
 ### `CodingAgentBackend`
 
@@ -247,6 +271,30 @@ clear_conversation() -> None
 set_last_response_id(response_id: str | None) -> None
 ```
 
+### `UsageReviewService`
+
+Responsibilities:
+- Read bounded usage history from youbot-owned runtime state
+- Build a developer-facing review bundle for analysis of the `youbot` repo
+- Avoid exposing unbounded raw history by default
+
+Suggested methods:
+
+```python
+build_bundle(
+    *,
+    max_messages: int = 200,
+    max_command_runs: int = 100,
+    max_coding_agent_runs: int = 100,
+) -> UsageReviewBundle
+write_bundle(bundle: UsageReviewBundle) -> str
+```
+
+Behavioral rules:
+- The service reads from `~/.youbot/` state rather than from user config
+- The service may include references to raw files, but the bundle remains the preferred review surface
+- The service should trim or summarize oversized payloads rather than reproducing unbounded logs verbatim
+
 ### `OpenAIChatOrchestrator`
 
 Responsibilities:
@@ -342,6 +390,32 @@ Behavioral rules:
 - Claude Code runs should use non-interactive scripting-compatible forms
 - Codex runs should use non-interactive forms such as `codex exec` / `codex exec resume`
 - Interactive resume pickers are never part of the orchestration path
+
+### Developer command contract: `review-usage`
+
+Purpose:
+- Provide an explicit way for the coding agent working on `youbot` to inspect recent real usage of this installation
+
+Suggested behavior:
+
+```python
+review_usage(
+    *,
+    max_messages: int = 200,
+    max_command_runs: int = 100,
+    max_coding_agent_runs: int = 100,
+) -> tuple[str, str]
+```
+
+Return value:
+- A human-readable summary of what was reviewed
+- The path to the generated review bundle
+
+Behavioral rules:
+- The command is developer-facing and specific to the `youbot` repo
+- The command reads from youbot-owned runtime state under `~/.youbot/`
+- The command generates a bounded review artifact before invoking or informing the coding agent
+- The command should not silently inject the full raw transcript into unrelated coding-agent prompts
 
 ### `AdapterLoader`
 

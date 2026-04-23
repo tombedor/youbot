@@ -16,13 +16,13 @@ Detailed user-driven flows are documented in `docs/user_stories.md`.
 
 ### Conversational interface
 
-The TUI is primarily a conversation pane with rich inline output (tables, lists, structured data). It starts in a global chat state with no repo selected by default. Youbot keeps lightweight conversation history so earlier interactions can inform follow-up actions.
+The TUI uses a simple three-region shell: one chat panel, one dismissable sidebar, and one repo panel only when a repo is active. It starts in a global chat state with no repo selected by default. When no repo is selected, the repo panel is omitted entirely. Youbot keeps lightweight conversation history so earlier interactions can inform follow-up actions.
 
 When youbot is processing a user message, the UI must show a visible in-flight indicator in the chat area so the user can tell the request is actively being handled. A spinner or equivalent loading treatment is sufficient; silent waiting is not.
 
 When youbot launches a coding-agent run, the UI must also expose a live activity view for that run. The user should be able to see that a coding session has started, which backend and target it is using, and incremental log/output updates while the run is in progress. A completed summary alone is not sufficient for longer-running coding work.
 
-When a repo is selected, the workspace should present a compact repo-specific header, a purpose-built overview layout, and adapter-defined quick actions. It should not feel like a generic stack of undifferentiated panels.
+When a repo is selected, the single repo panel should present a compact repo-specific header, a purpose-built overview layout, and adapter-defined quick actions. It should not feel like a generic stack of undifferentiated panels, and the shell should not create additional persistent panels for repo overview content.
 
 Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases tool use, command discovery, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
 
@@ -53,6 +53,8 @@ When a change is requested:
 
 The justfile is the canonical capability registry for each repo. If a capability is worth having, it should be expressible as a `just` command so both humans and agents can reach it without going through the conversational interface.
 
+For the `youbot` repo itself, developer-facing commands may also inspect youbot-owned runtime state to improve the product. In particular, a repo-local `review-usage` command should gather recent transcript and operational history from this installation's `~/.youbot/` state, build a bounded review artifact, and make that artifact available to the coding agent working on `youbot`.
+
 The coding-agent backend must be configurable. Initial supported backends:
 - Claude Code
 - Codex
@@ -69,6 +71,21 @@ Primary chat should call a model with:
 
 The model determines which repo is relevant, what type of action is needed, and which tool calls to make. A simpler local heuristic router may exist as fallback behavior when the OpenAI-backed primary path is unavailable, but it is not the main orchestration design.
 
+### Developer review flow for the `youbot` repo
+
+When working on the `youbot` repo itself, the coding agent should be able to inspect how this installation of youbot has actually been used.
+
+This should happen through an explicit developer-facing review command rather than by silently injecting the entire transcript into every coding run.
+
+The `review-usage` flow should:
+
+1. Read a bounded slice of youbot-owned runtime state from `~/.youbot/`.
+2. Include recent conversation history, command runs, coding-agent runs, and any available live activity/log records.
+3. Write a derived review bundle for the current review invocation.
+4. Invoke the coding agent on the `youbot` repo with instructions to analyze that bundle and suggest concrete product, routing, adapter, and UX improvements.
+
+The review bundle is the preferred analysis surface. Raw state files remain the source of truth, but they should not be treated as implicit background prompt context for unrelated coding work.
+
 ---
 
 ## Architecture
@@ -76,7 +93,7 @@ The model determines which repo is relevant, what type of action is needed, and 
 ### Youbot
 
 - Python package: `youbot`
-- Textual TUI: conversation pane + repo status sidebar
+- Textual TUI: one chat panel + dismissable repo status sidebar + optional active-repo panel
 - Repo registry: stores repo metadata, discovered commands, routing hints, coding-agent session references, and adapter configuration
 - Adapter loader: discovers and loads youbot-owned adapters for registered repos
 - Scheduler: runs `just` commands on configured schedules
@@ -84,6 +101,7 @@ The model determines which repo is relevant, what type of action is needed, and 
 - Conversation store: persists lightweight youbot conversation history
 - Coding-agent session registry: persists backend-native session references per repo
 - Agent backend config: stores backend selection and backend-specific invocation settings
+- Usage review flow: generates bounded review bundles from youbot-owned runtime state for developer analysis of the `youbot` repo
 
 ### Repo adapter model
 
@@ -214,6 +232,8 @@ Code quality requirements:
 - Required commands: `test`, `lint`, `format`, `install`
 - Commands must be runnable from a clean checkout after `just install`.
 - Commands that produce data output should support `--format=json` for programmatic consumption.
+
+For the `youbot` managed repo specifically, developer-oriented commands may also operate on youbot-owned runtime state outside the repo when that state is necessary to improve the orchestrator itself. `review-usage` is the primary example.
 
 **AGENTS.md**
 - Must describe the architectural decisions a coding agent needs to know before making changes.

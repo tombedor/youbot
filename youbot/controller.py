@@ -9,19 +9,28 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from youbot.adapters import AdapterLoader
+from youbot.coding_agent_activity import CodingAgentActivityStore
 from youbot.coding_agent_runner import CodingAgentRunner
 from youbot.coding_agent_sessions import CodingAgentSessionRegistry
-from youbot.adapters import AdapterLoader
-from youbot.config import AppConfig, add_repo_config, load_config
+from youbot.config import REPO_ROOT, AppConfig, add_repo_config, load_config
 from youbot.conversation_store import ConversationStore
 from youbot.executor import Executor
 from youbot.justfile_parser import JustfileParser
-from youbot.models import AdapterRecord, CommandRecord, ConversationMessage, OverviewSectionSpec, QuickActionSpec, RepoRecord
+from youbot.models import (
+    AdapterRecord,
+    CodingAgentActivitySnapshot,
+    CommandRecord,
+    ConversationMessage,
+    OverviewSectionSpec,
+    RepoRecord,
+)
 from youbot.openai_chat import OpenAIChatOrchestrator
 from youbot.registry import Registry
 from youbot.router import Router
-from youbot.scheduler import Scheduler
 from youbot.scaffold import scaffold_managed_repo
+from youbot.scheduler import Scheduler
+from youbot.usage_review import UsageReviewService
 from youbot.utils import make_id, now_iso
 
 
@@ -35,19 +44,24 @@ class ProcessedMessage:
 class AppController:
     def __init__(self) -> None:
         self.config: AppConfig = load_config()
+        self.active_repo_id: str | None = None
         self.conversation_store = ConversationStore()
         self.session_registry = CodingAgentSessionRegistry()
+        self.activity_store = CodingAgentActivityStore()
+        self.usage_review_service = UsageReviewService()
         self.adapter_loader = AdapterLoader()
         self.registry = Registry(self.config, JustfileParser())
         self.executor = Executor()
         self.router = Router()
         self.openai_chat = OpenAIChatOrchestrator()
-        self.coding_agent_runner = CodingAgentRunner(self.config, self.session_registry)
+        self.coding_agent_runner = CodingAgentRunner(
+            self.config, self.session_registry, self.activity_store
+        )
         self.scheduler = Scheduler(self.config, self.executor)
         self.repos, self.commands = self.registry.load()
 
     def set_active_repo(self, repo_id: str | None) -> None:
-        _ = repo_id
+        self.active_repo_id = repo_id
 
     def get_repo(self, repo_id: str) -> RepoRecord | None:
         for repo in self.repos:
@@ -80,9 +94,15 @@ class AppController:
         grid.add_row(primary, secondary)
         return grid
 
-    def _build_quick_actions_panel(self, commands: list[CommandRecord], adapter: AdapterRecord | None) -> Panel:
+    def _build_quick_actions_panel(
+        self, commands: list[CommandRecord], adapter: AdapterRecord | None
+    ) -> Panel:
         available = {command.command_name: command for command in commands}
-        quick_actions = [] if adapter is None else [item for item in adapter.quick_actions if item.command_name in available]
+        quick_actions = (
+            []
+            if adapter is None
+            else [item for item in adapter.quick_actions if item.command_name in available]
+        )
         table = Table(expand=True, box=None, show_header=False)
         table.add_column("Action", style="bold cyan", no_wrap=True)
         table.add_column("Command")
@@ -96,9 +116,13 @@ class AppController:
                 command.description or "Common action",
             )
         if not quick_actions:
-            table.add_row("No quick actions", "", "Adapter metadata has not defined recommended commands yet.")
+            table.add_row(
+                "No quick actions", "", "Adapter metadata has not defined recommended commands yet."
+            )
         elif len(commands) > len(quick_actions):
-            table.add_row("More", "", f"{len(commands) - len(quick_actions)} additional commands available.")
+            table.add_row(
+                "More", "", f"{len(commands) - len(quick_actions)} additional commands available."
+            )
         return Panel(table, title="Quick Actions", border_style="blue")
 
     def _build_repo_preview_sections(
@@ -108,7 +132,11 @@ class AppController:
         adapter: AdapterRecord | None,
     ) -> list[Panel]:
         if adapter is None or not adapter.overview_sections:
-            return [Panel("No repo overview preview configured.", title="Overview", border_style="yellow")]
+            return [
+                Panel(
+                    "No repo overview preview configured.", title="Overview", border_style="yellow"
+                )
+            ]
 
         panels: list[Panel] = []
         for spec in adapter.overview_sections:
@@ -116,7 +144,10 @@ class AppController:
             if selected is None:
                 panels.append(
                     Panel(
-                        "Configured overview command is not available in the current command inventory.",
+                        (
+                            "Configured overview command is not available in the current "
+                            "command inventory."
+                        ),
                         title=spec.title or "Overview",
                         border_style="yellow",
                     )
@@ -129,6 +160,7 @@ class AppController:
         return panels
 
     def process_message(self, user_message: str, active_repo_id: str | None) -> ProcessedMessage:
+        self.active_repo_id = active_repo_id
         self.conversation_store.append_message(
             ConversationMessage(
                 message_id=make_id(),
@@ -137,6 +169,11 @@ class AppController:
                 created_at=now_iso(),
             )
         )
+        builtin = self._maybe_handle_builtin_command(user_message)
+        if builtin is not None:
+            self._record_assistant(builtin.body)
+            return builtin
+
         conversation = self.conversation_store.get_conversation()
         if self.openai_chat.enabled:
             body, response_id = self.openai_chat.respond(
@@ -151,7 +188,9 @@ class AppController:
             self._record_assistant(body)
             return ProcessedMessage("Assistant", body, active_repo_id)
 
-        decision = self.router.route(user_message, active_repo_id, conversation, self.repos, self.commands)
+        decision = self.router.route(
+            user_message, active_repo_id, conversation, self.repos, self.commands
+        )
 
         if decision.action_type == "clarify":
             body = f"I couldn't determine a command confidently.\n\n{decision.reasoning_summary}"
@@ -171,8 +210,18 @@ class AppController:
             self._record_assistant(body)
             return ProcessedMessage("Code change", body, repo.repo_id)
 
+        if decision.action_type == "adapter_change":
+            request = decision.arguments[0] if decision.arguments else user_message
+            body = self.run_adapter_change(repo, request)
+            self._record_assistant(body)
+            return ProcessedMessage("Adapter change", body, repo.repo_id)
+
         command = next(
-            (command for command in self.commands.get(repo.repo_id, []) if command.command_name == decision.command_name),
+            (
+                command
+                for command in self.commands.get(repo.repo_id, [])
+                if command.command_name == decision.command_name
+            ),
             None,
         )
         if command is None:
@@ -211,6 +260,7 @@ class AppController:
     def _format_coding_agent_result(self, result) -> str:
         header = (
             f"Repo: {result.repo_id}\n"
+            f"Target: {result.target_kind}\n"
             f"Backend: {result.backend_name}\n"
             f"Exit code: {result.exit_code}\n"
             f"Session id: {result.session_id or 'unknown'}\n"
@@ -245,13 +295,84 @@ class AppController:
         add_repo_config(path=str(repo_path), name=name, classification=classification)  # type: ignore[arg-type]
         self.config = load_config()
         self.registry = Registry(self.config, JustfileParser())
-        self.coding_agent_runner = CodingAgentRunner(self.config, self.session_registry)
+        self.coding_agent_runner = CodingAgentRunner(
+            self.config, self.session_registry, self.activity_store
+        )
         self.repos, self.commands = self.registry.load()
 
-        registered = next((repo for repo in self.repos if Path(repo.path).resolve() == repo_path), None)
+        registered = next(
+            (repo for repo in self.repos if Path(repo.path).resolve() == repo_path), None
+        )
         if registered is None:
             raise RuntimeError(f"Repo registration completed but repo was not loaded: {repo_path}")
         return registered
+
+    def get_coding_agent_activity(self) -> CodingAgentActivitySnapshot | None:
+        return self.activity_store.get_current()
+
+    def review_usage(self) -> tuple[str, str]:
+        bundle, path = self.usage_review_service.build_and_write_bundle()
+        lines = [
+            f"Bundle: {path}",
+            f"Window: {bundle.window_summary}",
+            f"Conversation id: {bundle.conversation_id or 'unknown'}",
+            f"Activity entries: {len(bundle.activity_entries)}",
+        ]
+        if bundle.activity_log_refs:
+            lines.append("Activity logs:")
+            lines.extend(f"- {item}" for item in bundle.activity_log_refs)
+        if bundle.notes:
+            lines.append("Notes:")
+            lines.extend(f"- {item}" for item in bundle.notes)
+        return "\n".join(lines), str(path)
+
+    def run_adapter_change(self, repo: RepoRecord, request: str) -> str:
+        prompt = self._build_adapter_change_request(repo, request)
+        result = self.coding_agent_runner.run_code_change(
+            self._self_repo_record(),
+            prompt,
+            target_kind="adapter",
+        )
+        return self._format_coding_agent_result(result)
+
+    def _self_repo_record(self) -> RepoRecord:
+        return RepoRecord(
+            repo_id="youbot",
+            name="youbot",
+            path=str(REPO_ROOT),
+            classification="managed",
+            status="ready",
+            purpose_summary="Repo-first conversational TUI orchestrator.",
+        )
+
+    def _build_adapter_change_request(self, repo: RepoRecord, request: str) -> str:
+        adapter_path = self.adapter_loader.metadata_path(repo.repo_id)
+        return (
+            "You are editing the youbot-owned adapter/view layer.\n\n"
+            f"Target integrated repo: {repo.repo_id}\n"
+            f"Child repo path: {repo.path}\n"
+            f"Adapter metadata path: {adapter_path}\n"
+            f"Youbot repo path: {REPO_ROOT}\n\n"
+            "Default behavior:\n"
+            "- Edit the youbot adapter/view behavior for this repo.\n"
+            "- Do not edit the child repo unless the request explicitly requires "
+            "child-repo changes.\n"
+            "- Prefer adapter metadata or youbot UI/rendering code changes when possible.\n"
+            "- Keep the selected-repo workspace reloadable after the change.\n\n"
+            f"Requested change:\n{request}"
+        )
+
+    def _maybe_handle_builtin_command(self, user_message: str) -> ProcessedMessage | None:
+        lowered = user_message.strip().lower()
+        if lowered != "/review-usage":
+            return None
+        summary, _bundle_path = self.review_usage()
+        body = (
+            f"Generated a usage review bundle for this installation.\n\n{summary}\n\n"
+            "Use this bundle when working on the youbot repo so coding changes can "
+            "be informed by real usage."
+        )
+        return ProcessedMessage("Usage review", body, self.active_repo_id)
 
     def _resolve_overview_section(
         self,
@@ -275,17 +396,41 @@ class AppController:
         spec: OverviewSectionSpec,
         label: str,
     ):
-        if repo_id == "job_search" and spec.command_name == "pipeline-status" and isinstance(payload, dict):
+        if (
+            repo_id == "job_search"
+            and spec.command_name == "pipeline-status"
+            and isinstance(payload, dict)
+        ):
             return self._render_job_search_pipeline(payload, label)
-        if repo_id == "job_search" and spec.command_name == "next-actions" and isinstance(payload, dict):
+        if (
+            repo_id == "job_search"
+            and spec.command_name == "next-actions"
+            and isinstance(payload, dict)
+        ):
             return self._render_checklist(payload.get("items", []), label, max_items=6)
-        if repo_id == "job_search" and spec.command_name == "active-openings" and isinstance(payload, dict):
+        if (
+            repo_id == "job_search"
+            and spec.command_name == "active-openings"
+            and isinstance(payload, dict)
+        ):
             return self._render_job_search_openings(payload, label)
-        if repo_id == "life_admin" and spec.command_name == "task-digest" and isinstance(payload, dict):
+        if (
+            repo_id == "life_admin"
+            and spec.command_name == "task-digest"
+            and isinstance(payload, dict)
+        ):
             return self._render_life_admin_digest(payload, label)
-        if repo_id == "life_admin" and spec.command_name == "task-list" and isinstance(payload, dict):
+        if (
+            repo_id == "life_admin"
+            and spec.command_name == "task-list"
+            and isinstance(payload, dict)
+        ):
             return self._render_task_list(payload.get("tasks", []), label, max_items=5)
-        if repo_id == "trader-bot" and spec.command_name == "research-findings" and isinstance(payload, str):
+        if (
+            repo_id == "trader-bot"
+            and spec.command_name == "research-findings"
+            and isinstance(payload, str)
+        ):
             return Text(payload)
         return Text(self._limit_lines(str(payload), max_lines=spec.max_lines))
 
@@ -369,7 +514,9 @@ class AppController:
         table.add_column("Priority")
         table.add_column("Status")
         for task in tasks[:max_items]:
-            table.add_row(task.get("title", ""), str(task.get("priority", "")), str(task.get("status", "")))
+            table.add_row(
+                task.get("title", ""), str(task.get("priority", "")), str(task.get("status", ""))
+            )
         return table
 
     def _render_overview_result(
@@ -381,7 +528,9 @@ class AppController:
     ) -> Panel:
         title = spec.title or "Overview"
         if result.exit_code != 0:
-            preview_error = result.stderr.strip() or result.stdout.strip() or "Preview command failed."
+            preview_error = (
+                result.stderr.strip() or result.stdout.strip() or "Preview command failed."
+            )
             return Panel(
                 Text(f"Preview unavailable.\n{self._limit_lines(preview_error, max_lines=8)}"),
                 title=title,
@@ -432,7 +581,10 @@ class AppController:
             if len(directions) >= max_lines:
                 break
 
-        summary = Text(goal or "Active market research directions extracted from the current program.", style="italic")
+        summary = Text(
+            goal or "Active market research directions extracted from the current program.",
+            style="italic",
+        )
         table = Table(expand=True, box=None, show_header=True)
         table.add_column("Direction", style="bold")
         table.add_column("Markets")
@@ -507,7 +659,9 @@ class AppController:
                 None,
             )
             if command is None:
-                return {"error": f"Unknown command {arguments['command_name']} for repo {repo.repo_id}"}
+                return {
+                    "error": f"Unknown command {arguments['command_name']} for repo {repo.repo_id}"
+                }
             result = self.executor.run(repo, command, arguments.get("arguments", []))
             return {
                 "repo_id": repo.repo_id,
@@ -524,6 +678,26 @@ class AppController:
             result = self.coding_agent_runner.run_code_change(repo, arguments["request"])
             return {
                 "repo_id": repo.repo_id,
+                "target_kind": result.target_kind,
+                "backend": result.backend_name,
+                "session_id": result.session_id,
+                "exit_code": result.exit_code,
+                "stdout_preview": result.stdout[:2000],
+                "stderr_preview": result.stderr[:2000],
+            }
+
+        if name == "run_adapter_change":
+            repo = self.get_repo(arguments["repo_id"])
+            if repo is None:
+                return {"error": f"Unknown repo {arguments['repo_id']}"}
+            result = self.coding_agent_runner.run_code_change(
+                self._self_repo_record(),
+                self._build_adapter_change_request(repo, arguments["request"]),
+                target_kind="adapter",
+            )
+            return {
+                "repo_id": repo.repo_id,
+                "target_kind": result.target_kind,
                 "backend": result.backend_name,
                 "session_id": result.session_id,
                 "exit_code": result.exit_code,

@@ -13,6 +13,7 @@ This document defines the user-editable configuration for youbot. It should be p
 - Repo metadata that is learned or cached over time belongs in state, not in config.
 - Backend-native coding-agent session ids belong in state, not in config.
 - Primary chat credentials belong in environment variables, not in config.
+- Developer review artifacts and usage bundles belong in state, not in config.
 
 ## Config location
 

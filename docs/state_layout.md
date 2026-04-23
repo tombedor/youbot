@@ -29,6 +29,9 @@ Suggested layout:
     history.json
   coding_agent_sessions/
     sessions.json
+  activity/
+    coding_agent_current.json
+    coding_agent_events.jsonl
   adapters/
     metadata/
       job_search.json
@@ -41,6 +44,9 @@ Suggested layout:
   runs/
     commands.jsonl
     coding_agents.jsonl
+  reviews/
+    latest.json
+    bundles/
 ```
 
 This is a recommended v1 shape. The important constraint is consistency, not the exact filenames.
@@ -127,6 +133,33 @@ Contents may include:
 
 This registry stores continuation handles for automation-compatible runs, such as a Codex non-interactive session id that can later be resumed via backend-native commands like `codex exec resume <UUID>`.
 
+## Live activity files
+
+### `activity/coding_agent_current.json`
+
+Stores the current or most recent coding-agent activity snapshot for live UI rendering.
+
+Contents may include:
+- run id
+- target repo id
+- target kind (`repo` or `adapter`)
+- backend name
+- request summary
+- session id
+- status
+- recent streamed entries
+
+### `activity/coding_agent_events.jsonl`
+
+Append-only record of coding-agent activity events.
+
+Each line may contain:
+- run id
+- event kind such as `started`, `output`, `session_id`, or `finished`
+- stream name for output events
+- content
+- timestamp
+
 ## Adapter files
 
 ### `adapters/metadata/<repo_id>.json`
@@ -193,6 +226,34 @@ Each line should contain:
 
 These logs are useful for debugging and auditing, but they are not the primary source of truth for sessions.
 
+## Review artifacts
+
+### `reviews/latest.json`
+
+Stores a pointer or lightweight summary for the most recent developer usage review.
+
+Contents may include:
+- bundle id
+- created timestamp
+- bundle path
+- window summary
+
+### `reviews/bundles/<bundle_id>.json`
+
+Stores a bounded usage-review bundle for developer analysis of the `youbot` repo.
+
+Contents may include:
+- source state root
+- reviewed time window summary
+- recent conversation messages
+- recent command-run records
+- recent coding-agent-run records
+- recent activity entries
+- references to any live activity log files that were included
+- summarization notes or trimming markers
+
+These bundles are derived artifacts. They are intended to help the `youbot` coding agent review how the tool has been used without treating the full raw state as implicit background context for every coding session.
+
 ## Data ownership rules
 
 - Config is user-owned input.
@@ -201,6 +262,7 @@ These logs are useful for debugging and auditing, but they are not the primary s
 - Coding-agent session registry is the source of truth for backend-native continuation handles.
 - Adapter files are the source of truth for TUI rendering hints.
 - Run logs are append-only operational history.
+- Review bundles are derived developer-facing artifacts, not source-of-truth state.
 
 ## Format choices
 

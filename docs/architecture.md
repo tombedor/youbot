@@ -137,8 +137,8 @@ Key rule:
 
 Responsibilities:
 - Render the conversation pane
-- Render repo list/status sidebar
-- Render a selected-repo overview workspace with a preview of current repo data
+- Render a dismissable repo list/status sidebar
+- Render a single selected-repo overview panel with a preview of current repo data only when a repo is active
 - Manage repo focus and screen switching
 - Expose global and repo-scoped command palette actions
 - Display execution results and structured views
@@ -333,10 +333,11 @@ Fallback behavior:
 ### 5. Repo selection and overview workspace
 
 1. User selects a repo in the sidebar.
-2. TUI sets active repo focus immediately and renders a loading state for the repo workspace.
+2. TUI sets active repo focus immediately and renders a loading state in the single repo panel.
 3. Controller builds a repo-specific overview using adapter metadata, coding-agent session state, and the adapter's overview sections.
-4. Overview section commands run in the repo and return concise summaries for the selected-repo panel, preferring structured JSON output when available.
-5. The TUI updates the repo workspace while keeping the main conversation available.
+4. Overview section commands run in the repo and return concise summaries for the active repo panel, preferring structured JSON output when available.
+5. The TUI updates the repo panel while keeping the main conversation available.
+6. If no repo is active, the repo panel is not rendered.
 
 ## Error handling
 

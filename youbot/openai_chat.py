@@ -8,17 +8,20 @@ from openai import OpenAI
 
 from youbot.models import CommandRecord, RepoRecord
 
-
 INSTRUCTIONS = """
 You are the primary orchestrator for Youbot.
 
 Use tool calls to inspect repos and execute actions.
 Prefer tool calls over guessing.
 Keep user-facing answers concise and practical.
-When a repo is selected in the UI, treat it as the default focus but do not ignore the user's explicit repo mentions.
+When a repo is selected in the UI, treat it as the default focus but do not ignore
+the user's explicit repo mentions.
 Do not expose raw backend transcript details unless the user asks for them.
 For command execution, summarize the result rather than repeating entire logs verbatim.
-For code changes, use the coding-agent tool and summarize what was attempted, the session id, and whether it succeeded.
+For code changes, use the coding-agent tool and summarize what was attempted, the
+session id, and whether it succeeded.
+When a request is about how a repo appears inside youbot's UI, use the adapter-change
+tool instead of editing the child repo.
 """
 
 
@@ -56,7 +59,9 @@ class OpenAIChatOrchestrator:
         )
 
         while True:
-            function_calls = [item for item in response.output if getattr(item, "type", None) == "function_call"]
+            function_calls = [
+                item for item in response.output if getattr(item, "type", None) == "function_call"
+            ]
             if not function_calls:
                 return response.output_text or "No response generated.", response.id
 
@@ -92,7 +97,9 @@ class OpenAIChatOrchestrator:
         commands: dict[str, list[CommandRecord]],
     ) -> list[dict[str, Any]]:
         repo_ids = [repo.repo_id for repo in repos]
-        all_commands = sorted({command.command_name for items in commands.values() for command in items})
+        all_commands = sorted(
+            {command.command_name for items in commands.values() for command in items}
+        )
         return [
             {
                 "type": "function",
@@ -103,7 +110,9 @@ class OpenAIChatOrchestrator:
             {
                 "type": "function",
                 "name": "get_repo_overview",
-                "description": "Get metadata, adapter state, and coding-agent session info for a repo.",
+                "description": (
+                    "Get metadata, adapter state, and coding-agent session info for a repo."
+                ),
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -148,7 +157,27 @@ class OpenAIChatOrchestrator:
             {
                 "type": "function",
                 "name": "run_code_change",
-                "description": "Run a code-change request in a repo through the configured non-interactive coding-agent backend.",
+                "description": (
+                    "Run a code-change request in a repo through the configured "
+                    "non-interactive coding-agent backend."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "repo_id": {"type": "string", "enum": repo_ids},
+                        "request": {"type": "string"},
+                    },
+                    "required": ["repo_id", "request"],
+                    "additionalProperties": False,
+                },
+            },
+            {
+                "type": "function",
+                "name": "run_adapter_change",
+                "description": (
+                    "Update the youbot-owned adapter/view for how a repo is presented "
+                    "in the selected-repo workspace."
+                ),
                 "parameters": {
                     "type": "object",
                     "properties": {
