@@ -1,4 +1,4 @@
-# ADR 006: Module Boundaries For Controller And TUI
+# ADR 006: Package Boundaries For Controller And TUI
 
 ## Status
 
@@ -12,39 +12,54 @@ That shape made the code harder to navigate and weakened the new structural lint
 
 ## Decision
 
-Youbot will keep a thin top-level orchestrator and TUI shell, while moving secondary responsibilities into focused helper modules.
+Youbot will keep a thin top-level orchestrator and TUI shell, while organizing related implementation into focused subpackages.
 
-The module split is:
+The package split is:
 
-- `controller.py`
+- `core/controller.py`
   - owns the application-facing orchestration flow
   - coordinates stores, router, executor, coding-agent runner, and OpenAI chat
-- `repo_view.py`
+- `tui/repo_view.py`
   - owns selected-repo overview rendering and overview-command presentation
-- `tool_handler.py`
+- `chat/tool_handler.py`
   - owns OpenAI tool-call dispatch for repo inspection, command execution, and code-change actions
-- `adapter_change.py`
+- `adapters/change.py`
   - owns construction of adapter-change prompts and the synthetic `youbot` repo target used for adapter edits
-- `app.py`
+- `tui/app.py`
   - owns Textual event wiring and widget lifecycle
-- `tui_layout.py`
+- `tui/layout.py`
   - owns the static Textual CSS shell
-- `tui_rendering.py`
+- `tui/rendering.py`
   - owns reusable render helpers for repo and activity panels
-- `openai_tools.py`
+- `chat/openai_tools.py`
   - owns tool schema construction for the OpenAI Responses API
-- `adapter_defaults.py`
+- `adapters/defaults.py`
   - owns generated default overview-section and quick-action templates
-- `adapter_generation.py`
+- `adapters/generation.py`
   - owns adapter inference and generated-note writing used during onboarding and refresh
-- `routing_rules.py`
+- `routing/rules.py`
   - owns fallback routing heuristics, keyword tables, and argument inference
-- `coding_agent_backend.py`
+- `agents/backend.py`
   - owns backend-specific invocation construction and session-id extraction
-- `coding_agent_process.py`
+- `agents/process.py`
   - owns subprocess launch and streamed output collection for coding-agent runs
-- `coding_agent_logs.py`
+- `agents/logs.py`
   - owns append-only run-log persistence for coding-agent executions
+
+Supporting packages:
+
+- `adapters/`
+  - adapter loading, defaults, generation, and adapter-targeted edit prompts
+- `agents/`
+  - coding-agent activity, backend details, process handling, sessions, and runner orchestration
+- `chat/`
+  - OpenAI chat orchestration and tool schema/dispatch support
+- `routing/`
+  - fallback router and routing heuristics
+- `state/`
+  - persisted youbot-owned stores and state-derived services
+- `tui/`
+  - Textual shell, layout, render helpers, and repo-view rendering
 
 ## Consequences
 

@@ -10,7 +10,9 @@ This document defines observable behaviors that must hold true for the implement
 - Given a configured repo path without a `justfile`, startup marks the repo invalid and does not expose it as ready for use.
 - Given a repo with multiple `just` recipes, the parser stores each recipe as a separate command record.
 - Given a previously scanned repo, rescanning updates the stored command inventory rather than duplicating it.
-- Given a user adds a repo through the onboarding flow, the repo is persisted into config and appears in the next registry load without manual config editing.
+- Given a user initiates onboarding for a new repo, youbot generates initial metadata (purpose summary, show command, overview sections) and presents it for user review before writing anything to config.
+- Given generated onboarding metadata, the user can approve, reject, or iterate on it; config is only updated after approval.
+- Given a user adds a repo through the onboarding flow and approves the metadata, the repo is persisted into config and appears in the next registry load without manual config editing.
 
 ## Conversation and coding-agent continuation
 

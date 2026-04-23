@@ -12,6 +12,7 @@ check-sizes:
 
 lint:
     uv run ruff check .
+    uv run mypy youbot tests scripts
     just check-sizes
 
 test:

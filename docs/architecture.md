@@ -183,9 +183,9 @@ Key rule:
 - The TUI is a consumer of registry, conversation state, routing, and adapters. It should not own business logic.
 
 Implementation notes:
-- `app.py` should remain the thin Textual shell for event wiring and widget lifecycle.
-- Selected-repo overview rendering belongs in a dedicated repo-view module rather than in the controller itself.
-- Reusable panel rendering and static CSS should live outside the TUI shell module.
+- `tui/app.py` should remain the thin Textual shell for event wiring and widget lifecycle.
+- Selected-repo overview rendering belongs in `tui/repo_view.py` rather than in the controller itself.
+- Reusable panel rendering and static CSS should live outside the TUI shell module, such as `tui/rendering.py` and `tui/layout.py`.
 
 ## Persistence model
 
@@ -334,13 +334,14 @@ sequenceDiagram
 
 1. User adds a repo path.
 2. Controller normalizes repo id, name, and classification for registration.
-3. Config is updated so the repo is part of the persistent configured set.
-4. Registry validates presence of `justfile`.
-5. `justfile_parser` discovers commands.
-6. Registry stores repo metadata and initial command inventory.
-7. Adapter loader generates or refreshes local adapter metadata and generated adapter artifacts.
-8. Adapter metadata captures the initial overview sections and rendering hints.
-9. Repo becomes available in the TUI and CLI without manual config editing.
+3. Registry validates presence of `justfile`.
+4. `justfile_parser` discovers commands.
+5. Youbot generates initial repo metadata: purpose summary, recommended show command, and suggested overview sections.
+6. Youbot presents the generated metadata to the user for review. The user can approve, reject, or iterate on the metadata before it is persisted.
+7. On approval, config is updated so the repo is part of the persistent configured set and registry stores the confirmed metadata and command inventory.
+8. Adapter loader generates or refreshes local adapter metadata and generated adapter artifacts.
+9. Adapter metadata captures the initial overview sections and rendering hints.
+10. Repo becomes available in the TUI and CLI without manual config editing.
 
 ### 2. Startup and restore state
 
@@ -414,31 +415,56 @@ Initial error-handling rules:
 
 ## Recommended package layout
 
-One reasonable initial package shape is:
+The current implementation uses a responsibility-based package layout:
 
 ```text
 youbot/
   __init__.py
-  app.py
+  cli.py
   config.py
-  registry.py
-  conversation_store.py
-  routing_trace.py
-  coding_agent_sessions.py
-  justfile_parser.py
-  router.py
-  executor.py
-  coding_agent_runner.py
+  utils.py
+  core/
+    __init__.py
+    controller.py
+    executor.py
+    models.py
+    scaffold.py
+    scheduler.py
+  state/
+    __init__.py
+    conversation_store.py
+    justfile_parser.py
+    registry.py
+    usage_review.py
   adapters/
     __init__.py
+    change.py
+    defaults.py
+    generation.py
     loader.py
-    models.py
+  agents/
+    __init__.py
+    activity.py
+    backend.py
+    logs.py
+    process.py
+    runner.py
+    sessions.py
+  chat/
+    __init__.py
+    openai_chat.py
+    openai_tools.py
+    tool_handler.py
+  routing/
+    __init__.py
+    router.py
+    rules.py
   tui/
     __init__.py
     app.py
-    screens.py
-    widgets.py
-    command_palette.py
+    layout.py
+    rendering.py
+    repo_view.py
 ```
 
 This layout is not mandatory, but the separation of concerns is.

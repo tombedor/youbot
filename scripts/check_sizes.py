@@ -40,7 +40,8 @@ class FunctionCollector(ast.NodeVisitor):
 
     def _record_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         qualname = ".".join([*self._stack, node.name]) if self._stack else node.name
-        size = node.end_lineno - node.lineno + 1
+        end = node.end_lineno if node.end_lineno is not None else node.lineno
+        size = end - node.lineno + 1
         self.violations.append(
             Violation(
                 path="",

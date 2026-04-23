@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from youbot.models import CodingAgentBackend, CodingBackendName, RepoClassification
+from youbot.core.models import CodingAgentBackend, CodingBackendName, RepoClassification
 from youbot.utils import atomic_write, ensure_dir
 
 DEFAULT_STATE_ROOT = Path.home() / ".youbot"
@@ -112,14 +112,16 @@ def load_config() -> AppConfig:
         )
         for item in payload["scheduler"]["jobs"]
     ]
-    backends = {
-        name: CodingAgentBackend(
-            backend_name=name,  # type: ignore[arg-type]
-            command_prefix=backend_payload["command_prefix"],
-            default_args=backend_payload.get("default_args", []),
+    backends: dict[CodingBackendName, CodingAgentBackend] = {}
+    for _backend_name, _backend_payload in payload["coding_agent"]["backends"].items():
+        if _backend_name not in ("claude_code", "codex"):
+            continue
+        typed_name: CodingBackendName = _backend_name
+        backends[typed_name] = CodingAgentBackend(
+            backend_name=typed_name,
+            command_prefix=_backend_payload["command_prefix"],
+            default_args=_backend_payload.get("default_args", []),
         )
-        for name, backend_payload in payload["coding_agent"]["backends"].items()
-    }
     return AppConfig(
         repos=repos,
         scheduler_enabled=payload["scheduler"]["enabled"],

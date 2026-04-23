@@ -4,47 +4,39 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
 from rich.panel import Panel
 
 from youbot import cli, config
-from youbot.coding_agent_activity import CodingAgentActivityStore
-from youbot.controller import AppController
-from youbot.models import (
+from youbot.agents.activity import CodingAgentActivityStore
+from youbot.core.controller import AppController
+from youbot.core.models import (
     CodingAgentActivityEntry,
     CodingAgentActivitySnapshot,
     CodingAgentResult,
     ConversationRecord,
     RepoRecord,
 )
-from youbot.router import Router
-from youbot.usage_review import UsageReviewService
+from youbot.routing.router import Router
+from youbot.state.usage_review import UsageReviewService
 from youbot.utils import ensure_dir
 
 
-def test_usage_review_builds_bundle_from_state(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
+def _write_usage_review_fixtures(tmp_path: Path) -> None:
     ensure_dir(tmp_path / "conversation")
     ensure_dir(tmp_path / "runs")
     ensure_dir(tmp_path / "activity")
+    ts0 = "2026-01-01T00:00:00Z"
+    ts1 = "2026-01-01T00:00:01Z"
     (tmp_path / "conversation" / "history.json").write_text(
         json.dumps(
             {
                 "conversation_id": "conv-1",
                 "messages": [
-                    {
-                        "message_id": "m1",
-                        "role": "user",
-                        "content": "hello",
-                        "created_at": "2026-01-01T00:00:00Z",
-                    },
-                    {
-                        "message_id": "m2",
-                        "role": "assistant",
-                        "content": "hi",
-                        "created_at": "2026-01-01T00:00:01Z",
-                    },
+                    {"message_id": "m1", "role": "user", "content": "hello", "created_at": ts0},
+                    {"message_id": "m2", "role": "assistant", "content": "hi", "created_at": ts1},
                 ],
-                "updated_at": "2026-01-01T00:00:01Z",
+                "updated_at": ts1,
                 "last_response_id": "resp_123",
             }
         )
@@ -84,12 +76,19 @@ def test_usage_review_builds_bundle_from_state(tmp_path: Path, monkeypatch) -> N
                 "target_kind": "adapter",
                 "request_summary": "update adapter",
                 "session_id": None,
-                "started_at": "2026-01-01T00:00:00Z",
-                "updated_at": "2026-01-01T00:00:01Z",
+                "started_at": ts0,
+                "updated_at": ts1,
                 "entries": [],
             }
         )
     )
+
+
+def test_usage_review_builds_bundle_from_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
+    _write_usage_review_fixtures(tmp_path)
 
     service = UsageReviewService()
     bundle, bundle_path = service.build_and_write_bundle()
@@ -131,7 +130,7 @@ def test_router_prefers_adapter_change_for_view_requests() -> None:
     assert decision.repo_id == "life_admin"
 
 
-def test_activity_store_records_lifecycle(tmp_path: Path, monkeypatch) -> None:
+def test_activity_store_records_lifecycle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
     store = CodingAgentActivityStore()
 
@@ -157,7 +156,9 @@ def test_activity_store_records_lifecycle(tmp_path: Path, monkeypatch) -> None:
     assert store.get_current() is not None
 
 
-def test_controller_builtin_review_usage_records_assistant(tmp_path: Path, monkeypatch) -> None:
+def test_controller_builtin_review_usage_records_assistant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
     controller = AppController()
 
@@ -169,7 +170,9 @@ def test_controller_builtin_review_usage_records_assistant(tmp_path: Path, monke
     assert conversation.messages[-1].role == "assistant"
 
 
-def test_controller_run_adapter_change_targets_youbot_repo(tmp_path: Path, monkeypatch) -> None:
+def test_controller_run_adapter_change_targets_youbot_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
     controller = AppController()
     captured: dict[str, object] = {}
@@ -188,7 +191,7 @@ def test_controller_run_adapter_change_targets_youbot_repo(tmp_path: Path, monke
         return CodingAgentResult(
             repo_id=repo.repo_id,
             backend_name="codex",
-            target_kind=target_kind,
+            target_kind="adapter",
             exit_code=0,
             stdout="ok",
             stderr="",
@@ -221,7 +224,9 @@ def test_controller_run_adapter_change_targets_youbot_repo(tmp_path: Path, monke
     assert "Target: adapter" in body
 
 
-def test_cli_review_usage_outputs_bundle_json(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_cli_review_usage_outputs_bundle_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
 
     class FakeController:
@@ -238,11 +243,13 @@ def test_cli_review_usage_outputs_bundle_json(tmp_path: Path, monkeypatch, capsy
     assert payload["bundle_path"] == "/tmp/bundle.json"
 
 
-def test_activity_panel_formatter_includes_recent_entries(monkeypatch) -> None:
-    from youbot import app as app_module
+def test_activity_panel_formatter_includes_recent_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from youbot.tui import app as app_module
 
     class FakeController:
-        def get_coding_agent_activity(self):  # pragma: no cover - unused in this test
+        def get_coding_agent_activity(self) -> None:
             return None
 
     monkeypatch.setattr(app_module, "AppController", FakeController)

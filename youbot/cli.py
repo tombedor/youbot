@@ -4,8 +4,8 @@ import argparse
 import json
 from dataclasses import asdict
 
-from youbot.app import YoubotApp
-from youbot.controller import AppController
+from youbot.core.controller import AppController
+from youbot.tui.app import YoubotApp
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -62,16 +62,16 @@ def main() -> None:
 
     if args.command == "run-scheduled":
         controller = AppController()
-        results = controller.run_scheduled_jobs()
-        payload = [
+        scheduled_results = controller.run_scheduled_jobs()
+        scheduled_payload = [
             {
-                "repo_id": result.repo_id,
-                "command_name": result.command_name,
-                "exit_code": result.exit_code,
+                "repo_id": r.repo_id,
+                "command_name": r.command_name,
+                "exit_code": r.exit_code,
             }
-            for result in results
+            for r in scheduled_results
         ]
-        print(json.dumps(payload, indent=2))
+        print(json.dumps(scheduled_payload, indent=2))
         return
 
     if args.command == "review-usage":
