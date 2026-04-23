@@ -94,12 +94,14 @@ Includes:
 - OpenAI Responses API integration
 - tool definition and tool execution loop
 - concise final answer generation
+- routing-trace production for in-flight decision visibility
 - fallback behavior for low confidence or unavailable API
 
 Done when:
 - a natural-language request selects the correct repo in common cases
 - command requests execute without manual command selection
 - low-confidence routes surface a clarification path instead of guessing blindly
+- the UI can surface a per-turn routing trace that distinguishes completed, current, and pending steps
 
 Non-goals:
 - code-change flow
@@ -164,7 +166,7 @@ Goal:
 Includes:
 - scaffold generation
 - required docs
-- `pyproject.toml`
+- language-appropriate toolchain manifest
 - baseline `justfile`
 
 Done when:

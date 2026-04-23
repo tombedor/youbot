@@ -1,56 +1,14 @@
 from __future__ import annotations
 
-import re
-
 from youbot.models import CommandRecord, ConversationRecord, RepoRecord, RouteDecision
-
-TOKEN_RE = re.compile(r"[a-z0-9_-]+")
-CODE_CHANGE_WORDS = ("add ", "update ", "create ", "change ", "implement ", "edit ")
-ADAPTER_UI_TOKENS = (
-    "view",
-    "workspace",
-    "panel",
-    "layout",
-    "render",
-    "rendering",
-    "adapter",
-    "quick action",
-    "header",
-    "display",
-    "sort visible",
-    "filter visible",
-    "inside youbot",
-    "in youbot",
+from youbot.routing_rules import (
+    CODE_CHANGE_WORDS,
+    desired_fallback_command,
+    infer_arguments,
+    looks_like_adapter_change,
+    select_command,
+    select_repo,
 )
-ADAPTER_CHANGE_TOKENS = ("change", "update", "edit", "make", "show", "reorder", "move", "hide")
-REPO_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "life_admin": ("task", "calendar", "linear"),
-    "job_search": ("job", "pipeline", "resume", "opening", "apply", "netflix", "cursor"),
-    "trader-bot": ("trade", "market", "spotify", "nfl", "research", "position"),
-}
-REPO_FALLBACK_COMMANDS: dict[str, tuple[tuple[str, ...], str]] = {
-    "life_admin": (
-        ("task", "task-list"),
-        ("calendar", "cal-today"),
-        ("agenda", "cal-today"),
-        ("today", "cal-today"),
-    ),
-    "job_search": (
-        ("pipeline", "pipeline-status"),
-        ("status", "pipeline-status"),
-        ("next", "next-actions"),
-        ("action", "next-actions"),
-        ("openings", "active-openings"),
-        ("jobs", "active-openings"),
-        ("roles", "active-openings"),
-    ),
-    "trader-bot": (
-        ("program", "research-program"),
-        ("findings", "research-findings"),
-        ("strategies", "research-findings"),
-        ("datasets", "list-datasets"),
-    ),
-}
 
 
 class Router:
@@ -64,7 +22,7 @@ class Router:
     ) -> RouteDecision:
         _ = conversation
         lowered = user_message.lower()
-        repo_id = active_repo_id or self._select_repo(lowered, repos)
+        repo_id = active_repo_id or select_repo(lowered, repos)
         explicit_code = self._explicit_code_change(user_message, lowered, repo_id)
         if explicit_code is not None:
             return explicit_code
@@ -120,7 +78,7 @@ class Router:
         lowered: str,
         repo_id: str | None,
     ) -> RouteDecision | None:
-        if not self._looks_like_adapter_change(lowered):
+        if not looks_like_adapter_change(lowered):
             return None
         return self._decision(
             repo_id,
@@ -140,7 +98,7 @@ class Router:
         reasoning = None
         confidence = 0.8
         if command is None:
-            command = self._select_command(lowered, commands)
+            command = select_command(lowered, commands)
             reasoning = None if command is None else f"Matched command {command.command_name}."
             confidence = 0.9
         else:
@@ -151,7 +109,7 @@ class Router:
             repo_id,
             "command",
             command_name=command.command_name,
-            arguments=self._infer_arguments(command.command_name, lowered),
+            arguments=infer_arguments(command.command_name, lowered),
             reasoning_summary=reasoning,
             confidence=confidence,
         )
@@ -175,54 +133,13 @@ class Router:
             confidence=confidence,
         )
 
-    def _select_repo(self, lowered: str, repos: list[RepoRecord]) -> str | None:
-        for repo in repos:
-            if repo.repo_id.replace("_", "-") in lowered or repo.name.replace("_", "-") in lowered:
-                return repo.repo_id
-        for repo_id, keywords in REPO_KEYWORDS.items():
-            if any(word in lowered for word in keywords):
-                return repo_id
-        return None
-
-    def _select_command(self, lowered: str, commands: list[CommandRecord]) -> CommandRecord | None:
-        normalized_words = set(TOKEN_RE.findall(lowered))
-        for command in commands:
-            command_tokens = set(command.command_name.replace("-", "_").split("_"))
-            if command.command_name in lowered or command_tokens <= normalized_words:
-                return command
-        return None
-
     def _fallback_command(
         self, repo_id: str, lowered: str, commands: list[CommandRecord]
     ) -> CommandRecord | None:
-        desired = self._desired_fallback_command(repo_id, lowered)
+        desired = desired_fallback_command(repo_id, lowered)
         if desired is None:
             return None
         for command in commands:
             if command.command_name == desired:
                 return command
         return None
-
-    def _desired_fallback_command(self, repo_id: str, lowered: str) -> str | None:
-        for token, command_name in REPO_FALLBACK_COMMANDS.get(repo_id, ()):
-            if token in lowered:
-                return command_name
-        return None
-
-    def _infer_arguments(self, command_name: str, lowered: str) -> list[str]:
-        if command_name == "task-list":
-            match = re.search(r"\b(\d+)\b", lowered)
-            return [match.group(1)] if match is not None else ["20"]
-        if command_name == "search-action-items":
-            tokens = [
-                token
-                for token in TOKEN_RE.findall(lowered)
-                if token not in {"search", "action", "items"}
-            ]
-            return [" ".join(tokens)] if tokens else [lowered]
-        return []
-
-    def _looks_like_adapter_change(self, lowered: str) -> bool:
-        return any(token in lowered for token in ADAPTER_UI_TOKENS) and any(
-            token in lowered for token in ADAPTER_CHANGE_TOKENS
-        )

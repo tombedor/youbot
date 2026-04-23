@@ -35,6 +35,9 @@ This document defines observable behaviors that must hold true for the implement
 - When a coding-agent run starts, the UI shows a live activity view tied to that run rather than only a final summary.
 - While a coding-agent run is in progress, incremental session/log output is visible to the user.
 - The live activity view shows at least the target, backend, and whether a coding session has started.
+- The UI can surface a routing-trace pane for the active chat turn.
+- The routing-trace pane shows which routing/orchestration steps have completed, which step is currently running, and which anticipated decisions or branches remain pending.
+- If a routed turn fails mid-flight, the last available routing trace remains inspectable rather than disappearing.
 
 ## Command execution
 
@@ -58,6 +61,7 @@ This document defines observable behaviors that must hold true for the implement
 - Given a prompt that maps to an existing discovered command, the router returns `action_type = "command"`.
 - Given an ambiguous prompt with low confidence, the system requests clarification instead of executing an arbitrary command.
 - The router receives recent conversation history and repo metadata as part of its decision context.
+- The router or primary orchestrator produces a structured routing trace for the turn that the UI can render as a decision tree.
 
 ## Code-change flow
 
@@ -78,13 +82,13 @@ This document defines observable behaviors that must hold true for the implement
 - Repo onboarding generates selected-repo overview sections in adapter metadata when they can be inferred.
 - Repo onboarding generates recommended quick actions in adapter metadata when they can be inferred.
 - When a repo exposes JSON-capable commands, adapters may use those structured payloads to build a more ordered workspace view.
-- A repo can appear in the TUI without any child-repo Textual code.
+- A repo can appear in the TUI without any child-repo UI-framework-specific code.
 - At least one adapter can transform structured command output into a non-plain-text view.
 - Repo-specific command-palette entries only appear when that repo is active.
 
 ## Managed repos
 
-- Creating a managed repo generates `PRD.md`, `AGENTS.md`, `CAPTAINS_LOG.md`, `justfile`, and `pyproject.toml`.
+- Creating a managed repo generates `PRD.md`, `AGENTS.md`, `CAPTAINS_LOG.md`, `justfile`, and a language-appropriate toolchain manifest.
 - The generated managed repo includes `test`, `lint`, `format`, and `install` commands in its `justfile`.
 - Managed repo scaffolding follows the stricter standard even though integrated repos do not need to.
 

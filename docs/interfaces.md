@@ -6,7 +6,9 @@ This document defines the canonical internal records and service interfaces for 
 
 ## Canonical records
 
-These records may be implemented as dataclasses, Pydantic models, typed dicts, or similar typed structures. The important requirement is that the field meanings remain stable.
+These records may be implemented as dataclasses, Pydantic models, typed dicts, structs, classes, or similar typed structures. The important requirement is that the field meanings remain stable.
+
+The field blocks below use compact Python-like pseudotype notation for readability only. They define canonical fields and allowed values, not a Python-only implementation requirement.
 
 ### `RepoRecord`
 
@@ -123,6 +125,47 @@ Invariants:
 - `repo_id` may be `None` only for global actions or clarifications
 - `confidence` is normalized to `0.0 <= x <= 1.0`
 - `action_type == "adapter_change"` targets youbot-owned adapter/view behavior rather than child-repo code
+
+### `RoutingTraceStep`
+
+Represents one node in the routing/orchestration decision tree for a chat turn.
+
+```python
+step_id: str
+label: str
+status: Literal["completed", "current", "pending", "blocked", "failed"]
+step_kind: Literal["input", "routing", "tool_call", "decision", "execution", "response"]
+summary: str | None
+parent_step_id: str | None
+started_at: str | None
+finished_at: str | None
+```
+
+Invariants:
+- Steps form a tree or forest for a single chat turn
+- At most one step is `current` per trace
+- `pending` steps represent anticipated work that has not yet happened
+
+### `RoutingTraceRecord`
+
+Represents the inspectable routing/orchestration trace for one chat turn.
+
+```python
+trace_id: str
+conversation_id: str
+message_id: str
+root_step_ids: list[str]
+steps: list[RoutingTraceStep]
+status: Literal["in_progress", "completed", "failed"]
+current_step_id: str | None
+created_at: str
+updated_at: str
+```
+
+Invariants:
+- A trace belongs to exactly one user turn
+- The trace is an observability artifact, not the primary decision authority
+- A failed trace should still preserve completed steps up to the failure point
 
 ### `CodingAgentBackend`
 
@@ -301,6 +344,7 @@ Responsibilities:
 - Run the primary chat loop through the OpenAI Responses API
 - Provide tool definitions over repo metadata and execution surfaces
 - Continue provider-native conversational state with `last_response_id`
+- Emit routing-trace updates as decisions and tool calls progress
 
 Suggested method:
 
@@ -313,6 +357,7 @@ respond(
     commands: dict[str, list[CommandRecord]],
     last_response_id: str | None,
     tool_handler: Callable[[str, dict], dict],
+    trace_writer: Callable[[RoutingTraceRecord], None] | None = None,
 ) -> tuple[str, str | None]
 ```
 
@@ -346,6 +391,7 @@ parse_repo(repo: RepoRecord) -> list[CommandRecord]
 
 Responsibilities:
 - Produce a `RouteDecision` from message + context
+- Emit or update a `RoutingTraceRecord` compatible with the primary chat path
 
 Suggested methods:
 
@@ -358,6 +404,26 @@ route(
     commands: dict[str, list[CommandRecord]],
 ) -> RouteDecision
 ```
+
+### `RoutingTraceStore`
+
+Responsibilities:
+- Persist or publish the active routing trace for the current turn
+- Retain recent completed or failed traces for user inspection
+
+Suggested methods:
+
+```python
+start_trace(conversation_id: str, message_id: str) -> RoutingTraceRecord
+update_trace(trace: RoutingTraceRecord) -> None
+get_trace(trace_id: str) -> RoutingTraceRecord | None
+get_latest_trace(conversation_id: str) -> RoutingTraceRecord | None
+```
+
+Behavioral rules:
+- The store must support in-progress updates while a turn is running
+- The store should preserve failed traces rather than dropping them on error
+- The store may keep only a bounded recent history if storage pressure matters
 
 ### `Executor`
 
@@ -437,6 +503,7 @@ refresh(repo: RepoRecord, commands: list[CommandRecord]) -> AdapterRecord
 - The registry owns repo and command metadata.
 - The conversation store owns youbot conversation history.
 - The coding-agent session registry owns backend-native session references.
+- The routing-trace store owns inspectable per-turn routing/orchestration traces.
 - The adapter loader owns adapter definitions and rendering hints.
 - The executor owns subprocess execution details.
 - The coding-agent runner owns backend selection and backend-specific invocation details.

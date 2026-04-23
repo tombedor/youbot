@@ -1,24 +1,16 @@
 from __future__ import annotations
 
-import json
-import re
-import subprocess
 import time
 from dataclasses import dataclass
-from threading import Thread
 
 from youbot.coding_agent_activity import CodingAgentActivityStore
+from youbot.coding_agent_backend import build_invocation, extract_session_id
+from youbot.coding_agent_logs import append_run_log
+from youbot.coding_agent_process import launch_process, wait_for_process
 from youbot.coding_agent_sessions import CodingAgentSessionRegistry
 from youbot.config import AppConfig
-from youbot.models import (
-    CodingAgentBackend,
-    CodingAgentResult,
-    CodingAgentSessionRef,
-    RepoRecord,
-)
+from youbot.models import CodingAgentBackend, CodingAgentResult, CodingAgentSessionRef, RepoRecord
 from youbot.utils import make_id, now_iso
-
-CODEX_SESSION_RE = re.compile(r"session id:\s*([0-9a-fA-F-]{36})")
 
 
 @dataclass(slots=True)
@@ -47,7 +39,6 @@ class CodingAgentRunner:
 
     def get_backend(self, repo_id: str | None = None) -> CodingAgentBackend:
         if repo_id is not None:
-            # Repo overrides can be added later when registry metadata exists.
             _ = repo_id
         return self._config.backends[self._config.default_backend]
 
@@ -61,9 +52,7 @@ class CodingAgentRunner:
     ) -> CodingAgentResult:
         backend = self.get_backend(repo.repo_id)
         session_ref = self._sessions.get_session(repo.repo_id)
-        invocation, seeded_session_id = self._build_invocation(
-            backend, session_ref, request, context
-        )
+        invocation, seeded_session_id = build_invocation(backend, session_ref, request, context)
         run = self._start_run(
             repo=repo,
             request=request,
@@ -73,10 +62,14 @@ class CodingAgentRunner:
             session_ref=session_ref,
             seeded_session_id=seeded_session_id,
         )
-        process = self._launch_process(invocation, repo.path)
+        process = launch_process(invocation, repo.path)
         if isinstance(process, OSError):
             return self._handle_launch_error(run, process)
-        stdout_text, stderr_text, return_code = self._wait_for_process(process, run.run_id)
+        stdout_text, stderr_text, return_code = wait_for_process(
+            process,
+            run.run_id,
+            self._activity_store.append,
+        )
         return self._finalize_success(
             run,
             stdout_text=stdout_text,
@@ -122,19 +115,6 @@ class CodingAgentRunner:
             started=time.perf_counter(),
         )
 
-    def _launch_process(self, invocation: list[str], repo_path: str):
-        try:
-            return subprocess.Popen(
-                invocation,
-                cwd=repo_path,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-            )
-        except OSError as exc:
-            return exc
-
     def _handle_launch_error(self, run: CodeChangeRun, error: OSError) -> CodingAgentResult:
         finished_at = now_iso()
         duration_ms = int((time.perf_counter() - run.started) * 1000)
@@ -152,30 +132,8 @@ class CodingAgentRunner:
             duration_ms=duration_ms,
             session_id=run.seeded_session_id,
         )
-        self._append_run_log(result)
+        append_run_log(result)
         return result
-
-    def _wait_for_process(
-        self, process: subprocess.Popen[str], run_id: str
-    ) -> tuple[str, str, int]:
-        stdout_lines: list[str] = []
-        stderr_lines: list[str] = []
-        stdout_thread = Thread(
-            target=self._consume_stream,
-            args=(process.stdout, stdout_lines, run_id, "stdout"),
-            daemon=True,
-        )
-        stderr_thread = Thread(
-            target=self._consume_stream,
-            args=(process.stderr, stderr_lines, run_id, "stderr"),
-            daemon=True,
-        )
-        stdout_thread.start()
-        stderr_thread.start()
-        return_code = process.wait()
-        stdout_thread.join()
-        stderr_thread.join()
-        return "".join(stdout_lines), "".join(stderr_lines), return_code
 
     def _finalize_success(
         self,
@@ -187,7 +145,7 @@ class CodingAgentRunner:
         finished_at = now_iso()
         duration_ms = int((time.perf_counter() - run.started) * 1000)
         combined = "\n".join(part for part in (stdout_text, stderr_text) if part)
-        session_id = self._extract_session_id(
+        session_id = extract_session_id(
             run.backend_name,
             combined,
             run.session_ref,
@@ -219,98 +177,5 @@ class CodingAgentRunner:
                 )
             )
         self._activity_store.finish(run.run_id, exit_code=result.exit_code, session_id=session_id)
-        self._append_run_log(result)
+        append_run_log(result)
         return result
-
-    def _build_invocation(
-        self,
-        backend: CodingAgentBackend,
-        session_ref: CodingAgentSessionRef | None,
-        request: str,
-        context: str | None,
-    ) -> tuple[list[str], str | None]:
-        prompt = request if context is None else f"{context}\n\n{request}"
-        if backend.backend_name == "codex":
-            if session_ref is not None and session_ref.backend_name == "codex":
-                return [
-                    *backend.command_prefix,
-                    *backend.default_args,
-                    "exec",
-                    "resume",
-                    session_ref.session_id,
-                    prompt,
-                ], session_ref.session_id
-            return [*backend.command_prefix, *backend.default_args, "exec", prompt], None
-        if session_ref is not None and session_ref.backend_name == "claude_code":
-            return [
-                *backend.command_prefix,
-                *backend.default_args,
-                "-p",
-                "--resume",
-                session_ref.session_id,
-                prompt,
-            ], session_ref.session_id
-        session_id = make_id()
-        return [
-            *backend.command_prefix,
-            *backend.default_args,
-            "-p",
-            "--session-id",
-            session_id,
-            prompt,
-        ], session_id
-
-    def _consume_stream(
-        self,
-        handle,
-        target: list[str],
-        run_id: str,
-        stream: str,
-    ) -> None:
-        if handle is None:
-            return
-        try:
-            for line in handle:
-                target.append(line)
-                stripped = line.rstrip()
-                if stripped:
-                    self._activity_store.append(run_id, stream=stream, content=stripped)
-        finally:
-            handle.close()
-
-    def _extract_session_id(
-        self,
-        backend_name: str,
-        output: str,
-        session_ref: CodingAgentSessionRef | None,
-        seeded_session_id: str | None,
-    ) -> str | None:
-        if backend_name == "codex":
-            match = CODEX_SESSION_RE.search(output)
-            if match is not None:
-                return match.group(1)
-            if session_ref is not None:
-                return session_ref.session_id
-        if backend_name == "claude_code":
-            return seeded_session_id or (
-                session_ref.session_id if session_ref is not None else None
-            )
-        return session_ref.session_id if session_ref is not None else None
-
-    def _append_run_log(self, result: CodingAgentResult) -> None:
-        from youbot.config import state_root
-        from youbot.utils import ensure_dir
-
-        log_path = state_root() / "runs" / "coding_agents.jsonl"
-        ensure_dir(log_path.parent)
-        payload = {
-            "repo_id": result.repo_id,
-            "backend_name": result.backend_name,
-            "target_kind": result.target_kind,
-            "session_id": result.session_id,
-            "exit_code": result.exit_code,
-            "started_at": result.started_at,
-            "finished_at": result.finished_at,
-        }
-        with log_path.open("a") as handle:
-            handle.write(json.dumps(payload) + "\n")

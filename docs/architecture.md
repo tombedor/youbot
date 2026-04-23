@@ -4,9 +4,17 @@
 
 This document translates the product requirements in `docs/PRD.md` into a concrete system design. It is intended to constrain implementation choices so a coding agent can build the system in bounded slices without re-deciding the architecture.
 
+Unless a section is explicitly labeled as an implementation profile, the contracts in this document should be readable as language-neutral system design. The current codebase is Python, but the architectural boundaries here are not meant to require Python in integrated or managed repos.
+
 ## System boundaries
 
-Youbot is a local Python application with a Textual TUI. It orchestrates a set of registered repos by:
+Product contract:
+- Youbot is a local TUI application that orchestrates a set of registered repos through command discovery, routing, execution, and code-change delegation.
+
+Current implementation profile:
+- The current implementation is a local Python application with a Textual TUI.
+
+Core system responsibilities:
 
 - Discovering and parsing each repo's `justfile`
 - Persisting repo metadata, lightweight conversation history, and coding-agent session references in youbot-owned storage
@@ -16,6 +24,7 @@ Youbot is a local Python application with a Textual TUI. It orchestrates a set o
 - Invoking a configurable coding-agent backend for code-change requests when no existing command fits
 - Rendering repo-specific views through youbot-owned adapters
 - Surfacing live coding-agent activity in the TUI while long-running agent work is in progress
+- Surfacing a structured routing trace that explains completed routing/orchestration steps, pending decisions, and the current in-flight step for the active chat turn
 
 Integrated repos are treated as capability providers. They are not required to embed UI code or conform to youbot's internal architecture.
 
@@ -71,6 +80,7 @@ Responsibilities:
 - Assemble model instructions from user message, conversation context, repo metadata, and discovered commands
 - Expose explicit tools for listing repos, listing commands, running repo commands, and triggering code-change work
 - Continue provider-native conversation state through the provider response id
+- Emit structured routing/orchestration trace updates as tool selection and execution progress
 - Return concise user-facing answers rather than raw backend transcripts
 
 Key rule:
@@ -84,9 +94,23 @@ Implementation note:
 Responsibilities:
 - Provide a simple local fallback decision path when OpenAI-backed orchestration is unavailable
 - Map obvious prompts to repo/action/command selections without external API calls
+- Emit the same structured routing trace shape used by the primary chat path
 
 Key rule:
 - The heuristic router is fallback behavior, not the primary orchestration design.
+
+Implementation note:
+- Keep routing heuristics and keyword tables in a dedicated helper module so the router class stays focused on decision flow.
+
+### `routing_trace`
+
+Responsibilities:
+- Build and update a per-turn routing/orchestration decision tree
+- Track completed steps, pending branches, and the current in-flight step
+- Expose the active trace to the TUI and optionally persist recent traces for inspection or debugging
+
+Key rule:
+- The routing trace is a user-observability surface, not an alternate control path.
 
 ### `executor`
 
@@ -111,6 +135,9 @@ Responsibilities:
 Key rule:
 - This path is only used when no suitable `just` command exists or when the router explicitly chooses code change.
 - The runner should use non-interactive backend entrypoints only. Interactive pickers and interactive terminal resume flows are out of scope for v1 orchestration.
+
+Implementation note:
+- Keep backend invocation construction, subprocess streaming, and run-log persistence in dedicated helper modules so the runner class remains the orchestration layer for code-change execution.
 
 ### `adapters`
 
@@ -150,6 +177,7 @@ Responsibilities:
 - Display execution results and structured views
 - Show explicit in-flight UI state while a user message is being processed
 - Show a live coding-agent activity/log view for in-progress agent runs
+- Surface a routing-trace pane on demand for the active chat turn
 
 Key rule:
 - The TUI is a consumer of registry, conversation state, routing, and adapters. It should not own business logic.
@@ -178,6 +206,9 @@ Expected state areas:
   - adapter metadata
 - Conversation store:
   - youbot conversation history
+- Routing trace store:
+  - recent per-turn routing/orchestration traces
+  - current in-flight trace state
 - Coding-agent session registry:
   - repo id to backend-specific session reference
   - last used backend
@@ -317,7 +348,8 @@ sequenceDiagram
 2. Registry loads registered repos.
 3. Conversation store loads recent youbot conversation history.
 4. Coding-agent session registry loads repo-specific backend-native session references.
-5. TUI opens in the global chat view with no repo selected by default.
+5. Routing-trace store loads any recoverable in-flight or recent trace state needed for UI continuity.
+6. TUI opens in the global chat view with no repo selected by default.
 
 Switching into a repo restores repo focus, command palette context, adapter state, and any available coding-agent continuation metadata. It does not require a separate repo-scoped youbot transcript.
 
@@ -325,11 +357,13 @@ Switching into a repo restores repo focus, command palette context, adapter stat
 
 1. User submits a message.
 2. TUI sends the message plus active scope to `openai_chat`.
-3. `openai_chat` calls the OpenAI Responses API with conversation context and tool definitions.
-4. The model issues tool calls to inspect repo state or execute actions.
-5. Tool handlers call executor, adapter-editing paths, or coding-agent runner as needed.
-6. `openai_chat` returns the final user-facing answer and provider response id.
-7. Result is rendered in the TUI, appended to youbot conversation history, used to update any coding-agent session reference, and reloads adapter-backed workspace state when relevant.
+3. A routing trace is initialized for the turn and shown as pending/in-progress in the UI when surfaced.
+4. `openai_chat` calls the OpenAI Responses API with conversation context and tool definitions.
+5. The model issues tool calls to inspect repo state or execute actions.
+6. Tool handlers call executor, adapter-editing paths, or coding-agent runner as needed, while updating the routing trace with completed and pending steps.
+7. `openai_chat` returns the final user-facing answer and provider response id.
+8. Result is rendered in the TUI, appended to youbot conversation history, used to update any coding-agent session reference, and reloads adapter-backed workspace state when relevant.
+9. The routing trace is marked complete or failed and remains inspectable for the turn.
 
 Fallback behavior:
 - If OpenAI-backed orchestration is unavailable, the local heuristic router may still choose a repo and action for simple cases.
@@ -365,6 +399,7 @@ The system should treat these as expected operational cases:
 Initial error-handling rules:
 
 - Show failures inline in the conversation pane
+- Preserve the routing trace for the failed turn when possible so the user can see where execution stopped
 - Preserve raw stderr for inspection
 - Do not destroy conversation history or coding-agent session references on failure
 - Mark affected repo status in the registry
@@ -388,6 +423,7 @@ youbot/
   config.py
   registry.py
   conversation_store.py
+  routing_trace.py
   coding_agent_sessions.py
   justfile_parser.py
   router.py

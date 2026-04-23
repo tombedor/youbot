@@ -62,9 +62,20 @@ Expected behavior:
 - incremental agent output or log events appear while the run is in progress
 - the live activity view remains associated with the resulting conversation entry
 
+### 7. Inspect the router's decision process for a turn
+
+As a user, I want to surface a pane that shows what the chat router or orchestrator is doing, so that I can understand what has already happened, what is still pending, and where the system is currently spending time.
+
+Expected behavior:
+- the pane can be surfaced for the active chat turn without leaving the conversation
+- the pane renders a decision tree rather than an unstructured log dump
+- completed routing/orchestration steps are visibly distinct from pending future branches
+- the currently active step is highlighted while work is in progress
+- if the turn fails, the last available trace remains visible for inspection
+
 ## Navigation and scope stories
 
-### 7. See all available repos and their state
+### 8. See all available repos and their state
 
 As a user, I want to see the repos youbot knows about and whether they are usable, so that I understand what the system can act on.
 
@@ -74,7 +85,7 @@ Expected behavior:
 - degraded or invalid repos are clearly distinguishable
 - repo status does not require leaving the main UI
 
-### 8. Switch the active repo quickly
+### 9. Switch the active repo quickly
 
 As a user, I want to move between repos quickly, so that I can work across several domains in one interface.
 
@@ -85,7 +96,7 @@ Expected behavior:
 - if no repo is active, no repo panel is shown
 - repo-specific commands update with focus
 
-### 9. Resume an existing coding-agent session for a repo
+### 10. Resume an existing coding-agent session for a repo
 
 As a user, I want code-change work in a repo to continue the existing Claude Code or Codex session when possible, so that the coding agent keeps its own native working context.
 
@@ -97,7 +108,7 @@ Expected behavior:
 
 ## Command and execution stories
 
-### 10. Discover executable capabilities through the command palette
+### 11. Discover executable capabilities through the command palette
 
 As a user, I want to see the commands available for the current repo, so that I can use direct execution when that is faster than natural language.
 
@@ -106,7 +117,7 @@ Expected behavior:
 - repo-scoped commands appear only for the active repo
 - command names are understandable enough to invoke intentionally
 
-### 11. Run a known repo command directly
+### 12. Run a known repo command directly
 
 As a user, I want to trigger a known action directly, so that repetitive tasks are efficient.
 
@@ -115,7 +126,7 @@ Expected behavior:
 - stdout, stderr, and exit status are surfaced clearly
 - the result becomes part of visible youbot interaction history
 
-### 12. Inspect failures without losing context
+### 13. Inspect failures without losing context
 
 As a user, I want failed commands to be visible and non-destructive, so that I can recover from errors without restarting my work.
 
@@ -126,7 +137,7 @@ Expected behavior:
 
 ## Repo onboarding and management stories
 
-### 13. Add an existing repo with minimal friction
+### 14. Add an existing repo with minimal friction
 
 As a user, I want to add a repo that already exists on disk as long as it has a `justfile`, so that youbot can work with repos I do not control deeply.
 
@@ -137,7 +148,7 @@ Expected behavior:
 - missing governance docs do not block integration
 - initial repo metadata can live in youbot state
 
-### 14. Supply richer metadata for a lightly documented repo
+### 15. Supply richer metadata for a lightly documented repo
 
 As a user, I want to add a summary, tags, and preferred commands for a repo, so that routing quality improves even when the repo itself is sparse.
 
@@ -145,7 +156,7 @@ Expected behavior:
 - metadata is stored by youbot, not forced into the child repo
 - metadata can be updated without changing the repo
 
-### 15. Re-scan a repo after its commands change
+### 16. Re-scan a repo after its commands change
 
 As a user, I want youbot to refresh its command inventory, so that the UI and routing stay current when a repo evolves.
 
@@ -155,7 +166,7 @@ Expected behavior:
 - stale commands are removed or marked stale
 - refreshed commands appear in the palette and routing context
 
-### 16. Generate an adapter when onboarding a repo
+### 17. Generate an adapter when onboarding a repo
 
 As a user, I want onboarding to generate a usable initial adapter automatically, so that a newly integrated repo gets a meaningful workspace without manual UI coding.
 
@@ -164,7 +175,7 @@ Expected behavior:
 - onboarding generates an initial overview command choice for the selected-repo workspace
 - generated adapter artifacts can be refined later without requiring child-repo changes
 
-### 17. Initialize a new managed repo
+### 18. Initialize a new managed repo
 
 As a user, I want youbot to scaffold a new repo when I identify a new capability area, so that new tools start from a consistent standard.
 
@@ -174,7 +185,7 @@ Expected behavior:
 
 ## Change-request stories
 
-### 18. Request a code change when no command exists
+### 19. Request a code change when no command exists
 
 As a user, I want to ask for a new capability in plain language, so that I do not need to manually open a repo and script the change myself.
 
@@ -183,7 +194,7 @@ Expected behavior:
 - if none fits, youbot routes to the code-change flow
 - the result is reported back in the conversation
 
-### 19. Switch coding-agent backends without reworking the system
+### 20. Switch coding-agent backends without reworking the system
 
 As a user, I want to switch between Claude Code and Codex as the coding agent, so that I can choose the backend that fits the task or my environment.
 
@@ -192,7 +203,7 @@ Expected behavior:
 - the rest of the system does not need to change when the backend changes
 - a repo may optionally override the global default backend
 
-### 20. Promote repeated work into a first-class command
+### 21. Promote repeated work into a first-class command
 
 As a user, I want frequently repeated actions to become explicit commands, so that the system gets more efficient over time.
 
@@ -200,7 +211,7 @@ Expected behavior:
 - after a successful code change, youbot can suggest or add a `just` command
 - future requests can take the command path directly
 
-### 21. Change a repo's youbot view without editing the child repo
+### 22. Change a repo's youbot view without editing the child repo
 
 As a user, I want requests about how a repo looks inside youbot to change the adapter/view layer by default, so that UI tweaks do not accidentally mutate the child repo.
 
@@ -211,15 +222,16 @@ Expected behavior:
 
 ## Structured view stories
 
-### 22. See structured data in a dedicated view mode
+### 23. See structured data in a dedicated view mode
 
 As a user, I want results like job listings or task lists to render as structured views rather than only plain text, so that scanning and comparison are easier.
 
 Expected behavior:
 - adapters can render tables, lists, or repo-specific panels
 - structured views are owned by youbot, not child repos
+- child repos do not need to ship UI-framework-specific code to participate
 
-### 23. Apply UI-only filters to current results
+### 24. Apply UI-only filters to current results
 
 As a user, I want to filter or sort visible results without necessarily re-running a command, so that exploration is fast.
 
@@ -227,7 +239,7 @@ Expected behavior:
 - some adapter actions can operate on current displayed data
 - these actions are available only when relevant to the current repo/view
 
-### 24. See repo-specific quick actions when a repo is focused
+### 25. See repo-specific quick actions when a repo is focused
 
 As a user, I want a selected repo workspace to surface a few recommended actions immediately, so that I can act without scanning a long generic command list.
 
@@ -238,7 +250,7 @@ Expected behavior:
 
 ## Scheduling stories
 
-### 25. Configure recurring repo actions centrally
+### 26. Configure recurring repo actions centrally
 
 As a user, I want recurring tasks like nightly searches to run from youbot, so that scheduling is centralized and not duplicated inside child repos.
 
@@ -247,7 +259,7 @@ Expected behavior:
 - scheduled runs execute in the correct repo
 - recent run results are visible in the UI
 
-### 26. Review scheduled run outcomes
+### 27. Review scheduled run outcomes
 
 As a user, I want to inspect what happened in scheduled runs, so that background automation remains observable.
 
@@ -257,7 +269,7 @@ Expected behavior:
 
 ## Degraded-state stories
 
-### 27. Keep using other repos when one repo is broken
+### 28. Keep using other repos when one repo is broken
 
 As a user, I want one missing or failing repo not to take down the whole tool, so that the orchestrator remains useful under partial failure.
 
@@ -265,7 +277,7 @@ Expected behavior:
 - repo failures are isolated
 - unaffected repos remain usable
 
-### 28. Understand why a repo cannot be used
+### 29. Understand why a repo cannot be used
 
 As a user, I want a broken repo to show a clear reason, so that I can fix the problem without guessing.
 

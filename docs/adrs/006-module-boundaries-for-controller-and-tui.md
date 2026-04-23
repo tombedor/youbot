@@ -35,6 +35,16 @@ The module split is:
   - owns tool schema construction for the OpenAI Responses API
 - `adapter_defaults.py`
   - owns generated default overview-section and quick-action templates
+- `adapter_generation.py`
+  - owns adapter inference and generated-note writing used during onboarding and refresh
+- `routing_rules.py`
+  - owns fallback routing heuristics, keyword tables, and argument inference
+- `coding_agent_backend.py`
+  - owns backend-specific invocation construction and session-id extraction
+- `coding_agent_process.py`
+  - owns subprocess launch and streamed output collection for coding-agent runs
+- `coding_agent_logs.py`
+  - owns append-only run-log persistence for coding-agent executions
 
 ## Consequences
 

@@ -2,11 +2,20 @@
 
 ## Overview
 
-Youbot is a stateful conversational agent and TUI that orchestrates a collection of specialized Python repos. The primary interface is natural language: you describe what you want, and youbot figures out which repo is relevant, what action to take, and whether that action requires running an existing command, querying data, or changing code.
+Youbot is a stateful conversational agent and TUI that orchestrates a collection of specialized repos. The primary interface is natural language: you describe what you want, and youbot figures out which repo is relevant, what action to take, and whether that action requires running an existing command, querying data, or changing code.
 
 Youbot is not a file browser or a code editor. For browsing code, open the repo directly. Youbot's value is in surfacing data from your repos, triggering their capabilities, and requesting changes to them — all from a single interface, in plain language.
 
 V1 is repo-first because that matches the primary personal-workflow use case. The architecture should remain extensible enough to support non-repo CLI-backed integrations later, but repos are the initial unit of organization and focus.
+
+### Language boundary
+
+This PRD is intended to be language-agnostic by default. Product requirements should describe user-visible behavior, integration contracts, routing behavior, and ownership boundaries in ways that apply regardless of whether an integrated repo is implemented in Python, TypeScript, Go, Rust, or another language.
+
+Language-specific details belong only in clearly marked implementation-profile sections. In particular:
+- Integrated repos are defined by the commands they expose and the outputs they produce, not by their implementation language.
+- Managed-repo standards should default to language-neutral requirements unless a language-specific profile is explicitly called out.
+- The current youbot implementation may use Python and Textual, but those choices are implementation details, not the product contract for repo integration.
 
 ---
 
@@ -21,6 +30,8 @@ The TUI uses a simple three-region shell: one chat panel, one dismissable sideba
 When youbot is processing a user message, the UI must show a visible in-flight indicator in the chat area so the user can tell the request is actively being handled. A spinner or equivalent loading treatment is sufficient; silent waiting is not.
 
 When youbot launches a coding-agent run, the UI must also expose a live activity view for that run. The user should be able to see that a coding session has started, which backend and target it is using, and incremental log/output updates while the run is in progress. A completed summary alone is not sufficient for longer-running coding work.
+
+The UI must also be able to surface a routing-trace pane for the active chat turn. This pane should show a decision tree of what the chat router or orchestrator has already done, what branches or decisions remain ahead, and what step is currently in progress. The trace is an observability surface for the user; it should explain the work without requiring inspection of raw logs.
 
 When a repo is selected, the single repo panel should present a compact repo-specific header, a purpose-built overview layout, and adapter-defined quick actions. It should not feel like a generic stack of undifferentiated panels, and the shell should not create additional persistent panels for repo overview content.
 
@@ -88,7 +99,7 @@ The review bundle is the preferred analysis surface. Raw state files remain the 
 
 ---
 
-## Architecture
+## Current implementation profile
 
 ### Youbot
 
@@ -99,13 +110,14 @@ The review bundle is the preferred analysis surface. Raw state files remain the 
 - Scheduler: runs `just` commands on configured schedules
 - Coding-agent runner: invokes the configured coding-agent backend in a repo directory
 - Conversation store: persists lightweight youbot conversation history
+- Routing-trace store: persists or publishes structured per-turn routing/orchestration trace state for UI inspection
 - Coding-agent session registry: persists backend-native session references per repo
 - Agent backend config: stores backend selection and backend-specific invocation settings
 - Usage review flow: generates bounded review bundles from youbot-owned runtime state for developer analysis of the `youbot` repo
 
 ### Repo adapter model
 
-Youbot owns the TUI code that renders repo-specific views. Integrated repos are not required to ship Textual code.
+Youbot owns the UI code that renders repo-specific views. Integrated repos are not required to ship UI-framework-specific integration code.
 
 For each registered repo, youbot maintains a local adapter in its own state directory. Adapters may be generated, cached, or manually refined over time, but they live in youbot's local plugin/adapter registry rather than in the child repo.
 
@@ -130,7 +142,7 @@ An adapter may contain:
 
 ### Command palette
 
-Textual's command palette supports multiple `CommandProvider` instances. Youbot uses this to keep commands context-sensitive:
+The command palette should support multiple provider scopes. Youbot uses this to keep commands context-sensitive:
 
 - A **global provider** is always active: switch repo, initialize new repo, youbot-level settings.
 - Each repo adapter's `CommandProvider` is only active when that repo's screen is focused.
@@ -147,7 +159,7 @@ Youbot also discovers available `just` commands by reading the repo's justfile d
 
 Integrated repos expose capabilities through `just` commands. Youbot consumes those capabilities and renders its own UI around them.
 
-Managed repos created by youbot should still keep data logic in the Python package and keep business logic out of CLI entrypoints, but that is a managed-repo standard rather than a universal integration requirement.
+Managed repos created by youbot should still keep core application logic separate from CLI entrypoints, but that is a managed-repo standard rather than a universal integration requirement.
 
 ---
 
@@ -205,37 +217,33 @@ Required files:
 | `AGENTS.md` | Instructions for coding agents working in this repo. Coding style, constraints, architectural decisions. |
 | `CAPTAINS_LOG.md` | Append-only log of meaningful changes, task results, and decisions. Entries are dated. |
 | `justfile` | All user-facing and agent-facing capabilities. Must include at minimum: `test`, `lint`, `format`. |
-| `pyproject.toml` | Package definition. |
+| language/toolchain manifest | The repo's native dependency or build manifest, such as `pyproject.toml`, `package.json`, `Cargo.toml`, or `go.mod`. |
 
 Code quality requirements:
 
-**Typing**
-- All functions must have type annotations. No `Any` except where genuinely unavoidable.
-- Mypy must pass with `strict = true`.
+**Interfaces and typing**
+- Public interfaces should be explicit and machine-checkable in the native toolchain where practical.
+- If the language supports static typing or interface checking, the repo should use it for public boundaries unless there is a documented reason not to.
 
 **Linting and formatting**
-- Ruff for linting and formatting. Config in `pyproject.toml`.
-- Ruff enforces structural limits for function complexity, branch count, argument count, and statement count.
-- `scripts/check_sizes.py` enforces repo-local line budgets for modules and functions. Any temporary exceptions must be explicit in that file rather than silently tolerated.
+- The repo must define formatter and linter commands appropriate to its language and toolchain.
 - `just lint` must exit 0 before any commit.
 - `just format` must be idempotent.
 
 **Tests**
-- Pytest. `just test` must exit 0.
-- Tests must cover the data layer.
-- No tests that hit external APIs without mocking.
+- `just test` must exit 0.
+- Tests must cover the data layer or domain core where the repo keeps its durable logic.
+- No tests should hit external APIs without an explicit mock, fixture, or isolated integration environment.
 
 **Structure**
-- Data layer (`db.py`, `models.py`, etc.) must be importable independently of CLI and UI.
+- Core logic should be importable or callable independently of CLI and UI entrypoints.
 - No business logic in CLI entrypoints.
-- SQLite for local persistence unless there is a specific reason otherwise. Document the reason in `PRD.md`.
+- If the repo owns local persistence, its storage choice and rationale must be documented in `PRD.md`.
 
 **Justfile**
 - Required commands: `test`, `lint`, `format`, `install`
 - Commands must be runnable from a clean checkout after `just install`.
 - Commands that produce data output should support `--format=json` for programmatic consumption.
-
-For the `youbot` managed repo specifically, developer-oriented commands may also operate on youbot-owned runtime state outside the repo when that state is necessary to improve the orchestrator itself. `review-usage` is the primary example.
 
 **AGENTS.md**
 - Must describe the architectural decisions a coding agent needs to know before making changes.
@@ -247,11 +255,22 @@ For the `youbot` managed repo specifically, developer-oriented commands may also
 - Task results (search runs, trade outcomes, etc.) are logged here when relevant.
 - Entries are append-only. Do not edit past entries.
 
+For the `youbot` managed repo specifically, developer-oriented commands may also operate on youbot-owned runtime state outside the repo when that state is necessary to improve the orchestrator itself. `review-usage` is the primary example.
+
+### Python implementation profile for managed repos
+
+If a managed repo is implemented in Python, the preferred default profile is:
+- `pyproject.toml` as the toolchain manifest
+- Ruff for linting and formatting
+- Mypy in strict mode where practical
+- Pytest for tests
+- Repo-local structural-size checks when module growth needs active enforcement
+
 ### Initialization
 
 When youbot initializes a new repo, it scaffolds:
 - All required files with sensible stubs
-- `pyproject.toml` with ruff, mypy, and pytest configured to the above standards
+- the native language/toolchain manifest with formatter, linter, and test tooling configured to the above standards
 - A justfile with the required commands wired up
 
 New repos may be initialized by the user via the TUI or by youbot autonomously when a new capability is identified.

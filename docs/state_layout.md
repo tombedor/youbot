@@ -32,6 +32,8 @@ Suggested layout:
   activity/
     coding_agent_current.json
     coding_agent_events.jsonl
+    routing_current.json
+    routing_events.jsonl
   adapters/
     metadata/
       job_search.json
@@ -158,6 +160,33 @@ Each line may contain:
 - event kind such as `started`, `output`, `session_id`, or `finished`
 - stream name for output events
 - content
+- timestamp
+
+### `activity/routing_current.json`
+
+Stores the current or most recent routing/orchestration trace snapshot for the active chat turn.
+
+Contents may include:
+- trace id
+- conversation id
+- message id
+- overall status
+- current step id
+- root step ids
+- step records with parent/child relationships
+
+This file exists so the UI can surface a routing-trace pane that shows completed work, pending branches, and the current in-flight step without reconstructing the trace from raw logs.
+
+### `activity/routing_events.jsonl`
+
+Append-only record of routing/orchestration trace events.
+
+Each line may contain:
+- trace id
+- step id
+- parent step id
+- event kind such as `started`, `completed`, `pending`, `failed`, or `current_changed`
+- label or summary
 - timestamp
 
 ## Adapter files
