@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from pathlib import Path
 
 from youbot.config import state_root
 from youbot.models import CodingAgentSessionRef

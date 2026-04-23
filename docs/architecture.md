@@ -76,6 +76,9 @@ Responsibilities:
 Key rule:
 - The primary conversational path is tool-driven, not prompt-only string routing.
 
+Implementation note:
+- Keep OpenAI tool schema construction in a dedicated helper module so tool definitions do not bloat the chat orchestration class.
+
 ### `router`
 
 Responsibilities:
@@ -123,6 +126,9 @@ Responsibilities:
 Key rule:
 - Adapters belong to youbot, not to the child repos.
 
+Implementation note:
+- Keep default overview-section and quick-action templates in a dedicated helper module so adapter loading stays focused on persistence and selection.
+
 ### `scheduler`
 
 Responsibilities:
@@ -147,6 +153,11 @@ Responsibilities:
 
 Key rule:
 - The TUI is a consumer of registry, conversation state, routing, and adapters. It should not own business logic.
+
+Implementation notes:
+- `app.py` should remain the thin Textual shell for event wiring and widget lifecycle.
+- Selected-repo overview rendering belongs in a dedicated repo-view module rather than in the controller itself.
+- Reusable panel rendering and static CSS should live outside the TUI shell module.
 
 ## Persistence model
 

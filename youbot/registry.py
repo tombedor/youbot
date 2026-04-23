@@ -23,7 +23,9 @@ class Registry:
     def load(self) -> tuple[list[RepoRecord], dict[str, list[CommandRecord]]]:
         ensure_dir(self._root)
         repos = [self._build_repo_record(repo) for repo in self._config.repos]
-        commands = {repo.repo_id: self._parser.parse_repo(repo) for repo in repos if repo.status == "ready"}
+        commands = {
+            repo.repo_id: self._parser.parse_repo(repo) for repo in repos if repo.status == "ready"
+        }
         for repo in repos:
             if repo.status == "ready":
                 adapter = self._adapters.refresh(repo, commands.get(repo.repo_id, []))
@@ -50,8 +52,12 @@ class Registry:
         )
 
     def _write_repos(self, repos: list[RepoRecord]) -> None:
-        atomic_write(self._repos_path, json.dumps([asdict(repo) for repo in repos], indent=2) + "\n")
+        atomic_write(
+            self._repos_path, json.dumps([asdict(repo) for repo in repos], indent=2) + "\n"
+        )
 
     def _write_commands(self, commands: dict[str, list[CommandRecord]]) -> None:
-        payload = {repo_id: [asdict(command) for command in items] for repo_id, items in commands.items()}
+        payload = {
+            repo_id: [asdict(command) for command in items] for repo_id, items in commands.items()
+        }
         atomic_write(self._commands_path, json.dumps(payload, indent=2) + "\n")

@@ -2,34 +2,32 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
-from rich.console import Group, RenderableType
-from rich.panel import Panel
-from rich.table import Table
+from rich.console import RenderableType
 from rich.text import Text
 
+from youbot.adapter_change import build_adapter_change_request, build_self_repo_record
 from youbot.adapters import AdapterLoader
 from youbot.coding_agent_activity import CodingAgentActivityStore
 from youbot.coding_agent_runner import CodingAgentRunner
 from youbot.coding_agent_sessions import CodingAgentSessionRegistry
-from youbot.config import REPO_ROOT, AppConfig, add_repo_config, load_config
+from youbot.config import AppConfig, add_repo_config, load_config
 from youbot.conversation_store import ConversationStore
 from youbot.executor import Executor
 from youbot.justfile_parser import JustfileParser
 from youbot.models import (
-    AdapterRecord,
     CodingAgentActivitySnapshot,
     CommandRecord,
     ConversationMessage,
-    OverviewSectionSpec,
     RepoRecord,
 )
 from youbot.openai_chat import OpenAIChatOrchestrator
 from youbot.registry import Registry
+from youbot.repo_view import RepoViewBuilder
 from youbot.router import Router
 from youbot.scaffold import scaffold_managed_repo
 from youbot.scheduler import Scheduler
+from youbot.tool_handler import ToolCallHandler
 from youbot.usage_review import UsageReviewService
 from youbot.utils import make_id, now_iso
 
@@ -52,6 +50,7 @@ class AppController:
         self.adapter_loader = AdapterLoader()
         self.registry = Registry(self.config, JustfileParser())
         self.executor = Executor()
+        self.repo_view_builder = RepoViewBuilder(self.adapter_loader, self.executor)
         self.router = Router()
         self.openai_chat = OpenAIChatOrchestrator()
         self.coding_agent_runner = CodingAgentRunner(
@@ -59,6 +58,15 @@ class AppController:
         )
         self.scheduler = Scheduler(self.config, self.executor)
         self.repos, self.commands = self.registry.load()
+        self.tool_handler = ToolCallHandler(
+            repos_provider=lambda: self.repos,
+            get_repo=self.get_repo,
+            get_commands=self.get_commands,
+            session_registry=self.session_registry,
+            executor=self.executor,
+            coding_agent_runner=self.coding_agent_runner,
+            adapter_loader=self.adapter_loader,
+        )
 
     def set_active_repo(self, repo_id: str | None) -> None:
         self.active_repo_id = repo_id
@@ -76,88 +84,7 @@ class AppController:
         repo = self.get_repo(repo_id)
         if repo is None:
             return Text(f"Focused repo {repo_id!r} is not available.")
-
-        commands = self.get_commands(repo.repo_id)
-        adapter = self.adapter_loader.load(repo.repo_id)
-        sections = self._build_repo_preview_sections(repo, commands, adapter)
-        quick_actions = self._build_quick_actions_panel(commands, adapter)
-        if not sections:
-            return quick_actions
-        if len(sections) == 1:
-            return Group(sections[0], quick_actions)
-
-        primary = sections[0]
-        secondary = Group(*sections[1:], quick_actions)
-        grid = Table.grid(expand=True)
-        grid.add_column(ratio=3)
-        grid.add_column(ratio=2)
-        grid.add_row(primary, secondary)
-        return grid
-
-    def _build_quick_actions_panel(
-        self, commands: list[CommandRecord], adapter: AdapterRecord | None
-    ) -> Panel:
-        available = {command.command_name: command for command in commands}
-        quick_actions = (
-            []
-            if adapter is None
-            else [item for item in adapter.quick_actions if item.command_name in available]
-        )
-        table = Table(expand=True, box=None, show_header=False)
-        table.add_column("Action", style="bold cyan", no_wrap=True)
-        table.add_column("Command")
-        table.add_column("Description")
-        for action in quick_actions[:4]:
-            command = available[action.command_name]
-            invocation = " ".join([command.command_name, *action.arguments]).strip()
-            table.add_row(
-                action.title or command.command_name.replace("-", " "),
-                invocation,
-                command.description or "Common action",
-            )
-        if not quick_actions:
-            table.add_row(
-                "No quick actions", "", "Adapter metadata has not defined recommended commands yet."
-            )
-        elif len(commands) > len(quick_actions):
-            table.add_row(
-                "More", "", f"{len(commands) - len(quick_actions)} additional commands available."
-            )
-        return Panel(table, title="Quick Actions", border_style="blue")
-
-    def _build_repo_preview_sections(
-        self,
-        repo: RepoRecord,
-        commands: list[CommandRecord],
-        adapter: AdapterRecord | None,
-    ) -> list[Panel]:
-        if adapter is None or not adapter.overview_sections:
-            return [
-                Panel(
-                    "No repo overview preview configured.", title="Overview", border_style="yellow"
-                )
-            ]
-
-        panels: list[Panel] = []
-        for spec in adapter.overview_sections:
-            selected = self._resolve_overview_section(commands, spec)
-            if selected is None:
-                panels.append(
-                    Panel(
-                        (
-                            "Configured overview command is not available in the current "
-                            "command inventory."
-                        ),
-                        title=spec.title or "Overview",
-                        border_style="yellow",
-                    )
-                )
-                continue
-
-            command, arguments, label = selected
-            result = self.executor.run(repo, command, arguments)
-            panels.append(self._render_overview_result(repo.repo_id, result, spec, label))
-        return panels
+        return self.repo_view_builder.build(repo, self.get_commands(repo.repo_id))
 
     def process_message(self, user_message: str, active_repo_id: str | None) -> ProcessedMessage:
         self.active_repo_id = active_repo_id
@@ -182,7 +109,7 @@ class AppController:
                 repos=self.repos,
                 commands=self.commands,
                 last_response_id=conversation.last_response_id,
-                tool_handler=self._handle_tool_call,
+                tool_handler=self.tool_handler.handle,
             )
             self.conversation_store.set_last_response_id(response_id)
             self._record_assistant(body)
@@ -327,40 +254,17 @@ class AppController:
         return "\n".join(lines), str(path)
 
     def run_adapter_change(self, repo: RepoRecord, request: str) -> str:
-        prompt = self._build_adapter_change_request(repo, request)
+        prompt = build_adapter_change_request(
+            repo,
+            self.adapter_loader.metadata_path(repo.repo_id),
+            request,
+        )
         result = self.coding_agent_runner.run_code_change(
-            self._self_repo_record(),
+            build_self_repo_record(),
             prompt,
             target_kind="adapter",
         )
         return self._format_coding_agent_result(result)
-
-    def _self_repo_record(self) -> RepoRecord:
-        return RepoRecord(
-            repo_id="youbot",
-            name="youbot",
-            path=str(REPO_ROOT),
-            classification="managed",
-            status="ready",
-            purpose_summary="Repo-first conversational TUI orchestrator.",
-        )
-
-    def _build_adapter_change_request(self, repo: RepoRecord, request: str) -> str:
-        adapter_path = self.adapter_loader.metadata_path(repo.repo_id)
-        return (
-            "You are editing the youbot-owned adapter/view layer.\n\n"
-            f"Target integrated repo: {repo.repo_id}\n"
-            f"Child repo path: {repo.path}\n"
-            f"Adapter metadata path: {adapter_path}\n"
-            f"Youbot repo path: {REPO_ROOT}\n\n"
-            "Default behavior:\n"
-            "- Edit the youbot adapter/view behavior for this repo.\n"
-            "- Do not edit the child repo unless the request explicitly requires "
-            "child-repo changes.\n"
-            "- Prefer adapter metadata or youbot UI/rendering code changes when possible.\n"
-            "- Keep the selected-repo workspace reloadable after the change.\n\n"
-            f"Requested change:\n{request}"
-        )
 
     def _maybe_handle_builtin_command(self, user_message: str) -> ProcessedMessage | None:
         lowered = user_message.strip().lower()
@@ -373,336 +277,3 @@ class AppController:
             "be informed by real usage."
         )
         return ProcessedMessage("Usage review", body, self.active_repo_id)
-
-    def _resolve_overview_section(
-        self,
-        commands: list[CommandRecord],
-        section: OverviewSectionSpec,
-    ) -> tuple[CommandRecord, list[str], str] | None:
-        candidate_names = [section.command_name, *section.fallback_command_names]
-        for index, command_name in enumerate(candidate_names):
-            command = next((item for item in commands if item.command_name == command_name), None)
-            if command is None:
-                continue
-            arguments = section.arguments if index == 0 else []
-            label = " ".join([*command.invocation, *arguments])
-            return command, arguments, label
-        return None
-
-    def _render_json_overview(
-        self,
-        repo_id: str,
-        payload: dict | list,
-        spec: OverviewSectionSpec,
-        label: str,
-    ):
-        if (
-            repo_id == "job_search"
-            and spec.command_name == "pipeline-status"
-            and isinstance(payload, dict)
-        ):
-            return self._render_job_search_pipeline(payload, label)
-        if (
-            repo_id == "job_search"
-            and spec.command_name == "next-actions"
-            and isinstance(payload, dict)
-        ):
-            return self._render_checklist(payload.get("items", []), label, max_items=6)
-        if (
-            repo_id == "job_search"
-            and spec.command_name == "active-openings"
-            and isinstance(payload, dict)
-        ):
-            return self._render_job_search_openings(payload, label)
-        if (
-            repo_id == "life_admin"
-            and spec.command_name == "task-digest"
-            and isinstance(payload, dict)
-        ):
-            return self._render_life_admin_digest(payload, label)
-        if (
-            repo_id == "life_admin"
-            and spec.command_name == "task-list"
-            and isinstance(payload, dict)
-        ):
-            return self._render_task_list(payload.get("tasks", []), label, max_items=5)
-        if (
-            repo_id == "trader-bot"
-            and spec.command_name == "research-findings"
-            and isinstance(payload, str)
-        ):
-            return Text(payload)
-        return Text(self._limit_lines(str(payload), max_lines=spec.max_lines))
-
-    def _render_job_search_pipeline(self, payload: dict[str, Any], label: str):
-        active_rows = []
-        closed_rows = 0
-        for row in payload.get("table", []):
-            status = row.get("Status", "")
-            if any(token in status.lower() for token in ("rejected", "soft no", "closed")):
-                closed_rows += 1
-                continue
-            active_rows.append(row)
-
-        summary = Text()
-        summary.append(f"Active opportunities: {len(active_rows)}", style="bold green")
-        if closed_rows:
-            summary.append(f"  Hidden closed outcomes: {closed_rows}", style="yellow")
-
-        table = Table(expand=True, box=None, show_header=True)
-        table.add_column("Company", style="bold")
-        table.add_column("Status", style="green")
-        table.add_column("Notes")
-        for row in active_rows[:7]:
-            table.add_row(row.get("Company", ""), row.get("Status", ""), row.get("Notes", ""))
-        if len(active_rows) > 7:
-            table.add_row("...", "", f"{len(active_rows) - 7} more active opportunities")
-        return Group(summary, table)
-
-    def _render_job_search_openings(self, payload: dict[str, Any], label: str):
-        summary = Text()
-        summary.append(f"Tracked openings: {len(payload.get('items', []))}", style="bold green")
-
-        table = Table(expand=True, box=None, show_header=True)
-        table.add_column("Company", style="bold")
-        table.add_column("Opening")
-        highlights = 0
-        for item in payload.get("items", []):
-            details = str(item.get("details", ""))
-            if "TOP PRIORITY" not in details:
-                continue
-            title = details.split(" — ")[0] if " — " in details else details
-            table.add_row(str(item.get("name", "")), title)
-            highlights += 1
-            if highlights >= 5:
-                break
-        if highlights == 0:
-            for item in payload.get("items", [])[:5]:
-                details = str(item.get("details", ""))
-                title = details.split(" — ")[0] if " — " in details else details
-                table.add_row(str(item.get("name", "")), title)
-        return Group(summary, table)
-
-    def _render_checklist(self, items: list[dict[str, Any]], label: str, *, max_items: int):
-        lines = []
-        for item in items[:max_items]:
-            lines.append(f"- {item.get('text', '')}")
-        if len(items) > max_items:
-            lines.append(f"... {len(items) - max_items} more")
-        return Text("\n".join(lines))
-
-    def _render_life_admin_digest(self, payload: dict[str, Any], label: str):
-        counts = payload.get("counts", {})
-        summary = Text("", style="")
-        summary.append(f"{counts.get('urgent', 0)} urgent", style="bold red")
-        summary.append("  |  ", style="dim")
-        summary.append(f"{counts.get('high', 0)} high", style="bold yellow")
-        summary.append("  |  ", style="dim")
-        summary.append(f"{counts.get('medium', 0)} medium", style="bold")
-        table = Table(expand=True, box=None, show_header=True)
-        table.add_column("Priority", style="bold")
-        table.add_column("Task")
-        for task in payload.get("urgent", [])[:3]:
-            table.add_row("Urgent", task.get("title", ""))
-        for task in payload.get("high", [])[:3]:
-            table.add_row("High", task.get("title", ""))
-        return Group(summary, table)
-
-    def _render_task_list(self, tasks: list[dict[str, Any]], label: str, *, max_items: int):
-        table = Table(expand=True, box=None, show_header=True)
-        table.add_column("Task", style="bold")
-        table.add_column("Priority")
-        table.add_column("Status")
-        for task in tasks[:max_items]:
-            table.add_row(
-                task.get("title", ""), str(task.get("priority", "")), str(task.get("status", ""))
-            )
-        return table
-
-    def _render_overview_result(
-        self,
-        repo_id: str,
-        result,
-        spec: OverviewSectionSpec,
-        label: str,
-    ) -> Panel:
-        title = spec.title or "Overview"
-        if result.exit_code != 0:
-            preview_error = (
-                result.stderr.strip() or result.stdout.strip() or "Preview command failed."
-            )
-            return Panel(
-                Text(f"Preview unavailable.\n{self._limit_lines(preview_error, max_lines=8)}"),
-                title=title,
-                border_style="red",
-            )
-
-        if spec.render_mode == "json" and result.parsed_payload is not None:
-            renderable = self._render_json_overview(repo_id, result.parsed_payload, spec, label)
-            return Panel(renderable, title=title, border_style="green")
-
-        preview_text = result.stdout.strip() or "(no stdout)"
-        if repo_id == "trader-bot" and spec.command_name == "research-findings":
-            renderable = self._render_trader_findings(preview_text, label)
-        elif repo_id == "trader-bot" and spec.command_name == "research-program":
-            renderable = self._render_trader_program(preview_text, label, spec.max_lines)
-        else:
-            renderable = Text(self._limit_lines(preview_text, max_lines=spec.max_lines))
-        return Panel(renderable, title=title, border_style="green")
-
-    def _render_trader_findings(self, text: str, label: str):
-        strategies: list[str] = []
-        for line in text.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("### "):
-                strategies.append(stripped.removeprefix("### ").strip())
-            if len(strategies) >= 6:
-                break
-        table = Table(expand=True, box=None, show_header=True)
-        table.add_column("#", style="bold cyan", width=3)
-        table.add_column("Strategy", style="bold")
-        for index, item in enumerate(strategies, start=1):
-            table.add_row(str(index), item.replace("_", " "))
-        return table
-
-    def _render_trader_program(self, text: str, label: str, max_lines: int):
-        goal = ""
-        directions: list[tuple[str, str]] = []
-        current_title = ""
-        for line in text.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("Goal:"):
-                goal = stripped.removeprefix("Goal:").strip()
-            elif stripped.startswith("### "):
-                current_title = stripped.removeprefix("### ").strip()
-            elif stripped.startswith("Markets:") and current_title:
-                directions.append((current_title, stripped.removeprefix("Markets:").strip()))
-                current_title = ""
-            if len(directions) >= max_lines:
-                break
-
-        summary = Text(
-            goal or "Active market research directions extracted from the current program.",
-            style="italic",
-        )
-        table = Table(expand=True, box=None, show_header=True)
-        table.add_column("Direction", style="bold")
-        table.add_column("Markets")
-        for title, markets in directions[:4]:
-            table.add_row(title, markets)
-        return Group(summary, table)
-
-    def _limit_lines(self, text: str, *, max_lines: int) -> str:
-        lines = [line.rstrip() for line in text.splitlines() if line.strip()]
-        if len(lines) <= max_lines:
-            return "\n".join(lines)
-        return "\n".join([*lines[:max_lines], f"... ({len(lines) - max_lines} more lines)"])
-
-    def _handle_tool_call(self, name: str, arguments: dict) -> dict:
-        if name == "list_repos":
-            return {
-                "repos": [
-                    {
-                        "repo_id": repo.repo_id,
-                        "name": repo.name,
-                        "path": repo.path,
-                        "status": repo.status,
-                    }
-                    for repo in self.repos
-                ]
-            }
-
-        if name == "get_repo_overview":
-            repo = self.get_repo(arguments["repo_id"])
-            if repo is None:
-                return {"error": f"Unknown repo {arguments['repo_id']}"}
-            session_ref = self.session_registry.get_session(repo.repo_id)
-            return {
-                "repo_id": repo.repo_id,
-                "path": repo.path,
-                "status": repo.status,
-                "adapter_id": repo.adapter_id,
-                "coding_agent_session": None
-                if session_ref is None
-                else {
-                    "backend": session_ref.backend_name,
-                    "session_kind": session_ref.session_kind,
-                    "session_id": session_ref.session_id,
-                    "status": session_ref.status,
-                    "last_used_at": session_ref.last_used_at,
-                },
-            }
-
-        if name == "list_repo_commands":
-            repo_id = arguments["repo_id"]
-            return {
-                "repo_id": repo_id,
-                "commands": [
-                    {
-                        "command_name": command.command_name,
-                        "description": command.description,
-                    }
-                    for command in self.get_commands(repo_id)
-                ],
-            }
-
-        if name == "run_repo_command":
-            repo = self.get_repo(arguments["repo_id"])
-            if repo is None:
-                return {"error": f"Unknown repo {arguments['repo_id']}"}
-            command = next(
-                (
-                    command
-                    for command in self.get_commands(repo.repo_id)
-                    if command.command_name == arguments["command_name"]
-                ),
-                None,
-            )
-            if command is None:
-                return {
-                    "error": f"Unknown command {arguments['command_name']} for repo {repo.repo_id}"
-                }
-            result = self.executor.run(repo, command, arguments.get("arguments", []))
-            return {
-                "repo_id": repo.repo_id,
-                "command_name": command.command_name,
-                "exit_code": result.exit_code,
-                "stdout_preview": result.stdout[:2000],
-                "stderr_preview": result.stderr[:2000],
-            }
-
-        if name == "run_code_change":
-            repo = self.get_repo(arguments["repo_id"])
-            if repo is None:
-                return {"error": f"Unknown repo {arguments['repo_id']}"}
-            result = self.coding_agent_runner.run_code_change(repo, arguments["request"])
-            return {
-                "repo_id": repo.repo_id,
-                "target_kind": result.target_kind,
-                "backend": result.backend_name,
-                "session_id": result.session_id,
-                "exit_code": result.exit_code,
-                "stdout_preview": result.stdout[:2000],
-                "stderr_preview": result.stderr[:2000],
-            }
-
-        if name == "run_adapter_change":
-            repo = self.get_repo(arguments["repo_id"])
-            if repo is None:
-                return {"error": f"Unknown repo {arguments['repo_id']}"}
-            result = self.coding_agent_runner.run_code_change(
-                self._self_repo_record(),
-                self._build_adapter_change_request(repo, arguments["request"]),
-                target_kind="adapter",
-            )
-            return {
-                "repo_id": repo.repo_id,
-                "target_kind": result.target_kind,
-                "backend": result.backend_name,
-                "session_id": result.session_id,
-                "exit_code": result.exit_code,
-                "stdout_preview": result.stdout[:2000],
-                "stderr_preview": result.stderr[:2000],
-            }
-
-        return {"error": f"Unknown tool {name}"}

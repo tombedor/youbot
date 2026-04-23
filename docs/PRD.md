@@ -215,6 +215,8 @@ Code quality requirements:
 
 **Linting and formatting**
 - Ruff for linting and formatting. Config in `pyproject.toml`.
+- Ruff enforces structural limits for function complexity, branch count, argument count, and statement count.
+- `scripts/check_sizes.py` enforces repo-local line budgets for modules and functions. Any temporary exceptions must be explicit in that file rather than silently tolerated.
 - `just lint` must exit 0 before any commit.
 - `just format` must be idempotent.
 

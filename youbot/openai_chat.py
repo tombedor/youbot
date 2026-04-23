@@ -7,6 +7,7 @@ from typing import Any
 from openai import OpenAI
 
 from youbot.models import CommandRecord, RepoRecord
+from youbot.openai_tools import build_tool_specs
 
 INSTRUCTIONS = """
 You are the primary orchestrator for Youbot.
@@ -96,96 +97,4 @@ class OpenAIChatOrchestrator:
         repos: list[RepoRecord],
         commands: dict[str, list[CommandRecord]],
     ) -> list[dict[str, Any]]:
-        repo_ids = [repo.repo_id for repo in repos]
-        all_commands = sorted(
-            {command.command_name for items in commands.values() for command in items}
-        )
-        return [
-            {
-                "type": "function",
-                "name": "list_repos",
-                "description": "List the repos currently registered in youbot.",
-                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
-            },
-            {
-                "type": "function",
-                "name": "get_repo_overview",
-                "description": (
-                    "Get metadata, adapter state, and coding-agent session info for a repo."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "repo_id": {"type": "string", "enum": repo_ids},
-                    },
-                    "required": ["repo_id"],
-                    "additionalProperties": False,
-                },
-            },
-            {
-                "type": "function",
-                "name": "list_repo_commands",
-                "description": "List the discovered just commands for a repo.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "repo_id": {"type": "string", "enum": repo_ids},
-                    },
-                    "required": ["repo_id"],
-                    "additionalProperties": False,
-                },
-            },
-            {
-                "type": "function",
-                "name": "run_repo_command",
-                "description": "Run a discovered just command in a repo.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "repo_id": {"type": "string", "enum": repo_ids},
-                        "command_name": {"type": "string", "enum": all_commands},
-                        "arguments": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "default": [],
-                        },
-                    },
-                    "required": ["repo_id", "command_name"],
-                    "additionalProperties": False,
-                },
-            },
-            {
-                "type": "function",
-                "name": "run_code_change",
-                "description": (
-                    "Run a code-change request in a repo through the configured "
-                    "non-interactive coding-agent backend."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "repo_id": {"type": "string", "enum": repo_ids},
-                        "request": {"type": "string"},
-                    },
-                    "required": ["repo_id", "request"],
-                    "additionalProperties": False,
-                },
-            },
-            {
-                "type": "function",
-                "name": "run_adapter_change",
-                "description": (
-                    "Update the youbot-owned adapter/view for how a repo is presented "
-                    "in the selected-repo workspace."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "repo_id": {"type": "string", "enum": repo_ids},
-                        "request": {"type": "string"},
-                    },
-                    "required": ["repo_id", "request"],
-                    "additionalProperties": False,
-                },
-            },
-        ]
+        return build_tool_specs(repos, commands)

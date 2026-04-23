@@ -50,10 +50,7 @@ def test_usage_review_builds_bundle_from_state(tmp_path: Path, monkeypatch) -> N
         )
     )
     (tmp_path / "runs" / "commands.jsonl").write_text(
-        json.dumps(
-            {"repo_id": "life_admin", "command_name": "task-list", "exit_code": 0}
-        )
-        + "\n"
+        json.dumps({"repo_id": "life_admin", "command_name": "task-list", "exit_code": 0}) + "\n"
     )
     (tmp_path / "runs" / "coding_agents.jsonl").write_text(
         json.dumps(
@@ -160,9 +157,7 @@ def test_activity_store_records_lifecycle(tmp_path: Path, monkeypatch) -> None:
     assert store.get_current() is not None
 
 
-def test_controller_builtin_review_usage_records_assistant(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_controller_builtin_review_usage_records_assistant(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
     controller = AppController()
 
@@ -174,9 +169,7 @@ def test_controller_builtin_review_usage_records_assistant(
     assert conversation.messages[-1].role == "assistant"
 
 
-def test_controller_run_adapter_change_targets_youbot_repo(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_controller_run_adapter_change_targets_youbot_repo(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(config, "DEFAULT_STATE_ROOT", tmp_path)
     controller = AppController()
     captured: dict[str, object] = {}

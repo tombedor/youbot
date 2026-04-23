@@ -4,7 +4,6 @@ from pathlib import Path
 
 from youbot.utils import ensure_dir
 
-
 MANAGED_PRD = """# PRD
 
 Describe what this repo does and why.

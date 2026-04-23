@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 
 from youbot.config import AppConfig, state_root
 from youbot.executor import Executor
@@ -14,14 +13,20 @@ class Scheduler:
         self._config = config
         self._executor = executor
 
-    def run_all(self, repos: list[RepoRecord], commands: dict[str, list[CommandRecord]]) -> list[ExecutionResult]:
+    def run_all(
+        self, repos: list[RepoRecord], commands: dict[str, list[CommandRecord]]
+    ) -> list[ExecutionResult]:
         results: list[ExecutionResult] = []
         for job in self._config.scheduler_jobs:
             repo = next((repo for repo in repos if repo.repo_id == job.repo_id), None)
             if repo is None:
                 continue
             command = next(
-                (command for command in commands.get(job.repo_id, []) if command.command_name == job.command_name),
+                (
+                    command
+                    for command in commands.get(job.repo_id, [])
+                    if command.command_name == job.command_name
+                ),
                 None,
             )
             if command is None:
@@ -45,4 +50,3 @@ class Scheduler:
             for result in results
         ]
         path.write_text(json.dumps(payload, indent=2) + "\n")
-

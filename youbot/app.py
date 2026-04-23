@@ -1,141 +1,27 @@
 from __future__ import annotations
 
 from rich.markdown import Markdown
-from rich.panel import Panel
 from rich.rule import Rule
 from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
-from textual.widgets import Footer, Header, Input, ListItem, ListView, RichLog, Static
+from textual.widgets import Footer, Header, Input, ListView, RichLog, Static
 
 from youbot.controller import AppController
-
-
-class RepoListItem(ListItem):
-    def __init__(self, repo_id: str, label: str) -> None:
-        self.repo_id = repo_id
-        super().__init__(Static(label))
+from youbot.tui_layout import APP_CSS
+from youbot.tui_rendering import (
+    RepoListItem,
+    build_activity_panel,
+    build_repo_panel,
+    repo_header,
+    scope_heights,
+)
 
 
 class YoubotApp(App[None]):
-    CSS = """
-    Screen {
-      layout: vertical;
-    }
-
-    #body {
-      height: 1fr;
-    }
-
-    #sidebar {
-      width: 30;
-      border: round $accent;
-      background: $panel-darken-1;
-      padding: 1;
-      margin-right: 1;
-    }
-
-    #main {
-      padding: 0;
-    }
-
-    .section-title {
-      height: auto;
-      padding: 0;
-      text-style: bold;
-      color: $text-muted;
-    }
-
-    #repo-shell {
-      border: round green;
-      background: $boost;
-      padding: 0 1;
-      margin-bottom: 1;
-    }
-
-    #repo-title {
-      color: $text;
-      padding-top: 1;
-    }
-
-    #repo-subtitle {
-      height: auto;
-      color: $text-muted;
-      padding: 0 0 1 0;
-    }
-
-    #repo-view {
-      height: 8;
-      border: none;
-      background: transparent;
-      overflow: auto;
-    }
-
-    #chat-shell {
-      height: 1fr;
-      border: round blue;
-      background: $surface-darken-1;
-      padding: 0 1;
-      margin-bottom: 1;
-    }
-
-    #chat-header {
-      height: auto;
-      padding-top: 1;
-      padding-bottom: 1;
-    }
-
-    #conversation-title {
-      color: $text;
-    }
-
-    #conversation {
-      height: 1fr;
-      border: none;
-      background: transparent;
-    }
-
-    #activity-shell {
-      height: 12;
-      border: round magenta;
-      background: $surface-darken-1;
-      padding: 0 1;
-      margin-bottom: 1;
-    }
-
-    #activity-title {
-      color: $text;
-      padding-top: 1;
-      padding-bottom: 1;
-    }
-
-    #activity-view {
-      height: 1fr;
-      border: none;
-      background: transparent;
-    }
-
-    #processing-indicator {
-      height: auto;
-      dock: right;
-      color: $text-muted;
-    }
-
-    #composer-shell {
-      border: round yellow;
-      background: $panel;
-      padding: 0;
-      height: auto;
-      min-height: 3;
-    }
-
-    #input {
-      border: none;
-      margin: 0;
-    }
-    """
+    CSS = APP_CSS
 
     BINDINGS = [
         ("ctrl+r", "reload_repos", "Reload repos"),
@@ -292,41 +178,8 @@ class YoubotApp(App[None]):
         snapshot = self.controller.get_coding_agent_activity()
         panel.update(self._build_activity_panel(snapshot))
 
-    def _build_activity_panel(self, snapshot) -> Panel:
-        if snapshot is None:
-            return Panel(
-                "No coding-agent activity yet.\n\n"
-                "Code and adapter changes will stream progress here while they run.",
-                title="Activity",
-                border_style="magenta",
-            )
-
-        lines = [
-            f"Status: {snapshot.status}",
-            f"Target repo: {snapshot.repo_id}",
-            f"Target kind: {snapshot.target_kind}",
-            f"Backend: {snapshot.backend_name}",
-            f"Session id: {snapshot.session_id or 'pending'}",
-            f"Started: {snapshot.started_at}",
-        ]
-        if snapshot.finished_at is not None:
-            lines.append(f"Finished: {snapshot.finished_at}")
-        if snapshot.exit_code is not None:
-            lines.append(f"Exit code: {snapshot.exit_code}")
-        lines.extend(["", "Recent output:"])
-        recent_entries = snapshot.entries[-14:]
-        if not recent_entries:
-            lines.append("(waiting for agent output)")
-        else:
-            for entry in recent_entries:
-                prefix = {"status": "[status]", "stdout": "[out]", "stderr": "[err]"}[entry.stream]
-                lines.append(f"{prefix} {entry.content}")
-
-        return Panel(
-            "\n".join(lines),
-            title=f"Coding Activity: {snapshot.request_summary[:48]}",
-            border_style="magenta",
-        )
+    def _build_activity_panel(self, snapshot):
+        return build_activity_panel(snapshot)
 
     def _refresh_repo_list(self) -> None:
         repo_list = self.query_one("#repo-list", ListView)
@@ -356,65 +209,24 @@ class YoubotApp(App[None]):
 
     def _render_repo_view(self) -> None:
         panel = self.query_one("#repo-view", Static)
-        if self.active_repo_id is None:
-            panel.update(
-                Panel(
-                    "No repo selected.\n\n"
-                    "Select a repo in the sidebar to open its workspace.\n"
-                    "You can still chat globally and let routing choose a repo.",
-                    title="Global Workspace",
-                    border_style="green",
-                )
-            )
-            return
-
-        repo = self.controller.get_repo(self.active_repo_id)
-        if repo is None:
-            panel.update(
-                Panel(
-                    f"Focused repo {self.active_repo_id!r} is not available.",
-                    title="Repo Workspace",
-                )
-            )
-            return
-        panel.update(
-            self._repo_view_cache.get(
-                repo.repo_id,
-                Panel(f"Loading overview for {repo.repo_id}...", title="Repo Workspace"),
-            )
+        repo = (
+            None if self.active_repo_id is None else self.controller.get_repo(self.active_repo_id)
         )
+        panel.update(build_repo_panel(self.active_repo_id, repo, self._repo_view_cache))
 
     def _update_repo_header(self) -> None:
         title = self.query_one("#repo-title", Static)
         subtitle = self.query_one("#repo-subtitle", Static)
-        if self.active_repo_id is None:
-            title.update("Workspace")
-            subtitle.update("Select a repo to open a focused workspace.")
-            return
-
-        repo = self.controller.get_repo(self.active_repo_id)
-        if repo is None:
-            title.update("Workspace")
-            subtitle.update("Focused repo is unavailable.")
-            return
-
-        title.update(repo.repo_id)
-        subtitle.update(repo.purpose_summary or self._default_repo_subtitle(repo.repo_id))
-
-    def _default_repo_subtitle(self, repo_id: str) -> str:
-        fallback = {
-            "job_search": "Applications, follow-ups, and top openings.",
-            "life_admin": "Priority tasks, admin work, and personal operations.",
-            "trader-bot": "Research directions, findings, and trading workflows.",
-        }
-        return fallback.get(repo_id, "Repo-specific workspace and common actions.")
+        repo = (
+            None if self.active_repo_id is None else self.controller.get_repo(self.active_repo_id)
+        )
+        title_text, subtitle_text = repo_header(self.active_repo_id, repo)
+        title.update(title_text)
+        subtitle.update(subtitle_text)
 
     def _update_scope_layout(self) -> None:
         repo_shell = self.query_one("#repo-shell", Vertical)
         chat_shell = self.query_one("#chat-shell", Vertical)
-        if self.active_repo_id is None:
-            repo_shell.styles.height = 8
-            chat_shell.styles.height = "1fr"
-        else:
-            repo_shell.styles.height = "1fr"
-            chat_shell.styles.height = 10
+        repo_height, chat_height = scope_heights(self.active_repo_id)
+        repo_shell.styles.height = repo_height
+        chat_shell.styles.height = chat_height

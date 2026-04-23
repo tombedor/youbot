@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 from youbot.models import CodingAgentBackend, CodingBackendName, RepoClassification
 from youbot.utils import atomic_write, ensure_dir
-
 
 DEFAULT_STATE_ROOT = Path.home() / ".youbot"
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -169,7 +167,10 @@ def add_repo_config(
 ) -> RepoConfig:
     config = load_config()
     resolved_path = str(Path(path).resolve())
-    existing_by_path = next((repo for repo in config.repos if Path(repo.path).resolve() == Path(resolved_path)), None)
+    existing_by_path = next(
+        (repo for repo in config.repos if Path(repo.path).resolve() == Path(resolved_path)),
+        None,
+    )
     repo_name = name or Path(resolved_path).name
     if existing_by_path is not None:
         existing_by_path.name = repo_name

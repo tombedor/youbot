@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 import time
+from dataclasses import dataclass
 from threading import Thread
 
 from youbot.coding_agent_activity import CodingAgentActivityStore
@@ -18,6 +19,19 @@ from youbot.models import (
 from youbot.utils import make_id, now_iso
 
 CODEX_SESSION_RE = re.compile(r"session id:\s*([0-9a-fA-F-]{36})")
+
+
+@dataclass(slots=True)
+class CodeChangeRun:
+    repo: RepoRecord
+    request: str
+    backend_name: str
+    target_kind: str
+    session_ref: CodingAgentSessionRef | None
+    seeded_session_id: str | None
+    run_id: str
+    started_at: str
+    started: float
 
 
 class CodingAgentRunner:
@@ -50,53 +64,102 @@ class CodingAgentRunner:
         invocation, seeded_session_id = self._build_invocation(
             backend, session_ref, request, context
         )
+        run = self._start_run(
+            repo=repo,
+            request=request,
+            backend_name=backend.backend_name,
+            invocation=invocation,
+            target_kind=target_kind,
+            session_ref=session_ref,
+            seeded_session_id=seeded_session_id,
+        )
+        process = self._launch_process(invocation, repo.path)
+        if isinstance(process, OSError):
+            return self._handle_launch_error(run, process)
+        stdout_text, stderr_text, return_code = self._wait_for_process(process, run.run_id)
+        return self._finalize_success(
+            run,
+            stdout_text=stdout_text,
+            stderr_text=stderr_text,
+            return_code=return_code,
+        )
+
+    def _start_run(
+        self,
+        *,
+        repo: RepoRecord,
+        request: str,
+        backend_name: str,
+        invocation: list[str],
+        target_kind: str,
+        session_ref: CodingAgentSessionRef | None,
+        seeded_session_id: str | None,
+    ) -> CodeChangeRun:
         run_id = make_id()
         started_at = now_iso()
         self._activity_store.start(
             run_id=run_id,
             repo_id=repo.repo_id,
-            backend_name=backend.backend_name,
+            backend_name=backend_name,
             target_kind=target_kind,
             request_summary=request[:160],
         )
         self._activity_store.append(
-            run_id, stream="status", content=f"Starting {backend.backend_name} session."
+            run_id, stream="status", content=f"Starting {backend_name} session."
         )
         self._activity_store.append(
             run_id, stream="status", content=f"Invocation: {' '.join(invocation[:-1])} <prompt>"
         )
-        started = time.perf_counter()
+        return CodeChangeRun(
+            repo=repo,
+            request=request,
+            backend_name=backend_name,
+            target_kind=target_kind,
+            session_ref=session_ref,
+            seeded_session_id=seeded_session_id,
+            run_id=run_id,
+            started_at=started_at,
+            started=time.perf_counter(),
+        )
+
+    def _launch_process(self, invocation: list[str], repo_path: str):
         try:
-            process = subprocess.Popen(
+            return subprocess.Popen(
                 invocation,
-                cwd=repo.path,
+                cwd=repo_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
             )
         except OSError as exc:
-            finished_at = now_iso()
-            duration_ms = int((time.perf_counter() - started) * 1000)
-            self._activity_store.append(run_id, stream="stderr", content=str(exc))
-            self._activity_store.finish(run_id, exit_code=1, session_id=seeded_session_id)
-            result = CodingAgentResult(
-                repo_id=repo.repo_id,
-                backend_name=backend.backend_name,
-                target_kind=target_kind,  # type: ignore[arg-type]
-                exit_code=1,
-                stdout="",
-                stderr=str(exc),
-                started_at=started_at,
-                finished_at=finished_at,
-                duration_ms=duration_ms,
-                session_id=seeded_session_id,
-            )
-            self._append_run_log(result)
-            return result
+            return exc
+
+    def _handle_launch_error(self, run: CodeChangeRun, error: OSError) -> CodingAgentResult:
+        finished_at = now_iso()
+        duration_ms = int((time.perf_counter() - run.started) * 1000)
+        self._activity_store.append(run.run_id, stream="stderr", content=str(error))
+        self._activity_store.finish(run.run_id, exit_code=1, session_id=run.seeded_session_id)
+        result = CodingAgentResult(
+            repo_id=run.repo.repo_id,
+            backend_name=run.backend_name,  # type: ignore[arg-type]
+            target_kind=run.target_kind,  # type: ignore[arg-type]
+            exit_code=1,
+            stdout="",
+            stderr=str(error),
+            started_at=run.started_at,
+            finished_at=finished_at,
+            duration_ms=duration_ms,
+            session_id=run.seeded_session_id,
+        )
+        self._append_run_log(result)
+        return result
+
+    def _wait_for_process(
+        self, process: subprocess.Popen[str], run_id: str
+    ) -> tuple[str, str, int]:
         stdout_lines: list[str] = []
         stderr_lines: list[str] = []
-
         stdout_thread = Thread(
             target=self._consume_stream,
             args=(process.stdout, stdout_lines, run_id, "stdout"),
@@ -112,23 +175,33 @@ class CodingAgentRunner:
         return_code = process.wait()
         stdout_thread.join()
         stderr_thread.join()
+        return "".join(stdout_lines), "".join(stderr_lines), return_code
+
+    def _finalize_success(
+        self,
+        run: CodeChangeRun,
+        stdout_text: str,
+        stderr_text: str,
+        return_code: int,
+    ) -> CodingAgentResult:
         finished_at = now_iso()
-        duration_ms = int((time.perf_counter() - started) * 1000)
-        stdout_text = "".join(stdout_lines)
-        stderr_text = "".join(stderr_lines)
+        duration_ms = int((time.perf_counter() - run.started) * 1000)
         combined = "\n".join(part for part in (stdout_text, stderr_text) if part)
         session_id = self._extract_session_id(
-            backend.backend_name, combined, session_ref, seeded_session_id
+            run.backend_name,
+            combined,
+            run.session_ref,
+            run.seeded_session_id,
         )
-        self._activity_store.set_session_id(run_id, session_id)
+        self._activity_store.set_session_id(run.run_id, session_id)
         result = CodingAgentResult(
-            repo_id=repo.repo_id,
-            backend_name=backend.backend_name,
-            target_kind=target_kind,  # type: ignore[arg-type]
+            repo_id=run.repo.repo_id,
+            backend_name=run.backend_name,  # type: ignore[arg-type]
+            target_kind=run.target_kind,  # type: ignore[arg-type]
             exit_code=return_code,
             stdout=stdout_text,
             stderr=stderr_text,
-            started_at=started_at,
+            started_at=run.started_at,
             finished_at=finished_at,
             duration_ms=duration_ms,
             session_id=session_id,
@@ -136,16 +209,16 @@ class CodingAgentRunner:
         if session_id is not None:
             self._sessions.set_session(
                 CodingAgentSessionRef(
-                    repo_id=repo.repo_id,
-                    backend_name=backend.backend_name,
+                    repo_id=run.repo.repo_id,
+                    backend_name=run.backend_name,  # type: ignore[arg-type]
                     session_kind="noninteractive",
                     session_id=session_id,
-                    purpose_summary=request[:120],
+                    purpose_summary=run.request[:120],
                     status="active",
                     last_used_at=finished_at,
                 )
             )
-        self._activity_store.finish(run_id, exit_code=result.exit_code, session_id=session_id)
+        self._activity_store.finish(run.run_id, exit_code=result.exit_code, session_id=session_id)
         self._append_run_log(result)
         return result
 

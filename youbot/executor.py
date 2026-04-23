@@ -9,7 +9,9 @@ from youbot.utils import now_iso
 
 
 class Executor:
-    def run(self, repo: RepoRecord, command: CommandRecord, arguments: list[str]) -> ExecutionResult:
+    def run(
+        self, repo: RepoRecord, command: CommandRecord, arguments: list[str]
+    ) -> ExecutionResult:
         invocation = [*command.invocation, *arguments]
         started_at = now_iso()
         started = time.perf_counter()
@@ -59,7 +61,6 @@ class Executor:
         return None
 
     def _append_run_log(self, payload: dict) -> None:
-        from pathlib import Path
 
         from youbot.config import state_root
         from youbot.utils import ensure_dir
@@ -68,4 +69,3 @@ class Executor:
         ensure_dir(log_path.parent)
         with log_path.open("a") as handle:
             handle.write(json.dumps(payload) + "\n")
-

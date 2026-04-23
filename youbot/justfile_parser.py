@@ -5,7 +5,6 @@ from pathlib import Path
 
 from youbot.models import CommandRecord, RepoRecord
 
-
 RECIPE_RE = re.compile(r"^([A-Za-z0-9_-]+)(?:\s+[^:]*)?\s*:\s*$")
 
 
