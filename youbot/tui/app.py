@@ -58,7 +58,6 @@ class YoubotApp(App[None]):
                         yield Static("", id="processing-indicator")
                     yield RichLog(id="conversation", wrap=True, markup=False)
                 with Vertical(id="activity-shell"):
-                    yield Static("Coding Activity", id="activity-title", classes="section-title")
                     yield Static("", id="activity-view")
                 with Vertical(id="composer-shell"):
                     yield Input(
@@ -176,9 +175,11 @@ class YoubotApp(App[None]):
             input_widget.placeholder = "Ask youbot to run a command or use /code ..."
 
     def _refresh_activity_view(self) -> None:
-        panel = self.query_one("#activity-view", Static)
         snapshot = self.controller.get_coding_agent_activity()
-        panel.update(self._build_activity_panel(snapshot))
+        shell = self.query_one("#activity-shell", Vertical)
+        shell.display = snapshot is not None
+        if snapshot is not None:
+            self.query_one("#activity-view", Static).update(self._build_activity_panel(snapshot))
 
     def _build_activity_panel(self, snapshot: CodingAgentActivitySnapshot | None) -> Panel:
         return build_activity_panel(snapshot)

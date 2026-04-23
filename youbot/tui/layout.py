@@ -78,17 +78,12 @@ Screen {
 }
 
 #activity-shell {
-  height: 12;
+  height: auto;
+  max-height: 14;
   border: round magenta;
   background: $surface-darken-1;
-  padding: 0 1;
+  padding: 0 1 1 1;
   margin-bottom: 1;
-}
-
-#activity-title {
-  color: $text;
-  padding-top: 1;
-  padding-bottom: 1;
 }
 
 #activity-view {
