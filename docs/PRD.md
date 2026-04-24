@@ -26,7 +26,7 @@ Actions available:
 - if *background coding session* is active, can enter it
 - Enter add repo flow
 
-## Add repo flow (V2) (manual setup to start)
+## Add repo flow
 user prompts in succession:
 - if repo exists already? if so what location?
 - create a new repo? if so, where?
@@ -48,6 +48,7 @@ Actions available:
 - create a *background coding session* for a task (resumes if one exists, if not creates)
 - attach to *background coding session* for a task
 - enter *task view*
+- edit config values (ie whether to auto-merge prs or not)
 
 ## task view
 - lists past sessions, with summaries
