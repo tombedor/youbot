@@ -22,15 +22,13 @@ depends on: ProjectRegistry (for commiting changes)
 - opens, creates, lists tmux sessions
 
 
-### SessionController
+### SessionManager
 depends on: TmuxClient for low level Tmux operations
 depends on: CodingAgentSupervisor
-
 depends on: Notifier
-depends on: TmuxClient for lwo level tmux operaitons
 
-- uses tmux `monitor-silence` with per-coding agent configuration to detect activity or idelness of background coding agents
-- if background session is completed or stuck, dispatches notification, CodingAgentSupervisor for post-session tasks
+- uses tmux `monitor-silence` with per-coding agent configuration to detect activity or idleness of background coding agents
+- if background session is completed or stuck, dispatches Notifier and CodingAgentSupervisor for post-session tasks
 - if background session needs input, dispatches CodingAgentSupervisor
 - knows which sessions are active or inactive
 
