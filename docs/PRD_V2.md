@@ -1,14 +1,21 @@
 # data model:
-The installed youbot instance creates a local repo for it's data, and commits changes to it.
+The installed youbot instance creates a local repo for it's data, created at ~/.youbot/.  Commits changes to it. This is within a dedicated youbot repo, not the integrated repos.
 
+- default location of new repos (ie this is a config value)
 - many integrated repos
 - for each repo:
-    - TODO.md: Task list, if tasks were worked on, there's a branch and session id/coding agent pair. For each inactive coding session, a summary of what happened. Tasks can have one coding agent session per coding agent product per task. Ie, could have one codex session, one claude session for a given task, but not multiple codex sessions.
+    - TODO.md: A list of tasks. Each task has:
+        -  if tasks were worked on there's a branch and session id/coding agent pair. For each inactive coding session, a summary of what happened. Tasks can have one coding agent session per coding agent product per task. Ie, could have one codex session, one claude session for a given task, but not multiple codex sessions.
+        - task status: COMPLETE, TODO, IN PROGRESS, or WONT DO
     - CAPTAINS_LOG.md: Session summaries, what went well, what went wrong
     - repo config: whether agent should commit to feature branch and merge without review, or whether it should just open pr. this setting is per-repo
 
+# coding agents in scope:
+- codex, claude code
 
 # UI
+
+all views are for MVP unless otherwise specified
 
 ## home:
 - dashboard of projects. Default view: last session task (if any)
@@ -17,6 +24,18 @@ The installed youbot instance creates a local repo for it's data, and commits ch
 Actions available:
 - select a project and enter *project detail view*
 - if *background coding session* is active, can enter it
+- Enter add repo flow
+
+## Add repo flow (V2) (manual setup to start)
+user prompts in succession:
+- if repo exists already? if so what location?
+- create a new repo? if so, where?
+    - for specified repo, option for a) always create new repos here b) just create this one here, c) just create this one and dont ask again
+    - what programming language?
+        - for programming language, a reasonable default .gitignore is created
+    - create remote? a) public b) private c) none (remote creates github repo)
+
+
 
 ## Project detail view:
 - TODO task list, with statuses.
@@ -24,9 +43,10 @@ Actions available:
 
 Actions available:
 - create a new task
-- enter a *live coding session*
-- create a *background coding session*
-- enter a *background coding session*
+- Change status of a task
+- enter a *live coding session* for a task (resumes if one exists, if not creates)
+- create a *background coding session* for a task (resumes if one exists, if not creates)
+- attach to *background coding session* for a task
 - enter *task view*
 
 ## task view
@@ -34,17 +54,18 @@ Actions available:
 
 Actions available:
 - enter a *live coding session*
-- enter a *background coding session*
+- attach to a *background coding session*
 - create a *background coding session*
 
 ## live coding session
     - selecting a repo: open a tmux session
     - on exit: user goes back to dashboard
-        - autoamtically in background on exit, a background agent reviews coding agent transcript, creates and persist a summary, updates TODO, updates captains log.
+        - autoamtically in background on exit, a background agent reviews coding agent transcript, creates and persist a summary, updates task status (note that either youbot or human user can update task status), updates captains log. youbot can change status to any status, just like the human
 
 ## Background coding session
     - runs a tmux session in the background
-    - when coding agent is waiting for user response, evaluates whether task is done, and prompts for completion. Desired effect is that background coding sessions are more autonomous
+    - when coding agent is waiting for user response, youbot evaluates whether task is done. if not, it prompts coding agent for completion. Desired effect is that background coding sessions are more autonomous
+    - if session completes or gets stuck, user receives os notification
 
 ## Enter background coding session
     - tmux attach into background coding session, this now becomes just like a live coding session
