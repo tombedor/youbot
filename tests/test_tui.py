@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
-from youbot.state.models import MergeBehavior, Project, Task
+from youbot.state.models import AgentSession, CodingAgent, MergeBehavior, Project, Task
 from youbot.state.project_registry import ProjectRegistry
 from youbot.state.task_repository import TaskRepository
 from youbot.tui.app import YoubotApp
+from youbot.tui.controllers.task_controller import TaskController
 
 
 @pytest.fixture()
@@ -115,3 +119,53 @@ async def test_back_navigation(app_with_projects: YoubotApp) -> None:
         await pilot.press("escape")
         await pilot.pause(0.1)
         assert isinstance(app_with_projects.screen, HomeView)
+
+
+def test_enter_live_session_suspends_app_during_tmux_attach(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = Project(name="alpha", path=Path("/tmp/alpha"))
+    task = Task(title="Fix the bug")
+    session = AgentSession(
+        agent=CodingAgent.CODEX,
+        tmux_session_name="youbot-alpha-123-codex",
+        active=True,
+    )
+
+    events: list[str] = []
+    update = Mock()
+
+    @contextmanager
+    def suspend() -> object:
+        events.append("suspend-enter")
+        try:
+            yield
+        finally:
+            events.append("suspend-exit")
+
+    def start_session(*args: object, **kwargs: object) -> AgentSession:
+        events.append("start-session")
+        return session
+
+    def attach_session(agent_session: AgentSession) -> None:
+        assert agent_session == session
+        events.append("attach-session")
+
+    app = SimpleNamespace(
+        config=SimpleNamespace(default_coding_agent=CodingAgent.CODEX),
+        session_manager=SimpleNamespace(
+            start_session=start_session,
+            attach_session=attach_session,
+        ),
+        suspend=suspend,
+        registry=Mock(),
+    )
+    view = SimpleNamespace(app=app, project=project, task=task)
+    controller = TaskController(view)
+    monkeypatch.setattr(controller, "_task_repo", lambda: SimpleNamespace(update=update))
+
+    controller.enter_live_session()
+
+    assert events == ["start-session", "suspend-enter", "attach-session", "suspend-exit"]
+    update.assert_called_once()
+    assert task.sessions == [session]

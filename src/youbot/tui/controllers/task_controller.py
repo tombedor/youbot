@@ -35,7 +35,8 @@ class TaskController:
         if task.session_for(agent) is None:
             task.sessions.append(agent_session)
             self._task_repo().update(task)
-        app.session_manager.attach_session(agent_session)
+        with app.suspend():
+            app.session_manager.attach_session(agent_session)
 
     def start_background_session(self) -> None:
         app = self._view.app  # type: ignore[attr-defined]
