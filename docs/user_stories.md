@@ -4,7 +4,7 @@
 
 This document captures the user-driven interactions that youbot must support. It complements `docs/PRD.md` by describing concrete user goals and expected product behavior, and it complements `docs/acceptance.md` by framing those behaviors from the user's perspective.
 
-These stories should be treated as implementation-facing requirements for the TUI, routing, execution, and coding-agent continuation model.
+These stories should be treated as implementation-facing requirements for the TUI, routing, execution, task tracking, scheduling, and coding-agent session model.
 
 ## Core conversational stories
 
@@ -54,15 +54,26 @@ Expected behavior:
 
 ### 6. Watch coding-agent work as it happens
 
-As a user, I want to see live logs and session status when a coding-agent run starts, so that I can tell whether the agent has launched, what it is doing, and whether it is still making progress.
+As a user, I want to see live logs and session status when a coding-agent session starts, so that I can tell whether the agent has launched, what it is doing, and whether it is still making progress.
 
 Expected behavior:
-- the UI shows that a coding session has started
+- the UI shows that a coding session has started or resumed
 - the active backend and target are visible
+- the attached task is visible
 - incremental agent output or log events appear while the run is in progress
-- the live activity view remains associated with the resulting conversation entry
+- the live activity view remains associated with the resulting task and conversation entry
 
-### 7. Inspect the router's decision process for a turn
+### 7. Attach to the real coding session terminal
+
+As a user, I want ongoing coding-agent work to run inside `tmux` and be attachable, so that I can inspect or take over the real session instead of relying on a proxied chat transcript.
+
+Expected behavior:
+- youbot launches coding-agent work in a named `tmux` session
+- the UI exposes an attach action or attach command for the active session
+- session state survives TUI restarts as long as the `tmux` session still exists
+- recent output may be mirrored into the UI, but the `tmux` terminal remains the source of truth
+
+### 8. Inspect the router's decision process for a turn
 
 As a user, I want to surface a pane that shows what the chat router or orchestrator is doing, so that I can understand what has already happened, what is still pending, and where the system is currently spending time.
 
@@ -75,7 +86,7 @@ Expected behavior:
 
 ## Navigation and scope stories
 
-### 8. See all available repos and their state
+### 9. See all available repos and their state
 
 As a user, I want to see the repos youbot knows about and whether they are usable, so that I understand what the system can act on.
 
@@ -85,7 +96,7 @@ Expected behavior:
 - degraded or invalid repos are clearly distinguishable
 - repo status does not require leaving the main UI
 
-### 9. Switch the active repo quickly
+### 10. Switch the active repo quickly
 
 As a user, I want to move between repos quickly, so that I can work across several domains in one interface.
 
@@ -96,19 +107,28 @@ Expected behavior:
 - if no repo is active, no repo panel is shown
 - repo-specific commands update with focus
 
-### 10. Resume an existing coding-agent session for a repo
+### 11. Resume an existing coding-agent session for a repo
 
-As a user, I want code-change work in a repo to continue the existing Claude Code or Codex session when possible, so that the coding agent keeps its own native working context.
+As a user, I want code-change work in a repo to continue the existing Claude Code or Codex workspace when possible, so that the coding agent keeps its own native working context and terminal session.
 
 Expected behavior:
-- youbot stores backend-native session references per repo
-- code-change work resumes the backend's own session rather than reconstructing history in youbot
-- youbot uses only automation-compatible non-interactive continuation modes
+- youbot stores repo session records with `tmux` attachment metadata and backend-native continuation metadata when available
+- code-change work resumes the existing repo workspace rather than reconstructing history in youbot
 - repo focus helps select the right coding-agent session
+
+### 12. Track explicit repo work as tasks
+
+As a user, I want coding work, command runs, and scheduled jobs to appear as tracked tasks, so that I can see what is active, blocked, or complete without inferring it from chat history.
+
+Expected behavior:
+- each meaningful unit of work has a task record
+- tasks can link to repo commands, coding sessions, and scheduled jobs
+- task status updates are visible in the UI
+- completed tasks remain inspectable after the chat turn has scrolled away
 
 ## Command and execution stories
 
-### 11. Discover executable capabilities through the command palette
+### 13. Discover executable capabilities through the command palette
 
 As a user, I want to see the commands available for the current repo, so that I can use direct execution when that is faster than natural language.
 
@@ -117,7 +137,7 @@ Expected behavior:
 - repo-scoped commands appear only for the active repo
 - command names are understandable enough to invoke intentionally
 
-### 12. Run a known repo command directly
+### 14. Run a known repo command directly
 
 As a user, I want to trigger a known action directly, so that repetitive tasks are efficient.
 
@@ -126,7 +146,7 @@ Expected behavior:
 - stdout, stderr, and exit status are surfaced clearly
 - the result becomes part of visible youbot interaction history
 
-### 13. Inspect failures without losing context
+### 15. Inspect failures without losing context
 
 As a user, I want failed commands to be visible and non-destructive, so that I can recover from errors without restarting my work.
 
@@ -137,7 +157,7 @@ Expected behavior:
 
 ## Repo onboarding and management stories
 
-### 14. Add an existing repo with minimal friction
+### 16. Add an existing repo with minimal friction
 
 As a user, I want to add a repo that already exists on disk as long as it has a `justfile`, so that youbot can work with repos I do not control deeply.
 
@@ -150,7 +170,7 @@ Expected behavior:
 - missing governance docs do not block integration
 - initial repo metadata can live in youbot state
 
-### 15. Supply richer metadata for a lightly documented repo
+### 17. Supply richer metadata for a lightly documented repo
 
 As a user, I want to add a summary, tags, and preferred commands for a repo, so that routing quality improves even when the repo itself is sparse.
 
@@ -158,7 +178,7 @@ Expected behavior:
 - metadata is stored by youbot, not forced into the child repo
 - metadata can be updated without changing the repo
 
-### 16. Re-scan a repo after its commands change
+### 18. Re-scan a repo after its commands change
 
 As a user, I want youbot to refresh its command inventory, so that the UI and routing stay current when a repo evolves.
 
@@ -168,7 +188,7 @@ Expected behavior:
 - stale commands are removed or marked stale
 - refreshed commands appear in the palette and routing context
 
-### 17. Generate an adapter when onboarding a repo
+### 19. Generate an adapter when onboarding a repo
 
 As a user, I want onboarding to generate a usable initial adapter automatically, so that a newly integrated repo gets a meaningful workspace without manual UI coding.
 
@@ -177,7 +197,7 @@ Expected behavior:
 - onboarding generates an initial overview command choice for the selected-repo workspace
 - generated adapter artifacts can be refined later without requiring child-repo changes
 
-### 18. Initialize a new managed repo
+### 20. Initialize a new managed repo
 
 As a user, I want youbot to scaffold a new repo when I identify a new capability area, so that new tools start from a consistent standard.
 
@@ -187,16 +207,17 @@ Expected behavior:
 
 ## Change-request stories
 
-### 19. Request a code change when no command exists
+### 21. Request a code change when no command exists
 
 As a user, I want to ask for a new capability in plain language, so that I do not need to manually open a repo and script the change myself.
 
 Expected behavior:
 - youbot checks for an existing command first
 - if none fits, youbot routes to the code-change flow
-- the result is reported back in the conversation
+- the work is recorded as a task
+- the result is reported back in the conversation and task state
 
-### 20. Switch coding-agent backends without reworking the system
+### 22. Switch coding-agent backends without reworking the system
 
 As a user, I want to switch between Claude Code and Codex as the coding agent, so that I can choose the backend that fits the task or my environment.
 
@@ -205,7 +226,7 @@ Expected behavior:
 - the rest of the system does not need to change when the backend changes
 - a repo may optionally override the global default backend
 
-### 21. Promote repeated work into a first-class command
+### 23. Promote repeated work into a first-class command
 
 As a user, I want frequently repeated actions to become explicit commands, so that the system gets more efficient over time.
 
@@ -213,7 +234,7 @@ Expected behavior:
 - after a successful code change, youbot can suggest or add a `just` command
 - future requests can take the command path directly
 
-### 22. Change a repo's youbot view without editing the child repo
+### 24. Change a repo's youbot view without editing the child repo
 
 As a user, I want requests about how a repo looks inside youbot to change the adapter/view layer by default, so that UI tweaks do not accidentally mutate the child repo.
 
@@ -224,7 +245,7 @@ Expected behavior:
 
 ## Structured view stories
 
-### 23. See structured data in a dedicated view mode
+### 25. See structured data in a dedicated view mode
 
 As a user, I want results like job listings or task lists to render as structured views rather than only plain text, so that scanning and comparison are easier.
 
@@ -233,7 +254,7 @@ Expected behavior:
 - structured views are owned by youbot, not child repos
 - child repos do not need to ship UI-framework-specific code to participate
 
-### 24. Apply UI-only filters to current results
+### 26. Apply UI-only filters to current results
 
 As a user, I want to filter or sort visible results without necessarily re-running a command, so that exploration is fast.
 
@@ -241,7 +262,7 @@ Expected behavior:
 - some adapter actions can operate on current displayed data
 - these actions are available only when relevant to the current repo/view
 
-### 25. See repo-specific quick actions when a repo is focused
+### 27. See repo-specific quick actions when a repo is focused
 
 As a user, I want a selected repo workspace to surface a few recommended actions immediately, so that I can act without scanning a long generic command list.
 
@@ -252,12 +273,14 @@ Expected behavior:
 
 ## Scheduling stories
 
-### 26. Configure recurring repo actions centrally
+### 28. Configure recurring repo actions centrally
 
 As a user, I want recurring tasks like nightly searches to run from youbot, so that scheduling is centralized and not duplicated inside child repos.
 
 Expected behavior:
 - schedules are configured in youbot state
+- scheduled work appears as tasks and run history inside youbot
+- schedules can create command runs directly or create tracked tasks for later coding work
 - scheduled runs execute in the correct repo
 - recent run results are visible in the UI
 
@@ -291,15 +314,15 @@ Expected behavior:
 The highest-priority user stories for v1 are:
 
 1. Ask a repo-specific question in plain language
-2. Switch the active repo quickly
-3. Resume an existing coding-agent session for a repo
-4. Run a known repo command directly
-5. Add an existing repo with minimal friction
-6. Generate an adapter when onboarding a repo
-7. Request a code change when no command exists
-8. Switch coding-agent backends without reworking the system
-9. See structured data in a dedicated view mode
-10. Configure recurring repo actions centrally
+2. Resume an existing coding-agent session for a repo
+3. Attach to the real coding session terminal
+4. Track explicit repo work as tasks
+5. Run a known repo command directly
+6. Configure recurring repo actions centrally
+7. Switch the active repo quickly
+8. Add an existing repo with minimal friction
+9. Request a code change when no command exists
+10. Switch coding-agent backends without reworking the system
 
 ## Relationship to other docs
 

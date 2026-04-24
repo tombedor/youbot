@@ -97,6 +97,7 @@ conversation_id: str | None
 messages: list[ConversationMessage]
 command_runs: list[dict]
 coding_agent_runs: list[dict]
+tasks: list[dict]
 activity_entries: list[dict]
 activity_log_refs: list[str]
 notes: list[str]
@@ -175,6 +176,7 @@ Represents the configured backend for code-change work.
 backend_name: Literal["claude_code", "codex"]
 command_prefix: list[str]
 default_args: list[str]
+session_transport: Literal["tmux"]
 ```
 
 Invariants:
@@ -205,6 +207,8 @@ Represents a completed coding-agent invocation.
 ```python
 repo_id: str
 backend_name: Literal["claude_code", "codex"]
+task_id: str | None
+tmux_session_name: str | None
 exit_code: int
 stdout: str
 stderr: str
@@ -215,22 +219,70 @@ duration_ms: int
 
 ### `CodingAgentSessionRef`
 
-Represents a backend-native resumable coding-agent session for a repo.
+Represents a resumable coding-agent workspace session for a repo.
 
 ```python
 repo_id: str
 backend_name: Literal["claude_code", "codex"]
-session_kind: Literal["noninteractive"]
-session_id: str
+session_kind: Literal["tmux_managed"]
+tmux_session_name: str
+tmux_window_name: str | None
+tmux_pane_id: str | None
+backend_session_id: str | None
+attached_task_id: str | None
 purpose_summary: str | None
-status: Literal["active", "stale", "unknown"]
+status: Literal["active", "idle", "exited", "stale", "unknown"]
 last_used_at: str
 ```
 
 Invariants:
-- `session_id` is a backend-native continuation handle
-- `session_kind` is automation-compatible and non-interactive for youbot-driven runs
-- youbot stores the handle and minimal metadata, not the full coding-agent transcript
+- `tmux_session_name` is the user-visible attachment handle for the workspace
+- `backend_session_id` is optional backend-native continuation metadata
+- youbot stores minimal metadata and terminal attachment info, not the full coding-agent transcript
+
+### `TaskRecord`
+
+Represents one tracked work item in youbot.
+
+```python
+task_id: str
+title: str
+repo_id: str | None
+task_kind: Literal["command", "code_change", "adapter_change", "scheduled_job", "review"]
+status: Literal["queued", "running", "blocked", "waiting_for_user", "done", "failed", "canceled"]
+origin: Literal["user", "scheduler", "system"]
+summary: str | None
+session_repo_id: str | None
+schedule_job_id: str | None
+created_at: str
+updated_at: str
+completed_at: str | None
+```
+
+Invariants:
+- Tasks are durable orchestration records even when their initiating chat turn is no longer visible
+- `session_repo_id` links to the repo whose coding-agent workspace is doing the work when relevant
+
+### `ScheduledJobRecord`
+
+Represents one configured recurring job.
+
+```python
+job_id: str
+repo_id: str
+job_kind: Literal["command", "task_creation"]
+command_name: str | None
+task_template: str | None
+schedule_type: Literal["cron"]
+cron: str
+enabled: bool
+last_run_at: str | None
+last_exit_code: int | None
+```
+
+Invariants:
+- `command_name` is required when `job_kind == "command"`
+- `task_template` is required when `job_kind == "task_creation"`
 
 ### `AdapterRecord`
 
@@ -364,8 +416,8 @@ respond(
 ### `CodingAgentSessionRegistry`
 
 Responsibilities:
-- Persist repo-specific coding-agent session references
-- Resolve the last known backend-native session for a repo
+- Persist repo-specific coding-agent session records
+- Resolve the last known `tmux` workspace session for a repo
 
 Suggested methods:
 
@@ -373,6 +425,21 @@ Suggested methods:
 get_session(repo_id: str) -> CodingAgentSessionRef | None
 set_session(session: CodingAgentSessionRef) -> None
 clear_session(repo_id: str) -> None
+```
+
+### `TaskStore`
+
+Responsibilities:
+- Persist durable tracked work items
+- Resolve tasks by repo, status, or linked session
+
+Suggested methods:
+
+```python
+list_tasks(repo_id: str | None = None, status: str | None = None) -> list[TaskRecord]
+get_task(task_id: str) -> TaskRecord | None
+upsert_task(task: TaskRecord) -> None
+complete_task(task_id: str, status: Literal["done", "failed", "canceled"]) -> None
 ```
 
 ### `JustfileParser`
@@ -453,9 +520,9 @@ run_code_change(
 ```
 
 Behavioral rules:
-- Claude Code runs should use non-interactive scripting-compatible forms
-- Codex runs should use non-interactive forms such as `codex exec` / `codex exec resume`
-- Interactive resume pickers are never part of the orchestration path
+- The runner should launch or resume coding-agent work inside a managed `tmux` session
+- Claude Code and Codex invocation details remain backend-specific implementation details behind the runner
+- Interactive backend pickers are never part of the orchestration path
 
 ### Developer command contract: `review-usage`
 
@@ -502,7 +569,8 @@ refresh(repo: RepoRecord, commands: list[CommandRecord]) -> AdapterRecord
 
 - The registry owns repo and command metadata.
 - The conversation store owns youbot conversation history.
-- The coding-agent session registry owns backend-native session references.
+- The coding-agent session registry owns coding-session records, `tmux` attachment metadata, and optional backend-native continuation handles.
+- The task store owns durable tracked work items.
 - The routing-trace store owns inspectable per-turn routing/orchestration traces.
 - The adapter loader owns adapter definitions and rendering hints.
 - The executor owns subprocess execution details.

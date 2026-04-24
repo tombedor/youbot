@@ -18,6 +18,7 @@ Screen {
 }
 
 #main {
+  height: 1fr;
   padding: 0;
 }
 
@@ -47,7 +48,7 @@ Screen {
 }
 
 #repo-view {
-  height: 8;
+  height: 1fr;
   border: none;
   background: transparent;
   overflow: auto;

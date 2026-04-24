@@ -17,11 +17,13 @@ Current implementation profile:
 Core system responsibilities:
 
 - Discovering and parsing each repo's `justfile`
-- Persisting repo metadata, lightweight conversation history, and coding-agent session references in youbot-owned storage
+- Persisting repo metadata, lightweight conversation history, task state, and coding-agent session records in youbot-owned storage
 - Routing natural-language requests to the correct repo and execution mode
 - Driving primary chat orchestration through the OpenAI Responses API with tool calls
 - Running `just` commands in repo directories
 - Invoking a configurable coding-agent backend for code-change requests when no existing command fits
+- Launching and resuming coding-agent work inside managed `tmux` sessions
+- Tracking explicit tasks that represent command runs, coding-agent work, and scheduled jobs
 - Rendering repo-specific views through youbot-owned adapters
 - Surfacing live coding-agent activity in the TUI while long-running agent work is in progress
 - Surfacing a structured routing trace that explains completed routing/orchestration steps, pending decisions, and the current in-flight step for the active chat turn
@@ -57,12 +59,22 @@ Key rule:
 ### `coding_agent_sessions`
 
 Responsibilities:
-- Persist backend-native coding-agent session references by repo
-- Store backend name, session kind, session id, and human-readable purpose/summary
-- Allow the coding-agent runner to resume an existing backend-native non-interactive session when appropriate
+- Persist coding-agent session records by repo
+- Store backend name, `tmux` session metadata, backend-native continuation handles when available, and human-readable purpose/summary
+- Allow the coding-agent runner to resume an existing repo workspace session when appropriate
 
 Key rule:
-- Youbot stores session references, not full reconstructed coding-agent transcripts.
+- Youbot stores session metadata and terminal attachment info, not full reconstructed coding-agent transcripts.
+
+### `task_store`
+
+Responsibilities:
+- Persist tracked work items for commands, coding-agent sessions, adapter changes, and scheduled jobs
+- Link tasks to repos, sessions, schedule runs, and recent outputs
+- Provide current task state to the TUI and orchestrator
+
+Key rule:
+- Tasks are explicit orchestration records, not inferred only from chat history.
 
 ### `justfile_parser`
 
@@ -77,8 +89,8 @@ Key rule:
 ### `openai_chat`
 
 Responsibilities:
-- Assemble model instructions from user message, conversation context, repo metadata, and discovered commands
-- Expose explicit tools for listing repos, listing commands, running repo commands, and triggering code-change work
+- Assemble model instructions from user message, conversation context, repo metadata, tasks, and discovered commands
+- Expose explicit tools for listing repos, listing commands, creating or updating tasks, running repo commands, and triggering code-change work
 - Continue provider-native conversation state through the provider response id
 - Emit structured routing/orchestration trace updates as tool selection and execution progress
 - Return concise user-facing answers rather than raw backend transcripts
@@ -126,18 +138,19 @@ Key rule:
 
 Responsibilities:
 - Invoke the configured coding-agent backend in the target repo for code-change requests
+- Start or resume a dedicated `tmux` session for the repo task
 - Provide request context and capture subprocess outcome
 - Stream or publish incremental activity events so the TUI can show live progress
-- Use backend-native continuation when a stored non-interactive session reference is available
-- Record the result in conversation state and registry hints
+- Use backend-native continuation when a stored backend-native session reference is available inside the managed workspace
+- Record the result in conversation state, task state, and registry hints
 - Support backend switching between at least Claude Code and Codex without changing callers
 
 Key rule:
 - This path is only used when no suitable `just` command exists or when the router explicitly chooses code change.
-- The runner should use non-interactive backend entrypoints only. Interactive pickers and interactive terminal resume flows are out of scope for v1 orchestration.
+- The primary source of truth for a live coding session is the `tmux` workspace, not an intercepted transcript stream.
 
 Implementation note:
-- Keep backend invocation construction, subprocess streaming, and run-log persistence in dedicated helper modules so the runner class remains the orchestration layer for code-change execution.
+- Keep backend invocation construction, `tmux` session management, subprocess streaming, and run-log persistence in dedicated helper modules so the runner class remains the orchestration layer for code-change execution.
 
 ### `adapters`
 
@@ -160,6 +173,7 @@ Implementation note:
 
 Responsibilities:
 - Execute configured recurring `just` commands
+- Optionally create or update tracked tasks for scheduled work
 - Log results to youbot state
 - Surface recent scheduled activity in the UI
 
@@ -170,6 +184,7 @@ Key rule:
 
 Responsibilities:
 - Render the conversation pane
+- Render a task list or task-focused view of active and recent work
 - Render a dismissable repo list/status sidebar
 - Render a single selected-repo overview panel with a preview of current repo data only when a repo is active
 - Manage repo focus and screen switching
@@ -177,6 +192,7 @@ Responsibilities:
 - Display execution results and structured views
 - Show explicit in-flight UI state while a user message is being processed
 - Show a live coding-agent activity/log view for in-progress agent runs
+- Expose an attach action or command for an active repo `tmux` session
 - Surface a routing-trace pane on demand for the active chat turn
 
 Key rule:
@@ -206,11 +222,16 @@ Expected state areas:
   - adapter metadata
 - Conversation store:
   - youbot conversation history
+- Task store:
+  - explicit task records
+  - task-to-session links
+  - task-to-schedule-run links
 - Routing trace store:
   - recent per-turn routing/orchestration traces
   - current in-flight trace state
 - Coding-agent session registry:
-  - repo id to backend-specific session reference
+  - repo id to `tmux` session metadata
+  - optional backend-specific continuation reference
   - last used backend
   - session kind
   - short session purpose/status
@@ -252,11 +273,11 @@ flowchart TD
     P --> Q{Model requests tool call?}
     Q -->|list repos / commands / overview| R[Controller tool handler reads registry state]
     Q -->|run_repo_command| S[Executor runs just command in repo]
-    Q -->|run_code_change| T[Resolve change target and invoke adapter editor or coding agent]
+    Q -->|run_code_change| T[Resolve change target and create or update task]
     Q -->|No more tools| U[Return final assistant answer plus response id]
     R --> P
     S --> P
-    T --> V[Update backend-native session reference or adapter state]
+    T --> V[Launch or resume coding-agent tmux workspace or update adapter state]
     V --> P
 
     O --> W{Route decision}
@@ -312,7 +333,7 @@ sequenceDiagram
             Exec-->>Tools: execution result
         else run_code_change
             Tools->>Exec: coding_agent_runner.run_code_change(repo, request)
-            Exec->>Sessions: set_session(...) if backend session id available
+            Exec->>Sessions: set_session(...) with tmux metadata and backend session id if available
             Exec-->>Tools: coding-agent result
         else metadata lookup
             Tools-->>Chat: repo / command / session metadata
@@ -348,7 +369,7 @@ sequenceDiagram
 1. Youbot starts.
 2. Registry loads registered repos.
 3. Conversation store loads recent youbot conversation history.
-4. Coding-agent session registry loads repo-specific backend-native session references.
+4. Coding-agent session registry loads repo-specific `tmux` workspace session records and any available backend-native continuation metadata.
 5. Routing-trace store loads any recoverable in-flight or recent trace state needed for UI continuity.
 6. TUI opens in the global chat view with no repo selected by default.
 
@@ -363,7 +384,7 @@ Switching into a repo restores repo focus, command palette context, adapter stat
 5. The model issues tool calls to inspect repo state or execute actions.
 6. Tool handlers call executor, adapter-editing paths, or coding-agent runner as needed, while updating the routing trace with completed and pending steps.
 7. `openai_chat` returns the final user-facing answer and provider response id.
-8. Result is rendered in the TUI, appended to youbot conversation history, used to update any coding-agent session reference, and reloads adapter-backed workspace state when relevant.
+8. Result is rendered in the TUI, appended to youbot conversation history, used to update any coding-agent session and task records, and reloads adapter-backed workspace state when relevant.
 9. The routing trace is marked complete or failed and remains inspectable for the turn.
 
 Fallback behavior:
@@ -402,7 +423,7 @@ Initial error-handling rules:
 - Show failures inline in the conversation pane
 - Preserve the routing trace for the failed turn when possible so the user can see where execution stopped
 - Preserve raw stderr for inspection
-- Do not destroy conversation history or coding-agent session references on failure
+- Do not destroy conversation history, task records, or coding-agent session references on failure
 - Mark affected repo status in the registry
 
 ## Non-goals for v1

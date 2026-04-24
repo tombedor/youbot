@@ -2,11 +2,11 @@
 
 ## Overview
 
-Youbot is a stateful conversational agent and TUI that orchestrates a collection of specialized repos. The primary interface is natural language: you describe what you want, and youbot figures out which repo is relevant, what action to take, and whether that action requires running an existing command, querying data, or changing code.
+Youbot is a stateful coding-work orchestrator and TUI that coordinates a collection of specialized repos. Its primary job is to help the user start or resume coding-agent sessions, track repo work as explicit tasks, run existing repo capabilities, and schedule recurring jobs from one place.
 
-Youbot is not a file browser or a code editor. For browsing code, open the repo directly. Youbot's value is in surfacing data from your repos, triggering their capabilities, and requesting changes to them — all from a single interface, in plain language.
+Natural language remains useful as a control surface, but chat is not the product center. Youbot is not a file browser, code editor, or general chat viewer. For browsing code, open the repo directly. For active coding-agent work, the source of truth is the real terminal session running in `tmux`, which youbot starts, resumes, tracks, and helps the user attach to.
 
-V1 is repo-first because that matches the primary personal-workflow use case. The architecture should remain extensible enough to support non-repo CLI-backed integrations later, but repos are the initial unit of organization and focus.
+V1 is repo-first because that matches the primary personal-workflow use case. The architecture should remain extensible enough to support non-repo CLI-backed integrations later, but repos are the initial unit of organization and focus. Within that repo-first model, the core v1 value is orchestration: session lifecycle, task tracking, command execution, and job scheduling.
 
 ### Language boundary
 
@@ -23,13 +23,17 @@ Language-specific details belong only in clearly marked implementation-profile s
 
 Detailed user-driven flows are documented in `docs/user_stories.md`.
 
-### Conversational interface
+### Orchestrator interface
 
-The TUI uses a simple three-region shell: one chat panel, one dismissable sidebar, and one repo panel only when a repo is active. It starts in a global chat state with no repo selected by default. When no repo is selected, the repo panel is omitted entirely. Youbot keeps lightweight conversation history so earlier interactions can inform follow-up actions.
+The TUI uses a simple three-region shell: one chat/control panel, one dismissable sidebar, and one repo/work panel only when a repo is active. It starts in a global state with no repo selected by default. When no repo is selected, the repo panel is omitted entirely. Youbot keeps lightweight conversation history so earlier interactions can inform follow-up actions, but that history is orchestration context rather than the primary representation of ongoing coding work.
 
 When youbot is processing a user message, the UI must show a visible in-flight indicator in the chat area so the user can tell the request is actively being handled. A spinner or equivalent loading treatment is sufficient; silent waiting is not.
 
-When youbot launches a coding-agent run, the UI must also expose a live activity view for that run. The user should be able to see that a coding session has started, which backend and target it is using, and incremental log/output updates while the run is in progress. A completed summary alone is not sufficient for longer-running coding work.
+When youbot launches or resumes a coding-agent session, the UI must also expose a live activity view for that session. The user should be able to see that a coding session has started or resumed, which backend and target it is using, which task it is attached to, and incremental log/output updates while the run is in progress. A completed summary alone is not sufficient for longer-running coding work.
+
+When a coding-agent session is active, youbot must treat the `tmux` session as the primary control surface for agent interaction. The UI should expose an attach action or attach command that takes the user into that terminal session. Youbot may tail recent terminal output for observability, but it should not rely on intercepting or proxying every agent message as the primary interaction model.
+
+The UI must also expose a task list. Tasks are explicit tracked work items tied to repos, commands, coding sessions, or scheduled jobs. The user should be able to see which tasks are queued, running, blocked, or done, and which coding-agent or scheduled activity is attached to each task.
 
 The UI must also be able to surface a routing-trace pane for the active chat turn. This pane should show a decision tree of what the chat router or orchestrator has already done, what branches or decisions remain ahead, and what step is currently in progress. The trace is an observability surface for the user; it should explain the work without requiring inspection of raw logs.
 
@@ -37,11 +41,11 @@ When a repo is selected, the single repo panel should present a compact repo-spe
 
 Youbot itself does not need to maintain a separate persistent chat session for each repo in v1. Repo focus in the UI biases tool use, command discovery, and displayed views, but it does not imply a distinct repo-scoped youbot transcript.
 
-Primary chat orchestration should use the OpenAI API with tool calls. The chat model should inspect registered repos, list commands, run repo commands, and trigger code-change work through explicit tool calls rather than relying only on a local heuristic router.
+Primary chat orchestration should use the OpenAI API with tool calls. The chat model should inspect registered repos, list commands, run repo commands, create or update tasks, and trigger code-change work through explicit tool calls rather than relying only on a local heuristic router.
 
-For code-change work, youbot should continue backend-native coding-agent sessions when possible. Each repo may have an associated Claude Code or Codex session reference that youbot can reuse instead of reconstructing history itself.
+For code-change work, youbot should start or resume coding-agent sessions inside repo-owned `tmux` workspaces when possible. Each repo may have an associated Claude Code or Codex workspace session with backend metadata, terminal location, and any backend-native continuation handle that the backend exposes.
 
-Youbot should only drive automation-compatible, non-interactive coding-agent invocations. It should not depend on interactive pickers or interactive terminal session management inside Claude Code or Codex.
+Youbot should not depend on backend-specific interactive pickers. It may, however, depend on `tmux` as the terminal/session substrate for long-lived coding-agent work, because `tmux` is the explicit user-facing mechanism for attaching to ongoing sessions.
 
 Examples:
 - "what's on my to-do list?" → routes to life_admin, queries data, renders inline
@@ -54,17 +58,17 @@ Examples:
 
 When a change is requested:
 
-1. Check whether an existing `just` command covers the use case. If so, run it.
+1. Check whether an existing `just` command covers the use case. If so, run it and record or update the relevant task.
 2. Determine whether the change targets a child repo's implementation or a youbot-owned adapter/view.
 3. If the request is about how a repo is presented inside youbot's TUI, route the change to the relevant adapter/plugin in youbot-owned state by default rather than editing the child repo.
-4. If the request is about the child repo's own commands, data model, business logic, or outputs, invoke the configured coding-agent backend in that repo's directory, resuming an existing backend-native non-interactive session when appropriate.
+4. If the request is about the child repo's own commands, data model, business logic, or outputs, create or update a tracked task and invoke the configured coding-agent backend in that repo's `tmux` workspace, resuming an existing workspace session when appropriate.
 5. If the target is ambiguous, ask a clarification question before making changes.
 6. After an adapter/view change, reload the affected selected-repo workspace so the updated presentation is visible without restarting the app.
 7. After the change, evaluate whether this is likely to be requested again. If so, add a new `just` command that covers it when the capability belongs in the child repo rather than the adapter layer.
 
 The justfile is the canonical capability registry for each repo. If a capability is worth having, it should be expressible as a `just` command so both humans and agents can reach it without going through the conversational interface.
 
-For the `youbot` repo itself, developer-facing commands may also inspect youbot-owned runtime state to improve the product. In particular, a repo-local `review-usage` command should gather recent transcript and operational history from this installation's `~/.youbot/` state, build a bounded review artifact, and make that artifact available to the coding agent working on `youbot`.
+For the `youbot` repo itself, developer-facing commands may also inspect youbot-owned runtime state to improve the product. In particular, a repo-local `review-usage` command should gather recent transcript, task, session, scheduling, and operational history from this installation's `~/.youbot/` state, build a bounded review artifact, and make that artifact available to the coding agent working on `youbot`.
 
 The coding-agent backend must be configurable. Initial supported backends:
 - Claude Code
@@ -91,7 +95,7 @@ This should happen through an explicit developer-facing review command rather th
 The `review-usage` flow should:
 
 1. Read a bounded slice of youbot-owned runtime state from `~/.youbot/`.
-2. Include recent conversation history, command runs, coding-agent runs, and any available live activity/log records.
+2. Include recent conversation history, command runs, coding-agent runs, task records, and any available live activity/log records.
 3. Write a derived review bundle for the current review invocation.
 4. Invoke the coding agent on the `youbot` repo with instructions to analyze that bundle and suggest concrete product, routing, adapter, and UX improvements.
 
@@ -108,10 +112,11 @@ The review bundle is the preferred analysis surface. Raw state files remain the 
 - Repo registry: stores repo metadata, discovered commands, routing hints, coding-agent session references, and adapter configuration
 - Adapter loader: discovers and loads youbot-owned adapters for registered repos
 - Scheduler: runs `just` commands on configured schedules
-- Coding-agent runner: invokes the configured coding-agent backend in a repo directory
+- Coding-agent runner: invokes the configured coding-agent backend in a repo directory inside a managed `tmux` session
 - Conversation store: persists lightweight youbot conversation history
 - Routing-trace store: persists or publishes structured per-turn routing/orchestration trace state for UI inspection
-- Coding-agent session registry: persists backend-native session references per repo
+- Coding-agent session registry: persists repo `tmux` attachment info and backend-native continuation metadata when available
+- Task store: persists tracked work items and their linkage to repos, commands, coding sessions, and scheduled jobs
 - Agent backend config: stores backend selection and backend-specific invocation settings
 - Usage review flow: generates bounded review bundles from youbot-owned runtime state for developer analysis of the `youbot` repo
 
@@ -151,13 +156,13 @@ When in the job_search view, the palette shows job_search commands plus globals.
 
 Adapter commands can be a mix of:
 - Wrappers around `just` commands (auto-discovered from the justfile)
-- UI-only actions that have no CLI equivalent (e.g., opening a sub-view, filtering the current table)
+- UI-only actions that have no CLI equivalent (e.g., opening a sub-view, filtering the current table, attaching to an active `tmux` session)
 
 Youbot also discovers available `just` commands by reading the repo's justfile directly, for use in routing and the change request flow.
 
 ### Data layer pattern
 
-Integrated repos expose capabilities through `just` commands. Youbot consumes those capabilities and renders its own UI around them.
+Integrated repos expose capabilities through `just` commands. Youbot consumes those capabilities and renders its own UI around them. For coding work, the orchestrator layer also owns task state and session lifecycle above those repo capabilities.
 
 Managed repos created by youbot should still keep core application logic separate from CLI entrypoints, but that is a managed-repo standard rather than a universal integration requirement.
 
@@ -200,8 +205,9 @@ For each integrated repo, youbot may store:
 - Routing hints and examples of successful prompts
 - Repo classification (`integrated` vs `managed`)
 - Last active coding-agent backend
-- Coding-agent session reference, if the backend supports continuation
-- Coding-agent session kind (`noninteractive` by default for youbot-driven runs)
+- Coding-agent session reference, including `tmux` attachment metadata and any backend-native continuation handle
+- Coding-agent session kind (`tmux_managed` by default for youbot-driven runs)
+- Active or recent task linkage
 - Adapter/plugin state for local TUI rendering
 - Preferred coding-agent backend override, if different from the global default
 

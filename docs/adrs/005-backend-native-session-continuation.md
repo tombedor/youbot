@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by ADR 007
 
 ## Context
 
@@ -12,23 +12,9 @@ That would duplicate the coding agent's own session model and create a fragile a
 
 ## Decision
 
-Youbot will use backend-native coding-agent continuation whenever the backend supports it.
+This ADR is superseded by [ADR 007](./007-tmux-managed-coding-agent-sessions.md).
 
-For each repo, youbot stores only a minimal session reference such as:
-
-- backend name
-- session kind
-- backend-native session id
-- short purpose/summary
-- last used timestamp
-
-When continuing code-change work, youbot should call the coding agent's own continuation mechanism rather than rebuilding context from a stored transcript.
-
-Youbot will only orchestrate automation-compatible, non-interactive coding-agent flows. Interactive session pickers and interactive terminal resume workflows are not part of the orchestration path.
-
-Example:
-- `claude --resume <SESSION_ID> --print "..."`
-- `codex exec resume <SESSION_ID> "..."`
+The original decision to rely primarily on backend-native non-interactive continuation was replaced once the product direction shifted toward explicit session orchestration with `tmux` attachment. Backend-native continuation handles remain useful metadata, but they are no longer the primary session anchor in the architecture.
 
 ## Consequences
 

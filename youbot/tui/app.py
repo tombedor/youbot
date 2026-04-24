@@ -18,7 +18,6 @@ from youbot.tui.rendering import (
     build_activity_panel,
     build_repo_panel,
     repo_header,
-    scope_heights,
 )
 
 
@@ -229,7 +228,4 @@ class YoubotApp(App[None]):
 
     def _update_scope_layout(self) -> None:
         repo_shell = self.query_one("#repo-shell", Vertical)
-        chat_shell = self.query_one("#chat-shell", Vertical)
-        repo_height, chat_height = scope_heights(self.active_repo_id)
-        repo_shell.styles.height = repo_height
-        chat_shell.styles.height = chat_height
+        repo_shell.display = self.active_repo_id is not None

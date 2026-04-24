@@ -72,6 +72,8 @@ class AppController:
         )
 
     def set_active_repo(self, repo_id: str | None) -> None:
+        if repo_id != self.active_repo_id:
+            self.conversation_store.set_last_response_id(None)
         self.active_repo_id = repo_id
 
     def get_repo(self, repo_id: str) -> RepoRecord | None:

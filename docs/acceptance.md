@@ -19,7 +19,15 @@ This document defines observable behaviors that must hold true for the implement
 - Given no prior state, first launch creates empty youbot conversation history.
 - Given prior user interactions, restarting youbot restores recent youbot conversation history.
 - Given a stored coding-agent session reference for a repo, restarting youbot restores that session reference.
-- Given a code-change action, the backend-native session id is stored or updated rather than reconstructing a transcript inside youbot.
+- Given a code-change action, the repo session record stores `tmux` attachment metadata and any discovered backend-native session id rather than reconstructing a transcript inside youbot.
+- Given a live coding-agent session, the stored session record includes the `tmux` session name used to attach to that work.
+
+## Task tracking
+
+- Given a user-triggered command run, youbot creates or updates a tracked task for that work.
+- Given a user-triggered code-change request, youbot creates a tracked task linked to the coding-agent session.
+- Given a scheduled run, youbot creates or updates a task or run record associated with the configured job.
+- Task status changes are persisted independently of whether the initiating chat message remains visible in the UI.
 
 ## TUI shell
 
@@ -37,6 +45,7 @@ This document defines observable behaviors that must hold true for the implement
 - When a coding-agent run starts, the UI shows a live activity view tied to that run rather than only a final summary.
 - While a coding-agent run is in progress, incremental session/log output is visible to the user.
 - The live activity view shows at least the target, backend, and whether a coding session has started.
+- When a coding-agent session is active, the UI exposes an attach action or attach command for the underlying `tmux` session.
 - The UI can surface a routing-trace pane for the active chat turn.
 - The routing-trace pane shows which routing/orchestration steps have completed, which step is currently running, and which anticipated decisions or branches remain pending.
 - If a routed turn fails mid-flight, the last available routing trace remains inspectable rather than disappearing.
@@ -69,8 +78,8 @@ This document defines observable behaviors that must hold true for the implement
 
 - Given a request not covered by an existing command, the router may return `action_type = "code_change"`.
 - A code-change request launches the configured coding-agent backend in the target repo directory.
-- If a stored backend-native session id exists for that repo and backend, the runner uses the backend's own continuation mechanism.
-- The coding-agent runner uses non-interactive backend invocation paths only.
+- A code-change request launches or resumes the coding-agent backend inside a managed `tmux` session for the target repo.
+- If a stored backend-native session id exists for that repo and backend, the runner uses the backend's own continuation mechanism inside that managed workspace when possible.
 - Switching the configured coding-agent backend from Claude Code to Codex does not require changes to calling code.
 - A failure to launch the configured coding-agent backend is surfaced to the user and recorded in session history.
 - Given a request to change how a repo is displayed inside youbot, the system targets the youbot-owned adapter/plugin rather than the child repo by default.
@@ -98,6 +107,7 @@ This document defines observable behaviors that must hold true for the implement
 
 - A scheduled repo command can be configured in youbot without editing the child repo.
 - A scheduled run stores its result in youbot state.
+- A scheduled run is visible through task state or scheduler history in the UI.
 - A failed scheduled run does not corrupt conversation history, coding-agent session references, or registry data.
 
 ## Failure tolerance

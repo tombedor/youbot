@@ -27,6 +27,8 @@ Suggested layout:
     routing_hints.json
   conversation/
     history.json
+  tasks/
+    tasks.json
   coding_agent_sessions/
     sessions.json
   activity/
@@ -122,18 +124,37 @@ Contents include:
 
 ### `coding_agent_sessions/sessions.json`
 
-Stores backend-native coding-agent session references by repo.
+Stores coding-agent session records by repo.
 
 Contents may include:
 - repo id
 - backend name
 - session kind
-- session id
+- `tmux` session name
+- `tmux` window or pane metadata
+- optional backend-native session id
+- attached task id
 - purpose summary
 - status
 - last used timestamp
 
-This registry stores continuation handles for automation-compatible runs, such as a Codex non-interactive session id that can later be resumed via backend-native commands like `codex exec resume <UUID>`.
+This registry stores the `tmux` attachment handle as the primary session anchor plus any backend-native continuation metadata that helps resume the underlying coding agent.
+
+## Task files
+
+### `tasks/tasks.json`
+
+Stores tracked work items.
+
+Contents may include:
+- task id
+- title
+- repo id
+- task kind
+- status
+- origin
+- linked session or schedule job ids
+- created, updated, and completed timestamps
 
 ## Live activity files
 
@@ -147,7 +168,9 @@ Contents may include:
 - target kind (`repo` or `adapter`)
 - backend name
 - request summary
-- session id
+- `tmux` session name
+- backend session id
+- task id
 - status
 - recent streamed entries
 
@@ -158,6 +181,7 @@ Append-only record of coding-agent activity events.
 Each line may contain:
 - run id
 - event kind such as `started`, `output`, `session_id`, or `finished`
+- `tmux` session name
 - stream name for output events
 - content
 - timestamp
@@ -225,6 +249,7 @@ Contents may include:
 - job id
 - repo id
 - command name
+- related task id
 - started/finished timestamps
 - exit code
 - brief summary
@@ -249,6 +274,8 @@ Append-only record of coding-agent invocations.
 Each line should contain:
 - repo id
 - backend name
+- task id
+- `tmux` session name
 - request summary
 - exit code
 - timestamps
@@ -288,7 +315,8 @@ These bundles are derived artifacts. They are intended to help the `youbot` codi
 - Config is user-owned input.
 - Registry files are youbot-owned derived state.
 - Conversation files are the source of truth for youbot conversational memory.
-- Coding-agent session registry is the source of truth for backend-native continuation handles.
+- Task files are the source of truth for durable tracked work items.
+- Coding-agent session registry is the source of truth for `tmux` attachment metadata and optional backend-native continuation handles.
 - Adapter files are the source of truth for TUI rendering hints.
 - Run logs are append-only operational history.
 - Review bundles are derived developer-facing artifacts, not source-of-truth state.

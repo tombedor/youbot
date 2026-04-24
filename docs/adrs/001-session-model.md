@@ -12,7 +12,7 @@ Youbot is a conversational orchestrator spanning multiple repos. The first desig
 
 Youbot will keep lightweight conversation history for orchestration and routing, but it will not model repo-specific persistent chat sessions as a first-class concept in v1.
 
-Repo-specific continuation is handled separately through backend-native coding-agent session references.
+Repo-specific continuation is handled separately through tracked coding-agent session records, with `tmux` workspace attachment as the primary continuation surface.
 
 ## Consequences
 

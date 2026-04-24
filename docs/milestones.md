@@ -25,13 +25,14 @@ Non-goals:
 - routing
 - session persistence
 
-## Milestone 2: Conversation and coding-agent continuation state
+## Milestone 2: Conversation, task, and session state
 
 Goal:
-- Persist youbot conversation history and repo-specific coding-agent session references.
+- Persist youbot conversation history, explicit task records, and repo-specific coding-agent session references.
 
 Includes:
 - conversation store
+- task store
 - coding-agent session registry
 - append/read operations
 - startup restore behavior
@@ -39,34 +40,58 @@ Includes:
 
 Done when:
 - a user interaction can be recorded in youbot conversation history
-- a repo can store a coding-agent session reference
-- restarting the app restores conversation history and coding-agent session references
+- a repo can store a coding-agent session reference with `tmux` metadata
+- a unit of work can be represented as a task
+- restarting the app restores conversation history, tasks, and coding-agent session references
 
 Non-goals:
 - reconstructing full coding-agent transcripts
 - session branching UI
 
-## Milestone 3: Minimal Textual shell
+## Milestone 3: Coding-session launch and attach
 
 Goal:
-- Bring up the TUI with repo switching and a conversation pane.
+- Launch or resume coding-agent work inside `tmux` and expose attachment details.
+
+Includes:
+- `tmux` session creation and lookup
+- coding-agent backend launch in repo directory
+- session registry updates
+- attach-command generation
+
+Done when:
+- a repo code-change task starts a backend in a named `tmux` session
+- the stored session record includes enough metadata to reattach later
+- a user can obtain the command needed to attach to that running session
+
+Non-goals:
+- full TUI shell
+- routing
+
+## Milestone 4: Minimal Textual shell
+
+Goal:
+- Bring up the TUI with repo switching, conversation display, task visibility, and session attachment affordances.
 
 Includes:
 - app shell
 - repo sidebar
 - active repo selection
 - basic conversation display
+- basic task list
+- active-session attach actions
 
 Done when:
 - the user can see the configured repos
 - switching repos changes active focus and available commands
 - stored conversation history is rendered
+- active tasks and active coding sessions are visible
 
 Non-goals:
 - routing
 - structured data views
 
-## Milestone 4: Command execution path
+## Milestone 5: Command execution path
 
 Goal:
 - Execute selected `just` commands inside the active repo and render results.
@@ -75,17 +100,34 @@ Includes:
 - executor
 - basic command palette integration
 - result capture and display
+- task updates for command work
 
 Done when:
 - a repo command can be launched from the UI
 - stdout, stderr, and exit status are surfaced
-- execution events are appended to the relevant session
+- execution events are appended to the relevant task history
 
 Non-goals:
 - natural-language routing
 - adapter rendering beyond basic text
 
-## Milestone 5: Primary chat orchestration
+## Milestone 6: Scheduling
+
+Goal:
+- Execute configured recurring commands and surface their results.
+
+Includes:
+- scheduler config
+- recurring job runner
+- recent job status display
+- task or run-history integration for scheduled work
+
+Done when:
+- a scheduled `just` command runs without manual intervention
+- the result is stored and visible in the UI
+- scheduled work appears in recent task or scheduler history
+
+## Milestone 7: Primary chat orchestration
 
 Goal:
 - Route natural-language requests through the primary chat orchestrator to repo + action + command.
@@ -107,26 +149,27 @@ Non-goals:
 - code-change flow
 - learned routing improvements
 
-## Milestone 6: Code-change flow
+## Milestone 8: Code-change flow
 
 Goal:
-- Invoke a configurable coding-agent backend inside a repo when no existing command satisfies the request.
+- Invoke a configurable coding-agent backend inside a repo when no existing command satisfies the request, using the managed `tmux` workspace model.
 
 Includes:
 - backend abstraction
 - subprocess integration
+- task creation and linking
 - request/context handoff
 - result capture
 
 Done when:
-- a routed `code_change` action launches the configured backend in the repo directory
+- a routed `code_change` action launches or resumes the configured backend in the repo directory's managed `tmux` workspace
 - switching between Claude Code and Codex is a config change
-- completion or failure is surfaced in the conversation pane
+- completion or failure is surfaced in the conversation pane and task state
 
 Non-goals:
 - automatic post-change command generation
 
-## Milestone 7: Adapter-backed views
+## Milestone 9: Adapter-backed views
 
 Goal:
 - Introduce youbot-owned adapters that render structured repo views.
@@ -144,21 +187,7 @@ Done when:
 Non-goals:
 - arbitrary plugin execution from child repos
 
-## Milestone 8: Scheduling
-
-Goal:
-- Execute configured recurring commands and surface their results.
-
-Includes:
-- scheduler config
-- recurring job runner
-- recent job status display
-
-Done when:
-- a scheduled `just` command runs without manual intervention
-- the result is stored and visible in the UI
-
-## Milestone 9: Managed repo scaffolding
+## Milestone 10: Managed repo scaffolding
 
 Goal:
 - Initialize a new managed repo with the stricter standard.

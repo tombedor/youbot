@@ -40,6 +40,10 @@ Suggested shape:
   },
   "coding_agent": {
     "default_backend": "codex",
+    "tmux": {
+      "enabled": true,
+      "session_prefix": "youbot"
+    },
     "backends": {}
   }
 }
@@ -86,6 +90,7 @@ Suggested shape:
     {
       "job_id": "job_search_nightly",
       "repo_id": "job_search",
+      "job_kind": "command",
       "command_name": "pipeline-status",
       "schedule_type": "cron",
       "cron": "0 21 * * *"
@@ -97,8 +102,11 @@ Suggested shape:
 Required fields per job:
 - `job_id`
 - `repo_id`
-- `command_name`
+- `job_kind`
 - `schedule_type`
+
+Additional required fields:
+- `command_name` when `job_kind` is `command`
 
 V1 schedule types:
 - `cron`
@@ -116,14 +124,20 @@ Suggested shape:
 ```json
 {
   "default_backend": "codex",
+  "tmux": {
+    "enabled": true,
+    "session_prefix": "youbot"
+  },
   "backends": {
     "codex": {
       "command_prefix": ["codex"],
-      "default_args": []
+      "default_args": [],
+      "session_transport": "tmux"
     },
     "claude_code": {
       "command_prefix": ["claude"],
-      "default_args": []
+      "default_args": [],
+      "session_transport": "tmux"
     }
   }
 }
@@ -131,10 +145,12 @@ Suggested shape:
 
 Required fields:
 - `default_backend`
+- `tmux`
 - `backends`
 
 Rules:
 - `default_backend` must be one of the configured backend keys
+- `tmux.enabled` must be `true` in v1 because managed coding sessions depend on `tmux`
 - each backend must declare `command_prefix`
 - repo-specific backend overrides are stored in state metadata, not necessarily in config
 
@@ -180,14 +196,20 @@ These are process environment settings rather than file-based config.
   },
   "coding_agent": {
     "default_backend": "codex",
+    "tmux": {
+      "enabled": true,
+      "session_prefix": "youbot"
+    },
     "backends": {
       "codex": {
         "command_prefix": ["codex"],
-        "default_args": []
+        "default_args": [],
+        "session_transport": "tmux"
       },
       "claude_code": {
         "command_prefix": ["claude"],
-        "default_args": []
+        "default_args": [],
+        "session_transport": "tmux"
       }
     }
   }
