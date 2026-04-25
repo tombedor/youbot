@@ -30,6 +30,7 @@ Actions available:
 user prompts in succession:
 - if repo exists already? if so what location?
 - create a new repo? if so, where?
+    (options below should *only be surfaced if we are creating a new repo)
     - for specified repo, option for a) always create new repos here b) just create this one here, c) just create this one and dont ask again
     - what programming language?
         - for programming language, a reasonable default .gitignore is created
