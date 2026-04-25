@@ -49,7 +49,7 @@ class TmuxClient:
         if session is None:
             return ""
         pane = session.active_window.active_pane
-        return pane.capture_pane(as_string=True) or ""
+        return "\n".join(pane.capture_pane())
 
     def kill_session(self, name: str) -> None:
         session = self.get_session(name)

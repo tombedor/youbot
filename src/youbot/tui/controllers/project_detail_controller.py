@@ -26,7 +26,6 @@ class ProjectDetailController:
         def on_create(title: str) -> None:
             task = Task(title=title)
             self._task_repo().add(task)
-            self._view.app.call_later(self.refresh)  # type: ignore[attr-defined]
 
         self._view.app.push_screen(NewTaskView(on_create))
 
@@ -49,7 +48,8 @@ class ProjectDetailController:
         if existing is None:
             task.sessions.append(agent_session)
             self._task_repo().update(task)
-        app.session_manager.attach_session(agent_session)
+        with app.suspend():
+            app.session_manager.attach_session(agent_session)
 
     def start_background_session(self, task: Task) -> None:
         app = self._view.app  # type: ignore[attr-defined]
@@ -65,4 +65,4 @@ class ProjectDetailController:
         if existing is None:
             task.sessions.append(agent_session)
             self._task_repo().update(task)
-        self.refresh()
+        app.call_later(self.refresh)

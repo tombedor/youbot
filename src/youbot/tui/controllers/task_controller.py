@@ -52,4 +52,4 @@ class TaskController:
         if task.session_for(agent) is None:
             task.sessions.append(agent_session)
             self._task_repo().update(task)
-        self.refresh()
+        app.call_later(self.refresh)

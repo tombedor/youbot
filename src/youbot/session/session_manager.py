@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from pathlib import Path
 
 from youbot.notifications.notifier import Notifier
@@ -19,6 +20,8 @@ AGENT_COMMANDS: dict[CodingAgent, str] = {
     CodingAgent.CLAUDE_CODE: "claude",
     CodingAgent.CODEX: "codex",
 }
+
+logger = logging.getLogger(__name__)
 
 
 class SessionManager:
@@ -58,6 +61,9 @@ class SessionManager:
                 self._monitor_background(project_name, task, agent_session)
             )
             self._monitoring[name] = monitor_task
+            monitor_task.add_done_callback(
+                lambda task, session_name=name: self._on_monitor_done(session_name, task)
+            )
 
         return agent_session
 
@@ -107,6 +113,19 @@ class SessionManager:
                         f"Background session for '{task.title}' appears stuck.",
                     )
                     return
+
+    def _on_monitor_done(self, session_name: str, task: asyncio.Task[None]) -> None:
+        self._monitoring.pop(session_name, None)
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            logger.exception("Background session monitor failed for %s", session_name)
+            self._notifier.notify(
+                "Background session failed",
+                f"Monitoring failed for tmux session '{session_name}'.",
+            )
 
     def _looks_like_waiting(self, content: str, agent: CodingAgent) -> bool:
         last_line = content.strip().splitlines()[-1] if content.strip() else ""
